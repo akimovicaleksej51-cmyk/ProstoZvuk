@@ -1,5 +1,5 @@
-// версия: 431c572adf
-const PREFIX='svet-', V=PREFIX+'431c572adf', FILES=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+// версия: 04b70ab578
+const PREFIX='svet-', V=PREFIX+'04b70ab578', FILES=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{ e.waitUntil(caches.open(V).then(c=>c.addAll(FILES.map(u=>new Request(u,{cache:'reload'}))))) });
 self.addEventListener('activate',e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith(PREFIX)&&k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim())) });
 self.addEventListener('message',e=>{ if(e.data==='skip') self.skipWaiting() });

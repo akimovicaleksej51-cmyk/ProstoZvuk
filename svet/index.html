@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Свет Просто</title>
+<title>Просто Свет</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
@@ -324,7 +324,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Свет Просто <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.20.21</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.20.21а</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -810,8 +810,8 @@ window.makeRenderer=function(root,opt){
 (function(){
   if(location.hash!=='#output'&&!window.SP_OUTPUT) return;
   window.OUTPUT_MODE=true;
-  document.title='Экран — Свет Просто';
-  document.body.innerHTML='<div id="scr"></div><div id="hint"><b>Экран «Свет Просто»</b><span>Перетащите это окно на проектор и щёлкните по нему — оно развернётся на весь экран.<br>Клавиша F — во весь экран и обратно.</span></div>';
+  document.title='Экран — Просто Свет';
+  document.body.innerHTML='<div id="scr"></div><div id="hint"><b>Экран «Просто Свет»</b><span>Перетащите это окно на проектор и щёлкните по нему — оно развернётся на весь экран.<br>Клавиша F — во весь экран и обратно.</span></div>';
   const st=document.createElement('style');
   st.textContent='html,body{margin:0;padding:0!important;background:#000;height:100%;overflow:hidden;cursor:default}#scr{position:fixed;inset:0}#hint{position:fixed;inset:auto 0 0 0;display:flex;flex-direction:column;gap:6px;align-items:center;padding:24px;color:#bbb;font:15px/1.4 system-ui,sans-serif;text-align:center;background:linear-gradient(transparent,rgba(0,0,0,.85));transition:opacity .4s;z-index:10}#hint b{color:#f0a640;font-size:17px}body.fs #hint{opacity:0;pointer-events:none}body.idle{cursor:none}';
   document.head.appendChild(st);
@@ -1651,7 +1651,7 @@ setInterval(()=>{ try{ BC&&BC.postMessage({__main:MAIN_ID}) }catch(e){} },3000);
 function buildOutputWin(w){
   const code=document.getElementById('spOutScript').textContent;
   const d=w.document; d.open();
-  d.write('<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Экран — Свет Просто</title></head><body><script>window.SP_OUTPUT=true;<\/script><script>'+code.replace(/<\/script/gi,'<\\/script')+'<\/script></body></html>');
+  d.write('<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Экран — Просто Свет</title></head><body><script>window.SP_OUTPUT=true;<\/script><script>'+code.replace(/<\/script/gi,'<\\/script')+'<\/script></body></html>');
   d.close();
   if(!w.OUTPUT_MODE) throw new Error('окно экрана не запустилось');
 }
@@ -1675,7 +1675,7 @@ $('#mTest').onclick=()=>{
   const c=document.createElement('canvas'); c.width=1920; c.height=1080; const g=c.getContext('2d');
   const cols=['#fff','#ff0','#0ff','#0f0','#f0f','#f00','#00f']; cols.forEach((col,i)=>{ g.fillStyle=col; g.fillRect(i*1920/7,0,1920/7+1,1080) });
   g.fillStyle='rgba(0,0,0,.75)'; g.fillRect(260,380,1400,320); g.fillStyle='#fff'; g.textAlign='center';
-  g.font='bold 110px sans-serif'; g.fillText('ЭКРАН РАБОТАЕТ',960,540); g.font='48px sans-serif'; g.fillText('Свет Просто · '+new Date().toLocaleTimeString('ru-RU'),960,630);
+  g.font='bold 110px sans-serif'; g.fillText('ЭКРАН РАБОТАЕТ',960,540); g.font='48px sans-serif'; g.fillText('Просто Свет · '+new Date().toLocaleTimeString('ru-RU'),960,630);
   c.toBlob(b=>{ const f=new File([b],'__test.png',{type:'image/png'}); MF.set(f.name,f); scrSend({type:'files',files:[f]});
     const top=MED().layers[0].id, z=1000;
     scrSend({type:'trigger',layer:'__test',z,clip:{file:f.name,kind:'image',fit:'fill',scale:100,x:0,y:0,rot:0,opacity:100,trans:'cut',dur:0},offset:0,instant:true});
@@ -1938,7 +1938,7 @@ if(LOCAL){
   }catch(e){}
 }
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;$('#installBtn').hidden=false});
-window.addEventListener('appinstalled',()=>{$('#installBtn').hidden=true;toast('Готово: «Свет Просто» установлен. Значок — в меню «Пуск» или в Launchpad.')});
+window.addEventListener('appinstalled',()=>{$('#installBtn').hidden=true;toast('Готово: «Просто Свет» установлен. Значок — в меню «Пуск» или в Launchpad.')});
 $('#installBtn').onclick=async()=>{ if(!installEvt) return; installEvt.prompt(); try{await installEvt.userChoice}catch(e){} installEvt=null; $('#installBtn').hidden=true };
 
 // ---------- спектакль: запись и воспроизведение ----------
