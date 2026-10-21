@@ -102,6 +102,11 @@ nav.tabs button[aria-selected=true]{color:var(--fg);background:var(--panel);bord
 .peq-side #peqBandOn.on{background:#3fe0d0;border-color:#3fe0d0;color:#032}.peq-side #peqBandOn,.peq-side #peqBandReset{background:#0d2f33;border-color:#1d5a5c;color:#bfeee9}
 .peq-top select{background:#0d2f33;border-color:#1d5a5c;color:#bfeee9}
 .mlist{display:flex;flex-direction:column;gap:6px}
+.eqcue{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin:0 0 10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.eqcue-t{font-weight:600;white-space:nowrap}
+.eqcue .seek{height:34px;flex:1 1 220px;min-width:160px}
+#eqCueSong{max-width:280px}
+.cueed{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
 .mxlist{display:flex;flex-direction:column;gap:6px}
 .mclip{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
 .mclip .nm{flex:1 1 220px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -127,7 +132,7 @@ input.tin{width:86px;font-family:var(--f-mono)} input.nin{width:72px;font-family
 <body>
 <div class="app">
 <header>
-  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.3</span></div>
+  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.4</span></div>
   <div class="row">
     <button id="addBtn" title="Добавить песни">＋ Песни…</button>
     <button id="addDirBtn" title="Добавить папку с музыкой">＋ Папка…</button>
@@ -188,12 +193,13 @@ input.tin{width:86px;font-family:var(--f-mono)} input.nin{width:72px;font-family
 
 <!-- РЕДАКТОР -->
 <section class="tab panel" id="tab-ed">
+<div id="edBox">
   <div class="row" style="justify-content:space-between;margin-bottom:8px">
     <div><b id="edName">Песня не выбрана</b> <span class="muted mono" id="edSel"></span></div>
     <div class="row"><button id="edPlaySel" title="Проиграть выделенное">▶ Выделенное</button><button id="edLoop" class="blue" title="Повторять выделенное">🔁 Петля</button><button id="edZoomIn">＋</button><button id="edZoomOut">－</button><button id="edZoomAll">Вся песня</button></div>
   </div>
   <div class="wave" id="wave"><canvas id="waveC"></canvas></div>
-  <p class="hint" style="margin:8px 0">Тяните мышью по волне — выделить кусок. Щелчок — перейти. Колесо — приблизить, Shift+колесо — листать, «＋» — сразу к выделенному куску. <span class="kbd">Delete</span> — вырезать выделенное, <span class="kbd">Ctrl</span>+<span class="kbd">Z</span> — отменить.</p>
+  <p class="hint" style="margin:8px 0" id="edHint">Тяните мышью по волне — выделить кусок. Щелчок — перейти. Колесо — приблизить, Shift+колесо — листать, «＋» — сразу к выделенному куску. <span class="kbd">Delete</span> — вырезать выделенное, <span class="kbd">Ctrl</span>+<span class="kbd">Z</span> — отменить.</p>
   <div class="grid2">
     <div class="stack">
       <div class="tools" style="margin-bottom:8px">
@@ -223,6 +229,7 @@ input.tin{width:86px;font-family:var(--f-mono)} input.nin{width:72px;font-family
       <div class="prog" id="edProg" style="margin-top:10px" hidden><i></i></div>
     </div>
   </div>
+</div>
 </section>
 
 <!-- СКЛЕЙКА -->
@@ -265,6 +272,11 @@ input.tin{width:86px;font-family:var(--f-mono)} input.nin{width:72px;font-family
       <label class="knob" style="max-width:360px;margin-top:6px"><span>Громкость зала в наушниках</span><input id="cueDupVol" type="range" min="0" max="100" value="50"><input class="v" id="cueDupVolV" type="text" inputmode="decimal" title="Можно вписать число и нажать Enter"></label>
     </div>
   </div>
+  <div class="cueed">
+    <h3 style="margin:0 0 4px">Правка песни из подслушки</h3>
+    <p class="hint" style="margin:0 0 10px" id="cueEdNote">Всё как во вкладке «Редактор» — выделить, вырезать (<span class="kbd">Delete</span>), подрезать, плавно ввести и увести, сохранить. Слушается только в наушниках, зал ничего не слышит.</p>
+    <div id="cueEdSlot"></div>
+  </div>
 </section>
 
 <!-- ЭКВАЛАЙЗЕР -->
@@ -272,9 +284,22 @@ input.tin{width:86px;font-family:var(--f-mono)} input.nin{width:72px;font-family
   <div class="peq-top" style="margin-bottom:10px">
     <button id="eqOn" class="on">EQ включён</button>
     <button id="eqRta" class="on" title="Спектр песни под кривой">RTA</button>
-    <select id="eqPreset"></select>
+    <select id="eqPreset" title="Готовые и ваши пресеты"></select>
+    <button id="eqSavePre" title="Сохранить текущие настройки как свой пресет">💾 Сохранить пресет</button>
+    <button id="eqDelPre" title="Удалить выбранный свой пресет">🗑</button>
+    <button id="eqExpPre" title="Сохранить свои пресеты в файл — например, чтобы перенести на другой компьютер">⬇ В файл</button>
+    <button id="eqImpPre" title="Загрузить пресеты из файла">⬆ Из файла</button><input id="eqImpFile" type="file" accept=".json,application/json" hidden>
     <span class="hint" style="flex:1">Тяните точки на графике: влево-вправо — частота, вверх-вниз — усиление. Колесо мыши над точкой — ширина. Двойной щелчок по точке — выключить/включить полосу.</span>
     <button id="eqReset" title="Все полосы в ноль">Сбросить</button>
+  </div>
+  <div class="eqcue">
+    <span class="eqcue-t">🎧 Подслушка с эквалайзером</span>
+    <select id="eqCueSong" title="Песня для прослушивания в наушниках"></select>
+    <button id="eqCuePlay" class="on">▶ Слушать</button>
+    <div class="seek" id="eqCueSeek"><canvas id="eqCueC"></canvas></div>
+    <span class="mono" id="eqCueTime">0:00 / 0:00</span>
+    <button id="eqAB" title="Сравнить: как звучит без эквалайзера">A/B: с EQ</button>
+    <label class="row hint" style="gap:6px"><input id="cueEqOn" type="checkbox"> EQ в наушниках</label>
   </div>
   <div class="peq">
     <div class="peq-graph" id="peqG"><canvas id="peqC"></canvas></div>
@@ -1408,7 +1433,7 @@ const PRE=(lc,ls,p2,p3,p4,hs)=>{ const b=PEQ0(); [lc,ls,p2,p3,p4,hs].forEach((v,
 const PRESETS={'Ровно':PRE(),'Голос':PRE({on:true,f:100},{g:-2},{f:300,g:-2,q:1.4},{f:2500,g:3,q:1},{f:5500,g:2,q:1.4},{f:10000,g:2}),'Больше баса':PRE(null,{f:90,g:6}),'Больше верха':PRE(null,null,null,null,null,{f:7000,g:6}),
   'Зал (сцена)':PRE({on:true,f:60},{g:1},{f:250,g:-2,q:1},{f:2500,g:1.5,q:1},null,{g:2}),'Убрать гул':PRE({on:true,f:120,q:.9},null,{f:250,g:-3,q:1.5}),'Рок':PRE(null,{g:4},{f:500,g:-2,q:1},{f:2500,g:2,q:1},null,{g:4}),
   'Поп':PRE(null,{g:2},{f:700,g:1.5,q:.8},{f:2500,g:2.5,q:1},null,{g:2}),'Танцевальная':PRE(null,{f:80,g:6},{f:400,g:-2,q:1},null,{f:6000,g:3,q:1},{g:3}),'Тихо ночью':PRE(null,{g:2},null,null,{f:4000,g:-3,q:1},{g:-3})};
-const S=Object.assign({vol:85,bal:0,peq:PEQ0(),eqOn:true,rta:true,preset:'Ровно',shuffle:false,repeat:0,devMain:'',devCue:'',cueVol:80,cueDupVol:50},(()=>{try{return JSON.parse(localStorage.getItem(KEY+'-s')||'{}')}catch(e){return{}}})());
+const S=Object.assign({vol:85,bal:0,peq:PEQ0(),eqOn:true,rta:true,preset:'Ровно',shuffle:false,repeat:0,devMain:'',devCue:'',cueVol:80,cueDupVol:50,myPre:{},cueEq:true},(()=>{try{return JSON.parse(localStorage.getItem(KEY+'-s')||'{}')}catch(e){return{}}})());
 if(!Array.isArray(S.peq)||S.peq.length!==6) S.peq=PEQ0();
 const saveS=()=>{try{localStorage.setItem(KEY+'-s',JSON.stringify(S))}catch(e){}};
 // ---------- хранение песен (IndexedDB: сами файлы) ----------
@@ -1462,7 +1487,7 @@ function setSemi(s){ P.semi=s; if(P.st) P.st.pitchSemitones=s }
 function setBiquad(b,p,on){ b.type=PT[p.t]; const live=on&&p.on; const t=b.context.currentTime;
   if(p.t==='hp'||p.t==='lp'){ b.frequency.setTargetAtTime(live?p.f:(p.t==='hp'?5:22000),t,.01); b.Q.setTargetAtTime(p.q,t,.01); b.gain.value=0 }
   else { b.frequency.setTargetAtTime(p.f,t,.01); b.Q.setTargetAtTime(p.q,t,.01); b.gain.setTargetAtTime(live?p.g:0,t,.01) } }
-function applyEq(){ eqNodes.forEach((b,i)=>setBiquad(b,S.peq[i],S.eqOn)); if(preG){ const mx=S.eqOn?Math.max(0,peqMax()):0; preG.gain.value=Math.pow(10,-mx*0.6/20) } }
+function applyEq(){ applyCueEq(); eqNodes.forEach((b,i)=>setBiquad(b,S.peq[i],S.eqOn)); if(preG){ const mx=S.eqOn?Math.max(0,peqMax()):0; preG.gain.value=Math.pow(10,-mx*0.6/20) } }
 function applyVol(){ if(master) master.gain.value=Math.pow(S.vol/100,1.6) }
 function applyBal(){ if(panN) panN.pan.value=S.bal/100 }
 
@@ -1590,31 +1615,31 @@ requestAnimationFrame(frame);
 
 // ---------- редактор ----------
 const ED={ id:null, buf:null, v0:0, v1:1, a:null, b:null, undo:[], pk:null, loop:false, dirty:false };
-async function openEditor(id){ const t=PL.find(x=>x.id===id); if(!t) return; try{ ED.buf=await getBuf(t) }catch(e){ return toast('Не получилось открыть: '+e.message) }
+async function openEditor(id){ const t=PL.find(x=>x.id===id); if(!t) return; if(ED.dirty&&ED.id&&ED.id!==id){ const o=PL.find(x=>x.id===ED.id); if(!confirm('В песне «'+(o?o.name:'')+'» есть несохранённые правки. Открыть другую песню без сохранения?')) return } try{ ED.buf=await getBuf(t) }catch(e){ return toast('Не получилось открыть: '+e.message) }
   ED.id=id; ED.v0=0; ED.v1=ED.buf.length; ED.a=ED.b=null; ED.undo=[]; ED.pk=null; ED.dirty=false; $('#edName').textContent=t.name; edInfo(); edBakeInfo() }
 function edInfo(){ const sr=ED.buf?ED.buf.sampleRate:44100; $('#edSel').textContent=ED.buf?(ED.a!=null?`выделено ${fmt(ED.a/sr)}–${fmt(ED.b/sr)} (${((ED.b-ED.a)/sr).toFixed(1)} с) · `:'')+'длина '+fmt(ED.buf.length/sr)+(ED.dirty?' · есть несохранённые правки':''):'' }
 function edBakeInfo(){ $('#edBakeInfo').textContent=(P.tempo!==1||P.semi!==0)?`сейчас: скорость ${Math.round(P.tempo*100)}%, тон ${P.semi>0?'+':''}${P.semi} пт`:'сначала выставьте скорость или тональность в плеере' }
-function edFrame(){ if(!$('#tab-ed').classList.contains('active')) return; const pos=P.id===ED.id?P.pos:null; ED.pk=drawWave($('#waveC'),ED.buf,ED.v0,ED.v1,pos,ED.a,ED.b,ED.pk); if(ED.buf) drawRuler($('#waveC'),ED.v0,ED.v1,ED.buf.sampleRate) }
+function edFrame(){ const cueMode=ED.out==='cue'; if(!$(cueMode?'#tab-cue':'#tab-ed').classList.contains('active')) return; const pos=cueMode?(CUE.id===ED.id&&CUE.buf?cueNow()*CUE.buf.sampleRate:null):(P.id===ED.id?P.pos:null); ED.pk=drawWave($('#waveC'),ED.buf,ED.v0,ED.v1,pos,ED.a,ED.b,ED.pk); if(ED.buf) drawRuler($('#waveC'),ED.v0,ED.v1,ED.buf.sampleRate) }
 function edView(v0,v1){ const L=ED.buf.length, s=Math.max(64,Math.min(L,v1-v0)); v0=Math.max(0,Math.min(L-s,v0)); ED.v0=Math.round(v0); ED.v1=Math.round(v0+s); ED.pk=null }
 const wv=$('#wave'); let wdrag=null;
 const fx=e=>{ const r=wv.getBoundingClientRect(); return Math.round(ED.v0+(e.clientX-r.left)/r.width*(ED.v1-ED.v0)) };
 wv.addEventListener('pointerdown',e=>{ if(!ED.buf) return; wv.setPointerCapture(e.pointerId); wdrag={x0:e.clientX,f0:fx(e)} });
 wv.addEventListener('pointermove',e=>{ if(!wdrag) return; if(Math.abs(e.clientX-wdrag.x0)>3){ const f=fx(e); ED.a=Math.max(0,Math.min(wdrag.f0,f)); ED.b=Math.min(ED.buf.length,Math.max(wdrag.f0,f)); ED.pk=null; edInfo() } });
-wv.addEventListener('pointerup',e=>{ if(!wdrag) return; if(Math.abs(e.clientX-wdrag.x0)<=3){ const f=fx(e); ED.a=ED.b=null; ED.pk=null; edInfo(); if(P.id===ED.id) seekTo(f); else { playId(ED.id,f) } } else if(ED.loop) setLoop(); wdrag=null });
+wv.addEventListener('pointerup',e=>{ if(!wdrag) return; if(Math.abs(e.clientX-wdrag.x0)<=3){ const f=fx(e); ED.a=ED.b=null; ED.pk=null; edInfo(); if(ED.out==='cue'){ CUE.la=CUE.lb=null; cueSeek(f/ED.buf.sampleRate,true) } else if(P.id===ED.id) seekTo(f); else { playId(ED.id,f) } } else if(ED.loop) setLoop(); wdrag=null });
 wv.addEventListener('wheel',e=>{ if(!ED.buf) return; e.preventDefault(); const span=ED.v1-ED.v0;
   if(e.shiftKey||Math.abs(e.deltaX)>Math.abs(e.deltaY)){ const d=(e.deltaX||e.deltaY)/(wv.clientWidth||800)*span; edView(ED.v0+d,ED.v0+d+span) }
   else { const c=fx(e), k=Math.exp(Math.max(-300,Math.min(300,e.deltaY*(e.deltaMode?33:1)))*.0075), ns=span*k, t=(c-ED.v0)/span; edView(c-ns*t,c-ns*t+ns) } },{passive:false});
 $('#edZoomIn').onclick=()=>{ if(!ED.buf) return; if(ED.a!=null&&ED.b-ED.a<(ED.v1-ED.v0)*.8){ const pad=(ED.b-ED.a)*.15; edView(ED.a-pad,ED.b+pad); return } const c=ED.a!=null?(ED.a+ED.b)/2:P.id===ED.id&&P.pos>=ED.v0&&P.pos<=ED.v1?P.pos:(ED.v0+ED.v1)/2, ns=(ED.v1-ED.v0)*.25; edView(c-ns/2,c+ns/2) };
 $('#edZoomOut').onclick=()=>{ if(!ED.buf) return; const c=(ED.v0+ED.v1)/2, ns=(ED.v1-ED.v0)*4; edView(c-ns/2,c+ns/2) };
 $('#edZoomAll').onclick=()=>{ if(!ED.buf) return; edView(0,ED.buf.length) };
-function setLoop(){ if(P.id!==ED.id) return; if(ED.loop&&ED.a!=null){ P.loopA=ED.a; P.loopB=ED.b; if(P.pos<ED.a||P.pos>=ED.b) seekTo(ED.a) } else { P.loopA=P.loopB=null } }
+function setLoop(){ if(ED.out==='cue'){ const sr=ED.buf?ED.buf.sampleRate:44100; if(ED.loop&&ED.a!=null){ CUE.la=ED.a/sr; CUE.lb=ED.b/sr } else { CUE.la=CUE.lb=null } if(CUE.playing){ CUE.pos=cueNow(); cuePlay() } return } if(P.id!==ED.id) return; if(ED.loop&&ED.a!=null){ P.loopA=ED.a; P.loopB=ED.b; if(P.pos<ED.a||P.pos>=ED.b) seekTo(ED.a) } else { P.loopA=P.loopB=null } }
 $('#edLoop').onclick=()=>{ ED.loop=!ED.loop; $('#edLoop').classList.toggle('on',ED.loop); setLoop() };
-$('#edPlaySel').onclick=async ()=>{ if(!ED.buf) return toast('Откройте песню в редакторе.'); if(P.id!==ED.id) await playId(ED.id); if(ED.a!=null){ setLoop(); seekTo(ED.a) } P.playing=true; uiPlay() };
+$('#edPlaySel').onclick=async ()=>{ if(!ED.buf) return toast('Откройте песню в редакторе.'); if(ED.out==='cue'){ const sr=ED.buf.sampleRate; setLoop(); if(ED.a!=null){ CUE.pos=ED.a/sr; CUE.until=ED.loop?null:ED.b/sr } else CUE.until=null; cuePlay(); return } if(P.id!==ED.id) await playId(ED.id); if(ED.a!=null){ setLoop(); seekTo(ED.a) } P.playing=true; uiPlay() };
 function newBuf(ch,len,sr){ return AC().createBuffer(ch,Math.max(1,len),sr) }
 function edApply(fn,label){ if(!ED.buf) return toast('Откройте песню в редакторе: в плейлисте выберите её и нажмите «✂ В редактор».');
   ED.undo.push(ED.buf); if(ED.undo.length>12) ED.undo.shift(); const nb=fn(ED.buf); if(!nb) { ED.undo.pop(); return } edSet(nb); toast(label) }
 function edSet(nb){ ED.buf=nb; ED.dirty=true; ED.v0=Math.max(0,Math.min(ED.v0,nb.length-1)); ED.v1=Math.min(nb.length,Math.max(ED.v1,ED.v0+1)); if(ED.a!=null){ ED.a=Math.min(ED.a,nb.length); ED.b=Math.min(ED.b,nb.length); if(ED.b-ED.a<2) ED.a=ED.b=null } ED.pk=null;
-  keepBuf(ED.id,nb); if(P.id===ED.id){ P.buf=nb; P.end=nb.length; P.loopA=P.loopB=null; seekTo(Math.min(P.pos,nb.length-1)); seekPeaks=null } edInfo() }
+  keepBuf(ED.id,nb); if(CUE.id===ED.id){ const was=CUE.playing, at=cueNow(); cueStopSrc(); CUE.buf=nb; CUE.pk=CUE.pk2=null; CUE.pos=Math.min(at,nb.duration); if(CUE.la!=null){ CUE.la=CUE.lb=null; if(ED.loop) setLoop() } if(was) cuePlay() } if(P.id===ED.id){ P.buf=nb; P.end=nb.length; P.loopA=P.loopB=null; seekTo(Math.min(P.pos,nb.length-1)); seekPeaks=null } edInfo() }
 const needSel=()=>{ if(ED.a==null){ toast('Сначала выделите кусок на волне: зажмите мышь и протяните.'); return false } return true };
 function copyRange(src,a,b){ const nb=newBuf(src.numberOfChannels,b-a,src.sampleRate); for(let c=0;c<src.numberOfChannels;c++) nb.getChannelData(c).set(src.getChannelData(c).subarray(a,b)); return nb }
 $('#edKeep').onclick=()=>{ if(!needSel()) return; edApply(b=>{ const nb=copyRange(b,ED.a,ED.b); ED.a=ED.b=null; ED.v0=0; ED.v1=nb.length; return nb },'Песня подрезана по выделению.') };
@@ -1792,23 +1817,45 @@ $('#mxMp3').onclick=()=>{ if(!MX.length) return toast('Добавьте песн
 setTimeout(mxRefresh,300);
 
 // ---------- подслушка (наушники) ----------
-let cueCtx=null, cueGain=null, cueSrc=null, dupSrc=null, dupGain=null;
-const CUE={ id:null, buf:null, pos:0, playing:false, t0:0, pk:null };
+let cueCtx=null, cueGain=null, cueSrc=null, dupSrc=null, dupGain=null, cuePreG=null, cueAn=null, cueEqN=[];
+const CUE={ id:null, buf:null, pos:0, playing:false, t0:0, pk:null, pk2:null, la:null, lb:null, until:null, bypass:false };
 function cueAC(){ if(cueCtx) return cueCtx; cueCtx=new (window.AudioContext||window.webkitAudioContext)(); cueGain=cueCtx.createGain(); cueGain.connect(cueCtx.destination); dupGain=cueCtx.createGain(); dupGain.connect(cueCtx.destination);
-  cueGain.gain.value=S.cueVol/100; dupGain.gain.value=S.cueDupVol/100; if(S.devCue) setCueDev(S.devCue); return cueCtx }
+  cuePreG=cueCtx.createGain(); let last=cuePreG; S.peq.forEach(()=>{ const b=cueCtx.createBiquadFilter(); last.connect(b); last=b; cueEqN.push(b) });
+  cueAn=cueCtx.createAnalyser(); cueAn.fftSize=4096; cueAn.smoothingTimeConstant=.78; last.connect(cueAn); cueAn.connect(cueGain);
+  cueGain.gain.value=S.cueVol/100; dupGain.gain.value=S.cueDupVol/100; applyCueEq(); if(S.devCue) setCueDev(S.devCue); return cueCtx }
+function applyCueEq(){ if(!cueCtx) return; const on=S.eqOn&&S.cueEq!==false&&!CUE.bypass; cueEqN.forEach((b,i)=>setBiquad(b,S.peq[i],on)); cuePreG.gain.value=on?Math.pow(10,-Math.max(0,peqMax())*0.6/20):1 }
 async function setCueDev(id){ const c=cueAC(); if(c.setSinkId){ try{ await c.setSinkId(id||''); return true }catch(e){ toast('Не получилось переключить наушники: '+e.message) } } else $('#devNote').textContent='Этот браузер не умеет выбирать устройство вывода. Нужен Google Chrome или Microsoft Edge последней версии.'; return false }
-async function cueLoad(id){ const t=PL.find(x=>x.id===id); if(!t) return; let b; try{ b=await getBuf(t) }catch(e){ return toast('Не получилось прочитать песню.') } cueStopSrc(); CUE.id=id; CUE.buf=b; CUE.pos=0; CUE.pk=null; $('#cueName').textContent='🎧 '+t.name; cuePlay() }
-function cueStopSrc(){ if(cueSrc){ try{ cueSrc.onended=null; cueSrc.stop() }catch(e){} cueSrc=null } if(CUE.playing){ CUE.pos=Math.min(CUE.buf.duration,CUE.pos+(cueCtx.currentTime-CUE.t0)) } CUE.playing=false }
-function cuePlay(){ if(!CUE.buf) return; const c=cueAC(); c.resume(); cueStopSrc(); cueSrc=c.createBufferSource(); cueSrc.buffer=CUE.buf; cueSrc.connect(cueGain); cueSrc.start(0,CUE.pos); CUE.t0=c.currentTime; CUE.playing=true; cueSrc.onended=()=>{ if(CUE.playing){ CUE.playing=false; CUE.pos=0 } } }
-$('#cuePlay').onclick=()=>{ if(!CUE.buf) return toast('Выберите песню в плейлисте и нажмите «🎧 В наушники».'); CUE.playing?cueStopSrc():cuePlay() };
-$('#cueStop').onclick=()=>{ cueStopSrc(); CUE.pos=0 };
-{ const cs=$('#cueSeek'); let dr=null;
-  const at=e=>{ const r=cs.getBoundingClientRect(); return Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*CUE.buf.duration };
-  cs.addEventListener('pointerdown',e=>{ if(!CUE.buf) return; dr={was:CUE.playing}; cs.setPointerCapture(e.pointerId); cueStopSrc(); CUE.pos=at(e) });
+function cueNow(){ if(!CUE.buf) return 0; if(!CUE.playing) return CUE.pos; let p=CUE.pos+(cueCtx.currentTime-CUE.t0); if(CUE.la!=null&&p>CUE.lb){ const L=CUE.lb-CUE.la; if(L>0) p=CUE.la+((p-CUE.la)%L) } return Math.min(CUE.buf.duration,p) }
+async function cueLoad(id,noPlay){ const t=PL.find(x=>x.id===id); if(!t) return; let b; try{ b=await getBuf(t) }catch(e){ return toast('Не получилось прочитать песню.') } cueStopSrc(); CUE.id=id; CUE.buf=b; CUE.pos=0; CUE.pk=CUE.pk2=null; CUE.la=CUE.lb=CUE.until=null; $('#cueName').textContent='🎧 '+t.name; eqCueList();
+  if($('#tab-cue').classList.contains('active')) await cueEdAttach(); if(!noPlay) cuePlay() }
+function cueStopSrc(){ if(cueSrc){ try{ cueSrc.onended=null; cueSrc.stop() }catch(e){} cueSrc=null } if(CUE.playing) CUE.pos=cueNow(); CUE.playing=false; cueUi() }
+function cuePlay(){ if(!CUE.buf) return; const c=cueAC(); c.resume(); cueStopSrc(); if(CUE.pos>=CUE.buf.duration-0.02) CUE.pos=0;
+  const s=c.createBufferSource(); s.buffer=CUE.buf; if(CUE.la!=null&&CUE.lb>CUE.la){ s.loop=true; s.loopStart=CUE.la; s.loopEnd=CUE.lb; if(CUE.pos<CUE.la||CUE.pos>=CUE.lb) CUE.pos=CUE.la }
+  s.connect(cuePreG); if(CUE.until!=null&&CUE.until>CUE.pos) s.start(0,CUE.pos,CUE.until-CUE.pos); else s.start(0,CUE.pos); cueSrc=s; CUE.t0=c.currentTime; CUE.playing=true;
+  s.onended=()=>{ if(cueSrc!==s) return; cueSrc=null; if(CUE.playing){ CUE.playing=false; CUE.pos=CUE.until!=null?CUE.until:0; CUE.until=null } cueUi() }; cueUi() }
+function cueSeek(sec,play){ const was=CUE.playing; cueStopSrc(); CUE.until=null; CUE.pos=Math.max(0,Math.min(CUE.buf.duration,sec)); if(play||was) cuePlay() }
+function cueUi(){ const b=$('#eqCuePlay'); if(b) b.textContent=CUE.playing?'❚❚ Пауза':'▶ Слушать' }
+$('#cuePlay').onclick=()=>{ if(!CUE.buf) return toast('Выберите песню в плейлисте и нажмите «🎧 В наушники».'); CUE.until=null; CUE.playing?cueStopSrc():cuePlay() };
+$('#cueStop').onclick=()=>{ cueStopSrc(); CUE.pos=0; CUE.until=null };
+function bindCueSeek(cs){ let dr=null; const at=e=>{ const r=cs.getBoundingClientRect(); return Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*CUE.buf.duration };
+  cs.addEventListener('pointerdown',e=>{ if(!CUE.buf) return; dr={was:CUE.playing}; cs.setPointerCapture(e.pointerId); cueStopSrc(); CUE.until=null; CUE.pos=at(e) });
   cs.addEventListener('pointermove',e=>{ if(dr&&CUE.buf) CUE.pos=at(e) });
-  cs.addEventListener('pointerup',()=>{ if(dr&&dr.was) cuePlay(); dr=null }); }
-function cueFrame(){ if(!$('#tab-cue').classList.contains('active')) return; const p=CUE.buf?(CUE.playing?CUE.pos+(cueCtx.currentTime-CUE.t0):CUE.pos):0;
-  CUE.pk=drawWave($('#cueC'),CUE.buf,0,CUE.buf?CUE.buf.length:1,CUE.buf?p*CUE.buf.sampleRate:null,null,null,CUE.pk); $('#cueTime').textContent=fmt(p)+' / '+fmt(CUE.buf?CUE.buf.duration:0) }
+  cs.addEventListener('pointerup',()=>{ if(dr&&dr.was) cuePlay(); dr=null }) }
+bindCueSeek($('#cueSeek')); bindCueSeek($('#eqCueSeek'));
+function cueFrame(){ const onCue=$('#tab-cue').classList.contains('active'), onEq=$('#tab-eq').classList.contains('active'); if(!onCue&&!onEq) return; const p=cueNow(), sr=CUE.buf?CUE.buf.sampleRate:44100, txt=fmt(p)+' / '+fmt(CUE.buf?CUE.buf.duration:0);
+  if(onCue){ CUE.pk=drawWave($('#cueC'),CUE.buf,0,CUE.buf?CUE.buf.length:1,CUE.buf?p*sr:null,null,null,CUE.pk); $('#cueTime').textContent=txt }
+  if(onEq){ CUE.pk2=drawWave($('#eqCueC'),CUE.buf,0,CUE.buf?CUE.buf.length:1,CUE.buf?p*sr:null,null,null,CUE.pk2); $('#eqCueTime').textContent=txt } }
+// подслушка во вкладке «Эквалайзер»
+function eqCueList(){ const sel=$('#eqCueSong'); if(!sel) return; sel.innerHTML='<option value="">— выберите песню —</option>'+PL.map(t=>`<option value="${t.id}" ${t.id===CUE.id?'selected':''}>${esc(t.name)}</option>`).join('') }
+$('#eqCueSong').onchange=e=>{ if(e.target.value) cueLoad(e.target.value) };
+$('#eqCuePlay').onclick=()=>{ if(!CUE.buf){ const id=$('#eqCueSong').value||[...selIds][0]||(PL[0]&&PL[0].id); if(!id) return toast('Добавьте песни в плейлист.'); return cueLoad(id) } CUE.until=null; CUE.playing?cueStopSrc():cuePlay() };
+$('#eqAB').onclick=()=>{ CUE.bypass=!CUE.bypass; applyCueEq(); $('#eqAB').textContent=CUE.bypass?'A/B: без EQ':'A/B: с EQ'; $('#eqAB').classList.toggle('on',CUE.bypass); if(!CUE.playing&&CUE.buf) cuePlay() };
+$('#cueEqOn').checked=S.cueEq!==false; $('#cueEqOn').onchange=e=>{ S.cueEq=e.target.checked; saveS(); applyCueEq() };
+// редактор внутри подслушки: тот же редактор, но звук — только в наушники
+ED.out='main';
+async function cueEdAttach(){ const slot=$('#cueEdSlot'), box=$('#edBox'); if(!CUE.id){ $('#cueEdNote').hidden=false; slot.innerHTML===''; if(box.parentElement===slot) $('#tab-ed').appendChild(box); ED.out='main'; slot.innerHTML='<div class="hint">Сначала выберите песню в плейлисте и нажмите «🎧 В наушники».</div>'; return }
+  if(box.parentElement!==slot){ slot.innerHTML=''; slot.appendChild(box) } ED.out='cue'; if(P.id===ED.id){ P.loopA=P.loopB=null } if(ED.id!==CUE.id) await openEditor(CUE.id); ED.pk=null }
+function cueEdDetach(){ const box=$('#edBox'); if(box.parentElement!==$('#tab-ed')) $('#tab-ed').appendChild(box); if(ED.out==='cue'){ CUE.la=CUE.lb=null; if(CUE.playing){ CUE.pos=cueNow(); cuePlay() } } ED.out='main'; ED.pk=null }
 $('#cueVol').value=S.cueVol; $('#cueDupVol').value=S.cueDupVol;
 knob('cueVol',v=>v+'%',v=>{ S.cueVol=v; saveS(); if(cueGain) cueGain.gain.value=v/100 },80);
 knob('cueDupVol',v=>v+'%',v=>{ S.cueDupVol=v; saveS(); if(dupGain) dupGain.gain.value=v/100 },50);
@@ -1847,8 +1894,8 @@ function drawPeq(){ const c=$('#peqC'); if(!c||!$('#tab-eq').classList.contains(
   for(let d=-15;d<=15;d+=5){ const y=gy(d,h)|0; g.strokeStyle=d===0?'#2c7d79':'#123f42'; g.beginPath(); g.moveTo(0,y+.5); g.lineTo(w,y+.5); g.stroke(); g.fillStyle='#7cc9c2'; g.fillText((d>0?'+':'')+d,6*dpr,y) }
   g.fillStyle='#7cc9c2'; g.textBaseline='bottom'; for(const [f,t] of [[50,'50'],[100,'100'],[200,'200'],[500,'500'],[1000,'1K'],[2000,'2K'],[5000,'5K'],[10000,'10K']]) g.fillText(t,fx2(f,w)+3*dpr,h-3*dpr);
   // спектр (RTA)
-  if(S.rta&&analyser&&P.playing){ const d=new Float32Array(analyser.frequencyBinCount); analyser.getFloatFrequencyData(d); g.beginPath(); g.moveTo(0,h);
-    for(let x=0;x<w;x+=2*dpr){ const f=x2f(x,w), k=Math.min(d.length-1,Math.round(f/(ctx.sampleRate/2)*d.length)); const v=Math.max(-100,d[k]); const y=h-(v+100)/80*h*.9; g.lineTo(x,y) } g.lineTo(w,h); g.closePath();
+  const ran=CUE.playing&&cueAn?cueAn:(P.playing?analyser:null); if(S.rta&&ran){ const d=new Float32Array(ran.frequencyBinCount); ran.getFloatFrequencyData(d); g.beginPath(); g.moveTo(0,h);
+    for(let x=0;x<w;x+=2*dpr){ const f=x2f(x,w), k=Math.min(d.length-1,Math.round(f/(ran.context.sampleRate/2)*d.length)); const v=Math.max(-100,d[k]); const y=h-(v+100)/80*h*.9; g.lineTo(x,y) } g.lineTo(w,h); g.closePath();
     g.fillStyle='rgba(120,200,255,.13)'; g.fill() }
   // кривые
   const n=Math.max(64,w/2|0), {tot,per}=peqResp(n);
@@ -1882,7 +1929,9 @@ function peqUI(){ const p=S.peq[peqSel];
   for(const k of ['g','q','f']){ drawKnob($(`svg[data-k="${k}"]`),k,p[k],(k==='g'&&gDis)||!p.on); const inp=$(`input[data-kv="${k}"]`); if(document.activeElement!==inp) inp.value=kFmt[k](p[k]); inp.disabled=k==='g'&&gDis }
   $('#peqBandOn').textContent=p.on?'Полоса включена':'Полоса выключена'; $('#peqBandOn').classList.toggle('on',p.on);
   $('#eqOn').classList.toggle('on',S.eqOn); $('#eqOn').textContent=S.eqOn?'EQ включён':'EQ выключен'; $('#eqRta').classList.toggle('on',S.rta);
-  $('#eqPreset').innerHTML='<option value="">Свои настройки</option>'+Object.keys(PRESETS).map(k=>`<option ${S.preset===k?'selected':''}>${k}</option>`).join('') }
+  const mine=Object.keys(S.myPre||{}).sort((a,b)=>a.localeCompare(b,'ru'));
+  $('#eqPreset').innerHTML='<option value="">Свои настройки (не сохранены)</option><optgroup label="Готовые">'+Object.keys(PRESETS).map(k=>`<option value="p:${esc(k)}" ${S.preset===k||S.preset==='p:'+k?'selected':''}>${esc(k)}</option>`).join('')+'</optgroup>'+(mine.length?'<optgroup label="Мои пресеты">'+mine.map(k=>`<option value="m:${esc(k)}" ${S.preset==='m:'+k?'selected':''}>${esc(k)}</option>`).join('')+'</optgroup>':'');
+  $('#eqDelPre').disabled=!/^m:/.test(S.preset||'') }
 function peqChanged(keepPreset){ if(!keepPreset) S.preset=''; applyEq(); saveS(); peqUI() }
 function renderEq(){ peqUI() }
 $$('.knb svg').forEach(svg=>{ const k=svg.dataset.k; let d=null;
@@ -1903,14 +1952,21 @@ $('#peqBandReset').onclick=()=>{ S.peq[peqSel]=PEQ0()[peqSel]; peqChanged() };
   G.addEventListener('pointerup',()=>drag=null);
   G.addEventListener('wheel',e=>{ const h=hit(e); if(h.best<0) return; e.preventDefault(); peqSel=h.best; const p=S.peq[h.best]; p.q=kDen('q',kNorm('q',p.q)-Math.sign(e.deltaY)*.03); peqChanged() },{passive:false});
   G.addEventListener('dblclick',e=>{ const h=hit(e); if(h.best<0) return; S.peq[h.best].on=!S.peq[h.best].on; peqChanged() }); }
-$('#eqPreset').onchange=e=>{ if(!e.target.value) return; S.preset=e.target.value; S.peq=JSON.parse(JSON.stringify(PRESETS[S.preset])); peqChanged(true) };
+$('#eqPreset').onchange=e=>{ const v=e.target.value; if(!v) return; const src=v.startsWith('m:')?S.myPre[v.slice(2)]:PRESETS[v.slice(2)]; if(!src) return; S.preset=v; S.peq=JSON.parse(JSON.stringify(src)); peqChanged(true) };
+const peqValid=a=>Array.isArray(a)&&a.length===PEQ0().length&&a.every(b=>b&&typeof b.f==='number'&&typeof b.g==='number'&&typeof b.q==='number'&&PT[b.t]);
+$('#eqSavePre').onclick=()=>{ const cur=/^m:/.test(S.preset||'')?S.preset.slice(2):''; let n=prompt('Название пресета (например: «Зал школы», «Голос в микрофон»)',cur); if(n==null) return; n=n.trim().slice(0,60); if(!n) return;
+  if(S.myPre[n]&&n!==cur&&!confirm('Пресет «'+n+'» уже есть. Заменить его?')) return; S.myPre[n]=JSON.parse(JSON.stringify(S.peq)); S.preset='m:'+n; saveS(); peqUI(); toast('Пресет «'+n+'» сохранён.') };
+$('#eqDelPre').onclick=()=>{ if(!/^m:/.test(S.preset||'')) return toast('Выберите в списке свой пресет.'); const n=S.preset.slice(2); if(!confirm('Удалить пресет «'+n+'»?')) return; delete S.myPre[n]; S.preset=''; saveS(); peqUI(); toast('Пресет удалён.') };
+$('#eqExpPre').onclick=()=>{ if(!Object.keys(S.myPre).length) return toast('Своих пресетов пока нет — сначала нажмите «💾 Сохранить пресет».'); saveAs('Пресеты эквалайзера.json',async ()=>new Blob([JSON.stringify({app:'prosto-zvuk',type:'eq-presets',presets:S.myPre},null,1)],{type:'application/json'})) };
+$('#eqImpPre').onclick=()=>$('#eqImpFile').click();
+$('#eqImpFile').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; try{ const j=JSON.parse(await f.text()), pr=j.presets||j; let n=0; for(const k in pr) if(peqValid(pr[k])){ S.myPre[k.slice(0,60)]=pr[k]; n++ } saveS(); peqUI(); toast(n?'Загружено пресетов: '+n:'В файле не нашлось пресетов эквалайзера.') }catch(err){ toast('Не получилось прочитать файл пресетов.') } };
 $('#eqOn').onclick=()=>{ S.eqOn=!S.eqOn; peqChanged(true) };
 $('#eqRta').onclick=()=>{ S.rta=!S.rta; saveS(); peqUI() };
 $('#eqReset').onclick=()=>{ S.preset='Ровно'; S.peq=PEQ0(); peqChanged(true) };
 renderEq();
 
 // ---------- вкладки, клавиши, перетаскивание ----------
-function openTab(t){ $$('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t)); $$('section.tab').forEach(s=>s.classList.toggle('active',s.id==='tab-'+t)); if(t==='ed'&&!ED.id&&(P.id||selIds.size)) openEditor([...selIds][0]||P.id); if(t==='cue') listDevs() }
+function openTab(t){ $$('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t)); $$('section.tab').forEach(s=>s.classList.toggle('active',s.id==='tab-'+t)); if(t==='ed'&&!ED.id&&(P.id||selIds.size)) openEditor([...selIds][0]||P.id); if(t==='cue'){ listDevs(); cueEdAttach() } else if(t==='ed') cueEdDetach(); if(t==='eq') eqCueList() }
 $$('nav.tabs button').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
 $('#addBtn').onclick=()=>{ const i=$('#fileIn'); i.removeAttribute('webkitdirectory'); i.click() };
 $('#addDirBtn').onclick=()=>{ const i=$('#fileIn'); i.setAttribute('webkitdirectory',''); i.click() };
@@ -1918,17 +1974,20 @@ $('#fileIn').onchange=e=>{ addFiles(e.target.files); e.target.value='' };
 document.addEventListener('dragover',e=>{ if([...(e.dataTransfer.types||[])].includes('Files')){ e.preventDefault(); $('#plDrop').classList.add('over') } });
 document.addEventListener('dragleave',e=>{ if(!e.relatedTarget) $('#plDrop').classList.remove('over') });
 document.addEventListener('drop',async e=>{ if(![...(e.dataTransfer.types||[])].includes('Files')) return; e.preventDefault(); $('#plDrop').classList.remove('over'); addFiles(await collectDrop(e.dataTransfer)) });
+const edActive=()=>ED.out==='cue'?$('#tab-cue').classList.contains('active'):$('#tab-ed').classList.contains('active');
+const cueTabs=()=>$('#tab-cue').classList.contains('active')||$('#tab-eq').classList.contains('active')&&CUE.buf;
 document.addEventListener('keydown',e=>{ if(e.target.matches('input[type=text],input[type=number],select')) return;
-  if(e.code==='Space'){ e.preventDefault(); togglePlay() }
+  if(e.code==='Space'&&cueTabs()){ e.preventDefault(); if(CUE.buf){ CUE.until=null; CUE.playing?cueStopSrc():cuePlay() } }
+  else if(e.code==='Space'){ e.preventDefault(); togglePlay() }
   else if(e.key==='ArrowRight'&&P.buf){ e.preventDefault(); seekTo(P.pos+P.buf.sampleRate*5) }
   else if(e.key==='ArrowLeft'&&P.buf){ e.preventDefault(); seekTo(P.pos-P.buf.sampleRate*5) }
   else if(e.key==='ArrowUp'){ e.preventDefault(); $('#vol').value=Math.min(100,+$('#vol').value+5); $('#vol').oninput() }
   else if(e.key==='ArrowDown'){ e.preventDefault(); $('#vol').value=Math.max(0,+$('#vol').value-5); $('#vol').oninput() }
-  else if((e.key==='Delete'||e.key==='Backspace')&&$('#tab-ed').classList.contains('active')){ e.preventDefault(); if(ED.a!=null) $('#edCut').click(); else toast('Сначала выделите кусок мышью по волне.') }
+  else if((e.key==='Delete'||e.key==='Backspace')&&edActive()){ e.preventDefault(); if(ED.a!=null) $('#edCut').click(); else toast('Сначала выделите кусок мышью по волне.') }
   else if((e.key==='Delete'||e.key==='Backspace')&&$('#tab-pl').classList.contains('active')){ e.preventDefault(); delSel() }
-  else if((e.key==='='||e.key==='+')&&$('#tab-ed').classList.contains('active')) $('#edZoomIn').click()
-  else if(e.key==='-'&&$('#tab-ed').classList.contains('active')) $('#edZoomOut').click()
-  else if((e.ctrlKey||e.metaKey)&&e.code==='KeyZ'&&$('#tab-ed').classList.contains('active')){ e.preventDefault(); $('#edUndo').click() }
+  else if((e.key==='='||e.key==='+')&&edActive()) $('#edZoomIn').click()
+  else if(e.key==='-'&&edActive()) $('#edZoomOut').click()
+  else if((e.ctrlKey||e.metaKey)&&e.code==='KeyZ'&&edActive()){ e.preventDefault(); $('#edUndo').click() }
   else if(e.key==='Enter'&&selIds.size&&$('#tab-pl').classList.contains('active')) playId([...selIds][0]) });
 window.addEventListener('beforeunload',e=>{ if(ED.dirty){ e.preventDefault(); e.returnValue='' } });
 uiModes();
