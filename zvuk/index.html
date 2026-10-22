@@ -145,7 +145,7 @@ input.tin{width:86px;font-family:var(--f-mono)} input.nin{width:72px;font-family
 <body>
 <div class="app">
 <header>
-  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.6</span></div>
+  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.7</span></div>
   <div class="row">
     <button id="addBtn" title="Добавить песни">＋ Песни…</button>
     <button id="addDirBtn" title="Добавить папку с музыкой">＋ Папка…</button>
@@ -228,6 +228,8 @@ input.tin{width:86px;font-family:var(--f-mono)} input.nin{width:72px;font-family
         <button id="edNorm" title="Поднять громкость до максимума без перегруза">Нормализовать</button>
         <button id="edLouder">Громче +3 дБ</button><button id="edQuieter">Тише −3 дБ</button>
         <button id="edUndo">↶ Отменить</button>
+        <button id="edReset" title="Отменить все правки с момента открытия песни">⟲ Сбросить правки</button>
+        <button id="edOrig" title="Вернуть исходный файл — как он был до всех сохранений" hidden>⟲ Исходный файл</button>
       </div>
     </div>
     <div>
@@ -1551,7 +1553,7 @@ $('#pl tbody').addEventListener('drop',e=>{ if(!dragId) return; e.preventDefault
 $('#pl tbody').addEventListener('dragend',()=>{ dragId=null; $$('#pl tr.drag-over').forEach(x=>x.classList.remove('drag-over')) });
 $('#plSearch').oninput=renderPL;
 $('#plDel').onclick=()=>delSel();
-async function delSel(){ if(!selIds.size) return; for(const id of selIds){ if(P.id===id) stopPlay(); IDB.del('f:'+id); BUF.delete(id) } PL=PL.filter(t=>!selIds.has(t.id)); selIds.clear(); savePL(); renderPL() }
+async function delSel(){ if(!selIds.size) return; for(const id of selIds){ if(P.id===id) stopPlay(); IDB.del('f:'+id); IDB.del('o:'+id); BUF.delete(id) } PL=PL.filter(t=>!selIds.has(t.id)); selIds.clear(); savePL(); renderPL() }
 let clrArm=0; $('#plClear').onclick=()=>{ if(Date.now()-clrArm>3000){ clrArm=Date.now(); toast('Нажмите «Очистить» ещё раз, чтобы убрать все песни.'); return } selIds=new Set(PL.map(t=>t.id)); delSel() };
 $('#plEdit').onclick=()=>{ const id=[...selIds][0]||P.id; if(!id) return toast('Выберите песню в плейлисте.'); openEditor(id); openTab('ed') };
 $('#plDl').onclick=async ()=>{ if(!selIds.size) return toast('Выберите песни в плейлисте.'); const EXT={'video/mp4':'mp4','video/quicktime':'mov','video/webm':'webm','audio/mpeg':'mp3','audio/mp3':'mp3','audio/wav':'wav','audio/x-wav':'wav','audio/wave':'wav','audio/ogg':'ogg','audio/flac':'flac','audio/x-flac':'flac','audio/mp4':'m4a','audio/x-m4a':'m4a','audio/aac':'aac'};
@@ -1638,7 +1640,7 @@ requestAnimationFrame(frame);
 // ---------- редактор ----------
 const ED={ id:null, buf:null, v0:0, v1:1, a:null, b:null, undo:[], pk:null, loop:false, dirty:false };
 async function openEditor(id){ const t=PL.find(x=>x.id===id); if(!t) return; if(ED.dirty&&ED.id&&ED.id!==id){ const o=PL.find(x=>x.id===ED.id); if(!confirm('В песне «'+(o?o.name:'')+'» есть несохранённые правки. Открыть другую песню без сохранения?')) return } try{ ED.buf=await getBuf(t) }catch(e){ return toast('Не получилось открыть: '+e.message) }
-  ED.id=id; ED.v0=0; ED.v1=ED.buf.length; ED.a=ED.b=null; ED.undo=[]; ED.pk=null; ED.dirty=false; $('#edName').textContent=t.name; edInfo(); edBakeInfo() }
+  ED.id=id; ED.orig=ED.buf; ED.v0=0; ED.v1=ED.buf.length; ED.a=ED.b=null; ED.undo=[]; ED.pk=null; ED.dirty=false; $('#edName').textContent=t.name; edInfo(); edBakeInfo(); edOrigUi() }
 function edInfo(){ const sr=ED.buf?ED.buf.sampleRate:44100; $('#edSel').textContent=ED.buf?(ED.a!=null?`выделено ${fmt(ED.a/sr)}–${fmt(ED.b/sr)} (${((ED.b-ED.a)/sr).toFixed(1)} с) · `:'')+'длина '+fmt(ED.buf.length/sr)+(ED.dirty?' · есть несохранённые правки':''):'' }
 function edBakeInfo(){ $('#edBakeInfo').textContent=(P.tempo!==1||P.semi!==0)?`сейчас: скорость ${Math.round(P.tempo*100)}%, тон ${P.semi>0?'+':''}${P.semi} пт`:'сначала выставьте скорость или тональность в плеере' }
 function edFrame(){ const cueMode=ED.out==='cue'; if(!$(cueMode?'#tab-cue':'#tab-ed').classList.contains('active')) return; const pos=cueMode?(CUE.id===ED.id&&CUE.buf?cueNow()*CUE.buf.sampleRate:null):(P.id===ED.id?P.pos:null); ED.pk=drawWave($('#waveC'),ED.buf,ED.v0,ED.v1,pos,ED.a,ED.b,ED.pk); if(ED.buf) drawRuler($('#waveC'),ED.v0,ED.v1,ED.buf.sampleRate) }
@@ -1675,6 +1677,11 @@ function peakOf(b,a=0,e=b.length){ let m=0; for(let c=0;c<b.numberOfChannels;c++
 $('#edNorm').onclick=()=>edApply(b=>{ const m=peakOf(b); if(m<1e-4) return null; const k=.98/m; return mapSel(b,v=>v*k) },'Громкость выровнена до максимума без перегруза.');
 $('#edLouder').onclick=()=>edApply(b=>{ const k=Math.pow(10,3/20); return mapSel(b,v=>Math.max(-1,Math.min(1,v*k))) },'Громче на 3 дБ.');
 $('#edQuieter').onclick=()=>edApply(b=>{ const k=Math.pow(10,-3/20); return mapSel(b,v=>v*k) },'Тише на 3 дБ.');
+function edOrigUi(){ const t=PL.find(x=>x.id===ED.id); $('#edOrig').hidden=!(t&&t.orig) }
+$('#edReset').onclick=()=>{ if(!ED.buf||!ED.orig) return toast('Откройте песню в редакторе.'); if(ED.buf===ED.orig&&!ED.dirty) return toast('Правок нет — песня как при открытии.'); ED.undo.push(ED.buf); edSet(ED.orig); ED.dirty=false; edInfo(); toast('Все правки сброшены — песня как при открытии. Передумали — «↶ Отменить».',5000) };
+$('#edOrig').onclick=async ()=>{ const t=PL.find(x=>x.id===ED.id); if(!t||!t.orig) return; if(!confirm('Вернуть «'+t.name+'» к исходному файлу, как он был до всех сохранённых правок?')) return;
+  try{ const o=await IDB.get('o:'+t.id); if(!o) throw new Error('исходный файл не найден'); const b=await decodeFile(o); await IDB.set('f:'+t.id,o); await IDB.del('o:'+t.id); t.orig=false; t.edited=false; t.dur=b.duration; savePL(); renderPL();
+    ED.undo.push(ED.buf); edSet(b); ED.orig=b; ED.dirty=false; edInfo(); edOrigUi(); toast('Вернул исходный файл.') }catch(e){ toast('Не получилось: '+e.message) } };
 $('#edUndo').onclick=()=>{ if(!ED.undo.length) return toast('Отменять нечего.'); edSet(ED.undo.pop()); toast('Отменено.') };
 // запечь скорость и тон
 function prog(el,v){ el.hidden=v==null; if(v!=null) el.querySelector('i').style.width=(v*100).toFixed(1)+'%' }
@@ -1704,8 +1711,8 @@ async function saveAs(name,makeBlob){ const ext=(name.split('.').pop()||'').toLo
   download(blob,name); toast('Файл «'+name+'» сохранён в папку «Загрузки».',5000); return true }
 function download(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove() },2000) }
 const edTrack=()=>PL.find(t=>t.id===ED.id);
-async function storeEdited(t,b){ const blob=wavBlob(b); await IDB.set('f:'+t.id,blob); t.dur=b.duration; t.edited=true; savePL(); renderPL() }
-$('#edSave').onclick=async ()=>{ const t=edTrack(); if(!t) return; if(!ED.dirty) return toast('Изменений нет.'); try{ await storeEdited(t,ED.buf); ED.dirty=false; edInfo(); toast('Сохранено. Изменённая песня останется в плейлисте и после перезапуска.') }catch(e){ toast('Не хватило места в браузере: '+e.message) } };
+async function storeEdited(t,b){ const blob=wavBlob(b); if(!t.edited&&!t.orig){ try{ const o=await IDB.get('f:'+t.id); if(o){ await IDB.set('o:'+t.id,o); t.orig=true } }catch(e){} } await IDB.set('f:'+t.id,blob); t.dur=b.duration; t.edited=true; savePL(); renderPL() }
+$('#edSave').onclick=async ()=>{ const t=edTrack(); if(!t) return; if(!ED.dirty) return toast('Изменений нет.'); try{ await storeEdited(t,ED.buf); ED.dirty=false; edInfo(); edOrigUi(); toast('Сохранено. Изменённая песня останется в плейлисте и после перезапуска.') }catch(e){ toast('Не хватило места в браузере: '+e.message) } };
 $('#edSaveCopy').onclick=async ()=>{ const t=edTrack(); if(!t) return; const nt={id:uid(),name:t.name+' (правка)',dur:ED.buf.duration}; try{ await storeEdited(nt,ED.buf) }catch(e){ return toast('Не хватило места: '+e.message) } const i=PL.indexOf(t); PL.splice(i+1,0,nt); keepBuf(nt.id,ED.buf); savePL(); renderPL(); ED.id=nt.id; ED.dirty=false; $('#edName').textContent=nt.name; edInfo(); toast('Сохранено как новая песня рядом с исходной.') };
 $('#edWav').onclick=()=>{ const t=edTrack(); if(!t) return toast('Откройте песню в редакторе.'); saveAs(t.name+'.wav',async ()=>wavBlob(ED.buf)) };
 $('#edMp3').onclick=()=>{ const t=edTrack(); if(!t) return toast('Откройте песню в редакторе.'); saveAs(t.name+'.mp3',async ()=>{ toast('Сжимаю в MP3…',8000); return mp3Blob(ED.buf,$('#edProg')) }) };
@@ -2132,16 +2139,20 @@ uiModes();
 <script>
 (function(){ if(!('serviceWorker' in navigator)||location.protocol!=='https:'&&location.hostname!=='localhost') return;
   try{ navigator.storage&&navigator.storage.persist&&navigator.storage.persist() }catch(e){}
-  var box=document.getElementById('pwaUpd'), wk=null, go=false;
+  var box=document.getElementById('pwaUpd'), wk=null, go=false, nt=0;
+  function note(t){ var n=document.getElementById('pwaNote'); if(!n){ n=document.createElement('div'); n.id='pwaNote'; n.style.cssText='position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:2147483647;background:#1b1f27;color:#e8ecf2;border:1px solid #444;border-radius:10px;padding:9px 14px;font:14px system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.5)'; document.body.appendChild(n) } n.textContent=t; n.style.display='block'; clearTimeout(nt); nt=setTimeout(function(){ n.style.display='none' },3500) }
   function show(w){ wk=w; box.style.display='block' }
   document.getElementById('pwaGo').onclick=function(){ go=true; box.style.display='none'; if(wk) wk.postMessage('skip') };
   document.getElementById('pwaLater').onclick=function(){ box.style.display='none' };
   navigator.serviceWorker.addEventListener('controllerchange',function(){ if(go){ go=false; location.reload() } });
-  navigator.serviceWorker.register('sw.js').then(function(reg){
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(function(reg){
+    var chk=function(manual){ if(!navigator.onLine){ if(manual) note('Нет интернета — проверю, когда появится.'); return } reg.update().then(function(){ if(manual&&!reg.installing&&!reg.waiting) note('Обновлений нет — у вас последняя версия.') }).catch(function(){ if(manual) note('Не получилось проверить — нет связи с сайтом.') }) };
+    window.pwaCheck=chk; window.addEventListener('online',function(){ chk() }); window.addEventListener('focus',function(){ chk() });
+    var v=[].slice.call(document.querySelectorAll('header span, .brand span')).find(function(e){ return /^\s*в\.\d/.test(e.textContent) }); if(v){ v.style.cursor='pointer'; v.title='Нажмите — проверить обновления'; v.addEventListener('click',function(){ note('Проверяю обновления…'); chk(true) }) }
     if(reg.waiting&&navigator.serviceWorker.controller) show(reg.waiting);
     reg.addEventListener('updatefound',function(){ var w=reg.installing; w&&w.addEventListener('statechange',function(){ if(w.state==='installed'&&navigator.serviceWorker.controller) show(w) }) });
-    setInterval(function(){ reg.update().catch(function(){}) },30*60*1000);
-    document.addEventListener('visibilitychange',function(){ if(!document.hidden) reg.update().catch(function(){}) });
+    setInterval(function(){ chk() },2*60*1000);
+    document.addEventListener('visibilitychange',function(){ if(!document.hidden) chk() });
   }).catch(function(){});
 })();
 </script>

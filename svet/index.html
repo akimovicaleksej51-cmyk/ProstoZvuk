@@ -3686,16 +3686,20 @@ $('#v3Home').onclick = () => { $('#pHome').click(); v3Hud(); };
 <script>
 (function(){ if(!('serviceWorker' in navigator)||location.protocol!=='https:'&&location.hostname!=='localhost') return;
   try{ navigator.storage&&navigator.storage.persist&&navigator.storage.persist() }catch(e){}
-  var box=document.getElementById('pwaUpd'), wk=null, go=false;
+  var box=document.getElementById('pwaUpd'), wk=null, go=false, nt=0;
+  function note(t){ var n=document.getElementById('pwaNote'); if(!n){ n=document.createElement('div'); n.id='pwaNote'; n.style.cssText='position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:2147483647;background:#1b1f27;color:#e8ecf2;border:1px solid #444;border-radius:10px;padding:9px 14px;font:14px system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.5)'; document.body.appendChild(n) } n.textContent=t; n.style.display='block'; clearTimeout(nt); nt=setTimeout(function(){ n.style.display='none' },3500) }
   function show(w){ wk=w; box.style.display='block' }
   document.getElementById('pwaGo').onclick=function(){ go=true; box.style.display='none'; if(wk) wk.postMessage('skip') };
   document.getElementById('pwaLater').onclick=function(){ box.style.display='none' };
   navigator.serviceWorker.addEventListener('controllerchange',function(){ if(go){ go=false; location.reload() } });
-  navigator.serviceWorker.register('sw.js').then(function(reg){
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(function(reg){
+    var chk=function(manual){ if(!navigator.onLine){ if(manual) note('Нет интернета — проверю, когда появится.'); return } reg.update().then(function(){ if(manual&&!reg.installing&&!reg.waiting) note('Обновлений нет — у вас последняя версия.') }).catch(function(){ if(manual) note('Не получилось проверить — нет связи с сайтом.') }) };
+    window.pwaCheck=chk; window.addEventListener('online',function(){ chk() }); window.addEventListener('focus',function(){ chk() });
+    var v=[].slice.call(document.querySelectorAll('header span, .brand span')).find(function(e){ return /^\s*в\.\d/.test(e.textContent) }); if(v){ v.style.cursor='pointer'; v.title='Нажмите — проверить обновления'; v.addEventListener('click',function(){ note('Проверяю обновления…'); chk(true) }) }
     if(reg.waiting&&navigator.serviceWorker.controller) show(reg.waiting);
     reg.addEventListener('updatefound',function(){ var w=reg.installing; w&&w.addEventListener('statechange',function(){ if(w.state==='installed'&&navigator.serviceWorker.controller) show(w) }) });
-    setInterval(function(){ reg.update().catch(function(){}) },30*60*1000);
-    document.addEventListener('visibilitychange',function(){ if(!document.hidden) reg.update().catch(function(){}) });
+    setInterval(function(){ chk() },2*60*1000);
+    document.addEventListener('visibilitychange',function(){ if(!document.hidden) chk() });
   }).catch(function(){});
 })();
 </script>
