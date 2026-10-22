@@ -2889,7 +2889,9 @@ const LINK={ch:null,on:false,name:null,last:0};
 try{ LINK.ch=new BroadcastChannel('prosto-link') }catch(e){}
 function linkUi(){ const c=$('#linkChip'); if(!c) return; c.hidden=!LINK.on; c.title=LINK.on?'Свет идёт за «Просто Звук»: '+(LINK.name||'')+' — щёлкните, чтобы отвязать':''; }
 function linkOff(quiet){ LINK.on=false; if(TL.audio) TL.audio.muted=false; linkUi(); if(!quiet) toast('Связь с «Просто Звук» выключена — музыка снова играет здесь.') }
-if(LINK.ch) LINK.ch.onmessage=async e=>{ const m=e.data||{}; if(m.app!=='zvuk') return;
+if(LINK.ch) LINK.ch.onmessage=async e=>{ const m=e.data||{};
+  if(m.app==='video'&&m.type==='file'&&m.file){ const f=new File([m.file],m.name,{type:'video/mp4'}); addFiles.explicit=true; addFiles([f]); addFiles.explicit=false; toast('📺 Из «Просто Видео» пришло «'+m.name+'» — оно во вкладке «Экран» и сохранено в программе.',7000); try{ LINK.ch.postMessage({app:'svet',type:'gotVideo',name:m.name}) }catch(_){} return }
+  if(m.app!=='zvuk') return;
   if(m.type==='song'&&m.file){ const f=new File([m.file],m.name,{type:m.file.type||''});
     let r=TLS.find(x=>x.audioName===m.name); if(!r){ const base=m.name.replace(/\.[^.]+$/,'').toLowerCase(); r=TLS.find(x=>x.audioName&&x.audioName.replace(/\.[^.]+$/,'').toLowerCase()===base) }
     if(r&&r.id!==curTL) selectTL(r.id,true);
