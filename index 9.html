@@ -1,0 +1,898 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ALFA VAPE — витрина ассортимента</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+  :root{
+    --bg:#0b0a0c;
+    --bg-card:#141013;
+    --bg-card-alt:#120f11;
+    --line:#241016;
+    --line-soft:#1c0e12;
+    --text:#f5f1ea;
+    --text-muted:#cbb9bd;
+    --text-dim:#9c8a8e;
+    --text-faint:#766166;
+    --accent:#8c1c3f;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',sans-serif;}
+  a{color:inherit;text-decoration:none;}
+  button{font-family:inherit;}
+  ::selection{background:var(--accent);color:var(--text);}
+  .wrap{max-width:1440px;margin:0 auto;}
+
+  header{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:24px;
+    padding:20px 64px;background:rgba(11,10,12,0.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);}
+  .logo{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;white-space:nowrap;}
+  .logo span{color:var(--accent);}
+  nav{display:flex;gap:26px;flex-wrap:wrap;}
+  nav button{background:none;border:none;cursor:pointer;font-size:14px;font-weight:500;color:var(--text-muted);
+    padding:8px 0;border-bottom:2px solid transparent;}
+  nav button.active{color:var(--accent);font-weight:700;border-color:var(--accent);}
+  .icon-btn{background:none;border:none;color:var(--text-muted);cursor:pointer;padding:6px;display:flex;}
+
+  #gate{position:fixed;inset:0;z-index:100;background:rgba(5,4,5,0.94);display:flex;align-items:center;
+    justify-content:center;padding:24px;}
+  #gate .box{width:100%;max-width:420px;background:var(--bg-card);border:1px solid var(--accent);
+    border-radius:18px;padding:44px 36px;text-align:center;}
+  #gate .num{font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:3px;color:var(--accent);}
+  #gate p{font-size:14.5px;line-height:1.7;color:var(--text-muted);margin:18px 0 30px;}
+  #gate .row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+  #gate button{font-size:14.5px;font-weight:700;padding:14px 26px;border-radius:9px;cursor:pointer;}
+  #gate .yes{background:var(--accent);border:none;color:var(--text);}
+  #gate .no{background:none;border:1px solid #3a2226;color:var(--text-muted);font-weight:600;}
+  #declined{position:fixed;inset:0;z-index:100;background:var(--bg);display:none;align-items:center;
+    justify-content:center;padding:24px;text-align:center;}
+  #declined p{font-size:17px;max-width:380px;line-height:1.6;}
+
+  .hero{position:relative;overflow:hidden;padding:100px 64px 80px;display:flex;align-items:center;
+    justify-content:center;gap:40px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap;text-align:center;}
+  .hero .glow1{position:absolute;right:-120px;top:-160px;width:480px;height:480px;border-radius:50%;
+    background:radial-gradient(circle,rgba(140,28,63,0.5) 0%,rgba(140,28,63,0) 70%);filter:blur(10px);}
+  .hero .glow2{position:absolute;right:60px;bottom:-220px;width:360px;height:360px;border-radius:50%;
+    background:radial-gradient(circle,rgba(140,28,63,0.28) 0%,rgba(140,28,63,0) 70%);}
+  .hero-content{position:relative;max-width:620px;margin:0 auto;}
+  h1{font-family:'Bebas Neue',sans-serif;font-size:60px;line-height:1.02;letter-spacing:1px;margin:0 0 22px;}
+  .hero p{font-size:16px;line-height:1.7;color:var(--text-muted);max-width:480px;margin:0 auto 20px;}
+  .hero .legal{font-size:12px;line-height:1.6;color:var(--text-faint);max-width:480px;margin:0 auto 30px;}
+  .cta-row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;}
+  .cta-primary{background:var(--accent);color:var(--text);font-size:14.5px;font-weight:700;padding:16px 30px;border-radius:10px;}
+
+  #catalog{padding:70px 64px;}
+  .cat-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:16px;}
+  .cat-head h2{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:1px;margin:0;}
+  .cat-head span{font-size:13.5px;color:var(--text-dim);}
+  .tabs{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+  .tab{padding:12px 22px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--text-dim);
+    font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .tab.active{background:var(--accent);color:var(--text);border-color:var(--accent);}
+  .count-note{font-size:12.5px;color:var(--text-faint);margin-bottom:28px;}
+  .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;}
+  .card{background:var(--bg-card);border:1px solid var(--line);border-radius:16px;padding:20px;
+    display:flex;flex-direction:column;gap:12px;}
+  .thumb{width:100%;height:110px;border-radius:10px;background:radial-gradient(circle at 50% 40%,
+    rgba(140,28,63,0.28) 0%,rgba(20,16,19,0.98) 72%);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .thumb.has-photo{background:radial-gradient(ellipse at 50% 88%,rgba(140,28,63,0.35) 0%,rgba(140,28,63,0) 55%),
+    linear-gradient(160deg,#1c1417 0%,#100c0e 100%);padding:6px 0;}
+  .thumb img{max-width:82%;max-height:96%;object-fit:contain;filter:drop-shadow(0 10px 14px rgba(0,0,0,0.55));}
+  .card .name{font-size:14.5px;font-weight:700;color:var(--text);line-height:1.3;}
+  .card .meta{font-size:12px;color:var(--text-dim);min-height:14px;}
+  .card .bottom{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:4px;}
+  .card .price{font-size:16px;font-weight:800;color:var(--accent);}
+  .stock{font-size:11px;font-weight:600;color:#7fae8c;background:rgba(127,174,140,0.12);padding:5px 10px;border-radius:7px;}
+  .stock.out{color:#e05555;background:rgba(224,85,85,0.12);}
+  .card.has-flavors{cursor:pointer;}
+  .card{position:relative;}
+  .card.sold-out{border-color:#1f1a1c;background:var(--bg-card-alt);}
+  .card.sold-out .thumb{position:relative;}
+  .card.sold-out .thumb img,.card.sold-out .thumb svg{filter:grayscale(1);opacity:0.28;}
+  .card.sold-out .thumb::after{content:'НЕТ В НАЛИЧИИ';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-8deg);
+    font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:#e05555;border:2px solid #e05555;
+    padding:3px 12px 1px;border-radius:6px;background:rgba(11,10,12,0.72);white-space:nowrap;}
+  .card.sold-out .name{color:var(--text-dim);text-decoration:line-through;text-decoration-color:rgba(224,85,85,0.7);}
+  .card.sold-out .price{color:var(--text-faint);text-decoration:line-through;}
+  .card .cat-chip{font-size:11px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.6px;}
+  .card .match{font-size:12px;color:var(--text-muted);}
+  .card .match b{color:var(--text);}
+  .search-bar{display:none;position:sticky;top:73px;z-index:29;background:rgba(11,10,12,0.96);backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);padding:14px 64px;}
+  .search-bar.open{display:block;}
+  .search-inner{display:flex;align-items:center;gap:12px;max-width:720px;margin:0 auto;background:var(--bg-card);
+    border:1px solid var(--line);border-radius:12px;padding:0 8px 0 16px;}
+  .search-inner:focus-within{border-color:var(--accent);}
+  .search-inner svg{flex-shrink:0;color:var(--text-dim);}
+  #search-input{flex:1;min-width:0;background:none;border:none;outline:none;color:var(--text);font-family:inherit;
+    font-size:15px;padding:14px 0;}
+  #search-input::placeholder{color:var(--text-faint);}
+  #search-input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none;}
+  #search-clear{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:20px;line-height:1;padding:8px;}
+  .icon-btn.active{color:var(--accent);}
+  .empty-note{grid-column:1/-1;text-align:center;color:var(--text-dim);font-size:14px;padding:40px 0;}
+
+  .flavor-modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(5,4,5,0.82);display:none;
+    align-items:center;justify-content:center;padding:24px;}
+  .flavor-modal-overlay.open{display:flex;}
+  .flavor-modal{width:100%;max-width:420px;max-height:82vh;overflow-y:auto;background:var(--bg-card);
+    border:1px solid var(--line);border-radius:18px;padding:28px 26px;}
+  .flavor-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:4px;}
+  .flavor-modal-title{font-size:17px;font-weight:800;color:var(--text);line-height:1.35;}
+  .flavor-modal-close{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:20px;
+    line-height:1;padding:4px;flex-shrink:0;}
+  .flavor-modal-price{font-size:16px;font-weight:800;color:var(--accent);margin-bottom:20px;}
+  .flavor-field-label{font-size:12.5px;font-weight:700;color:var(--text-dim);text-transform:uppercase;
+    letter-spacing:0.5px;margin-bottom:12px;}
+  .flavor-list{display:flex;flex-direction:column;gap:2px;}
+  .flavor-option{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid var(--line-soft);
+    cursor:pointer;font-size:14px;color:var(--text);}
+  .flavor-option:last-child{border-bottom:none;}
+  .flavor-option input{accent-color:var(--accent);width:17px;height:17px;flex-shrink:0;cursor:pointer;}
+  .flavor-option .fl-name{flex:1;}
+  .flavor-option.out-of-stock{cursor:not-allowed;color:var(--text-dim);opacity:0.55;}
+  .flavor-option.out-of-stock input{cursor:not-allowed;}
+  .flavor-badge{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:6px;flex-shrink:0;white-space:nowrap;}
+  .flavor-badge.low{color:#e0a23a;background:rgba(224,162,58,0.14);}
+  .flavor-badge.out{color:#c85b5b;background:rgba(200,91,91,0.14);}
+  .flavor-badge.ok{color:#7fae8c;background:rgba(127,174,140,0.14);}
+  .flavor-modal-status{min-height:18px;font-size:12.5px;font-weight:700;margin:-6px 0 14px;}
+  .flavor-modal-status.low{color:#e0a23a;}
+  .flavor-modal-status.out{color:#c85b5b;}
+  .flavor-modal-status.ok{color:#7fae8c;}
+  .flavor-stock-note{font-size:11px;color:var(--text-dim);margin:10px 0 0;line-height:1.5;}
+
+  /* ---------- Корзина ---------- */
+  .cart-btn{position:relative;}
+  .cart-count{position:absolute;top:-2px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;
+    background:var(--accent);color:var(--text);font-size:11px;font-weight:800;line-height:18px;text-align:center;display:none;}
+  .cart-count.show{display:block;}
+  .card .pick-btn{margin-top:6px;width:100%;background:none;border:1px solid var(--accent);color:var(--text);
+    font-size:13px;font-weight:700;padding:10px 12px;border-radius:9px;cursor:pointer;}
+  .card .pick-btn:hover{background:var(--accent);}
+  .card .pick-btn.added{background:var(--accent);border-color:var(--accent);}
+  .flavor-actions{position:sticky;bottom:-28px;margin:16px -26px -28px;padding:14px 26px 18px;background:var(--bg-card);
+    border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px;}
+  .flavor-actions-row{display:flex;gap:10px;align-items:stretch;}
+  .qty-step{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex-shrink:0;}
+  .qty-step button{background:none;border:none;color:var(--text);width:36px;height:42px;font-size:18px;cursor:pointer;}
+  .qty-step button:disabled{color:var(--text-faint);cursor:default;}
+  .qty-step span{min-width:28px;text-align:center;font-weight:700;font-size:14px;}
+  .add-cart-btn{flex:1;background:var(--accent);border:none;color:var(--text);font-size:14px;font-weight:700;
+    border-radius:10px;cursor:pointer;padding:0 14px;}
+  .add-cart-btn:disabled{background:#2a1f22;color:var(--text-faint);cursor:not-allowed;}
+  .flavor-added{font-size:12.5px;color:#7fae8c;min-height:17px;display:flex;justify-content:space-between;gap:10px;}
+  .flavor-added button{background:none;border:none;color:var(--text);text-decoration:underline;font-size:12.5px;
+    font-weight:700;cursor:pointer;padding:0;white-space:nowrap;}
+
+  .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);z-index:300;background:#1d1518;
+    border:1px solid var(--accent);color:var(--text);font-size:13.5px;padding:12px 16px;border-radius:12px;
+    display:flex;align-items:center;gap:14px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+    width:max-content;max-width:calc(100% - 32px);}
+  #toast-text{flex:1 1 auto;min-width:0;}
+  .toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto;}
+  .toast button{background:none;border:none;color:var(--text);font-weight:700;text-decoration:underline;cursor:pointer;
+    font-size:13.5px;padding:0;white-space:nowrap;}
+
+  .cart-overlay{position:fixed;inset:0;z-index:250;background:rgba(5,4,5,0.85);display:none;align-items:flex-start;
+    justify-content:center;padding:24px 16px;overflow-y:auto;}
+  .cart-overlay.open{display:flex;}
+  .cart-panel{width:100%;max-width:560px;background:var(--bg-card);border:1px solid var(--line);border-radius:18px;
+    padding:22px 22px 20px;}
+  .cart-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+  .cart-title{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1px;line-height:1;}
+  .cart-title span{color:var(--accent);}
+  .cart-date{font-size:12px;color:var(--text-dim);margin-top:6px;}
+  .cart-close{background:none;border:none;color:var(--text-dim);font-size:24px;cursor:pointer;line-height:1;padding:2px 4px;}
+  .cart-hint{margin:16px 0 4px;font-size:12.5px;line-height:1.5;color:var(--text-muted);background:rgba(140,28,63,0.14);
+    border:1px solid rgba(140,28,63,0.45);border-radius:10px;padding:10px 12px;}
+  .cart-list{margin-top:10px;}
+  .cart-row{display:grid;grid-template-columns:24px 1fr auto;gap:2px 10px;padding:10px 0;border-bottom:1px solid var(--line-soft);
+    align-items:start;}
+  .cart-row .n{font-size:12px;color:var(--text-faint);font-weight:700;padding-top:2px;}
+  .cart-row .t{font-size:14px;font-weight:700;line-height:1.3;}
+  .cart-row .t small{font-weight:500;color:var(--text-dim);font-size:12px;}
+  .cart-row .f{font-size:13.5px;color:var(--text);margin-top:3px;}
+  .cart-row .f b{color:#e9c46a;font-weight:700;}
+  .cart-row .warn{font-size:11.5px;color:#e05555;font-weight:700;margin-top:3px;}
+  .cart-row .right{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+  .cart-row .sum{font-size:14px;font-weight:800;color:var(--text);white-space:nowrap;}
+  .cart-row .unit{font-size:11.5px;color:var(--text-dim);white-space:nowrap;}
+  .cart-row .ctrl{grid-column:2/4;display:flex;align-items:center;justify-content:space-between;margin-top:4px;}
+  .cart-row .qty-step{border-radius:8px;}
+  .cart-row .qty-step button{width:30px;height:28px;font-size:15px;}
+  .cart-row .qty-step span{min-width:22px;font-size:13px;}
+  .cart-row .del{background:none;border:none;color:var(--text-dim);font-size:12.5px;cursor:pointer;text-decoration:underline;padding:4px 0;}
+  .cart-total{display:flex;justify-content:space-between;align-items:baseline;padding:16px 0 4px;}
+  .cart-total .l{font-size:13.5px;color:var(--text-muted);}
+  .cart-total .v{font-size:22px;font-weight:800;color:var(--accent);}
+  .cart-foot{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+  .cart-foot button{flex:1;min-width:140px;font-size:13.5px;font-weight:700;padding:12px 14px;border-radius:10px;cursor:pointer;}
+  .cart-foot .primary{background:var(--accent);border:none;color:var(--text);}
+  .cart-foot .ghost{background:none;border:1px solid #3a2226;color:var(--text-muted);}
+  .cart-empty{text-align:center;color:var(--text-dim);font-size:14px;padding:36px 0 18px;line-height:1.6;}
+  .cart-empty button{margin-top:14px;background:var(--accent);border:none;color:var(--text);font-weight:700;font-size:14px;
+    padding:12px 22px;border-radius:10px;cursor:pointer;}
+  @media (max-width:520px){
+    .cart-overlay{padding:0;}
+    .cart-panel{border-radius:0;min-height:100%;border:none;padding:18px 16px;}
+  }
+
+  footer{padding:56px 64px 30px;border-top:1px solid var(--line-soft);background:#0e0c0e;}
+  .foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:36px;padding-bottom:40px;}
+  .foot-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;margin-bottom:12px;}
+  .foot-logo span{color:var(--accent);}
+  footer .col-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px;letter-spacing:0.4px;}
+  footer .links{display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--text-dim);}
+  footer p.desc{font-size:12.5px;color:var(--text-dim);line-height:1.7;max-width:260px;}
+  .foot-bottom{display:flex;align-items:center;justify-content:space-between;padding-top:26px;
+    border-top:1px solid var(--line-soft);flex-wrap:wrap;gap:12px;}
+  .foot-bottom span{font-size:12px;color:var(--text-faint);}
+  .age-chip{border:1px solid #3a2226;border-radius:5px;padding:2px 7px;font-weight:700;color:var(--text-dim);}
+
+  @media (max-width:1000px){
+    header{padding:16px 24px;}
+    nav{display:none;}
+    .hero{padding:70px 24px 50px;}
+    h1{font-size:42px;}
+    #catalog{padding:40px 24px;}
+    .search-bar{padding:12px 16px;top:65px;}
+    .grid{grid-template-columns:1fr 1fr;}
+    .foot-grid{grid-template-columns:1fr 1fr;}
+    footer{padding:40px 24px 24px;}
+  }
+  @media (max-width:520px){
+    .grid{grid-template-columns:1fr;}
+    .foot-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="box">
+    <div class="num">18+</div>
+    <p>Сайт содержит информацию о никотиносодержащей продукции и предназначен только для совершеннолетних пользователей.</p>
+    <div class="row">
+      <button class="yes" id="gate-yes">Мне есть 18 лет</button>
+      <button class="no" id="gate-no">Мне нет 18</button>
+    </div>
+  </div>
+</div>
+<div id="declined"><p>Доступ к сайту предоставляется только лицам старше 18 лет.</p></div>
+
+<header>
+  <div class="logo">ALFA<span>VAPE</span></div>
+  <nav id="nav"></nav>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <button class="icon-btn" id="search-toggle" aria-label="Поиск" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
+    <button class="icon-btn cart-btn" id="cart-toggle" aria-label="Корзина">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2.2l2.1 10.2a1.6 1.6 0 0 0 1.6 1.3h8.3a1.6 1.6 0 0 0 1.6-1.2L20.6 8H6.1"/><circle cx="9.5" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/></svg>
+      <span class="cart-count" id="cart-count">0</span>
+    </button>
+  </div>
+</header>
+<div class="search-bar" id="search-bar">
+  <div class="search-inner">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="search" id="search-input" placeholder="Поиск по названию или вкусу — например, Husky или арбуз" autocomplete="off" aria-label="Поиск товара">
+    <button id="search-clear" aria-label="Закрыть поиск">&times;</button>
+  </div>
+</div>
+
+<section class="hero">
+  <div class="glow1"></div>
+  <div class="glow2"></div>
+  <div class="hero-content">
+    <h1>Всё для вейпинга —<br>в одном месте</h1>
+    <p>Жидкости, одноразовые устройства, pod-системы, расходники и никотиновые паучи. Проверенные бренды и честные составы — актуальный ассортимент точек продаж в Минске.</p>
+    <p class="legal">Сайт носит информационный характер и не является дистанционной продажей никотиносодержащей продукции. Ознакомиться с ассортиментом и уточнить наличие можно у менеджера.</p>
+    <div class="cta-row">
+      <a href="#catalog" class="cta-primary">Смотреть каталог</a>
+    </div>
+  </div>
+</section>
+
+<section id="catalog">
+  <div class="cat-head">
+    <h2>Каталог</h2>
+    <span>Выберите категорию — цены и наличие уточняйте у менеджера</span>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div class="count-note" id="count-note"></div>
+  <div class="grid" id="grid"></div>
+</section>
+
+<div class="flavor-modal-overlay" id="flavor-modal-overlay">
+  <div class="flavor-modal">
+    <div class="flavor-modal-head">
+      <div class="flavor-modal-title" id="flavor-modal-title"></div>
+      <button class="flavor-modal-close" id="flavor-modal-close" aria-label="Закрыть">&times;</button>
+    </div>
+    <div class="flavor-modal-price" id="flavor-modal-price"></div>
+    <div class="flavor-field-label" id="flavor-modal-field-label">Вкус</div>
+    <div class="flavor-modal-status" id="flavor-modal-status"></div>
+    <div class="flavor-list" id="flavor-modal-list"></div>
+    <div class="flavor-actions">
+      <div class="flavor-actions-row">
+        <div class="qty-step">
+          <button type="button" id="fm-minus" aria-label="Меньше">&minus;</button>
+          <span id="fm-qty">1</span>
+          <button type="button" id="fm-plus" aria-label="Больше">+</button>
+        </div>
+        <button type="button" class="add-cart-btn" id="fm-add">В корзину</button>
+      </div>
+      <div class="flavor-added" id="fm-added"></div>
+    </div>
+  </div>
+</div>
+
+<div class="cart-overlay" id="cart-overlay">
+  <div class="cart-panel" role="dialog" aria-label="Корзина">
+    <div class="cart-head">
+      <div>
+        <div class="cart-title">ALFA<span>VAPE</span> · Корзина</div>
+        <div class="cart-date" id="cart-date"></div>
+      </div>
+      <button class="cart-close" id="cart-close" aria-label="Закрыть">&times;</button>
+    </div>
+    <div id="cart-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toast-text"></span><button id="toast-open">Открыть корзину</button></div>
+
+<footer>
+  <div class="foot-grid">
+    <div>
+      <div class="foot-logo">ALFA<span>VAPE</span></div>
+      <p class="desc">Сайт носит информационный характер и не осуществляет дистанционную продажу никотиносодержащей продукции. Доступ — только для лиц старше 18 лет.</p>
+    </div>
+    <div>
+      <div class="col-title">КАТАЛОГ</div>
+      <div class="links" id="foot-links"></div>
+    </div>
+    <div>
+      <div class="col-title">ИНФОРМАЦИЯ</div>
+      <div class="links">
+        <a href="#">О компании</a>
+        <a href="#">Точки продаж</a>
+        <a href="#">Политика конфиденциальности</a>
+        <a href="#">Контакты</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>© 2026 ALFA VAPE.</span>
+    <span style="display:flex;align-items:center;gap:8px;"><span class="age-chip">18+</span> Только для совершеннолетних</span>
+  </div>
+</footer>
+
+<script>
+// ---------- Age gate ----------
+var gate = document.getElementById('gate');
+var declined = document.getElementById('declined');
+document.getElementById('gate-yes').addEventListener('click', function(){ gate.style.display = 'none'; });
+document.getElementById('gate-no').addEventListener('click', function(){ gate.style.display = 'none'; declined.style.display = 'flex'; });
+
+// ---------- Catalog data ----------
+var CATEGORIES = [
+  { id: 'liquids', label: 'Жидкости' },
+  { id: 'disposables', label: 'Одноразки' },
+  { id: 'pods', label: 'POD-системы' },
+  { id: 'parts', label: 'Расходники' },
+  { id: 'pouches', label: 'Паучи' }
+];
+
+var PRODUCTS = {"liquids":[{"name":"Бустер","meta":"20mg","price":"2 Br","img":"images/booster.webp","qty":473},{"name":"ПРИЗРАК","meta":"69mg","price":"16 Br","isNew":true,"flavors":["Арбуз малина","Виноград алоэ","Виноград вишня","Виноградный чупа чупс","Вишневый эклипс","Вишневый энергетик","Голубая фанта","Ежевичный лимонад","Земляника черешня","Земляничный мохито","Киви клубника","Кислые лесные ягоды","Клубника гранат","Клубничный холс","Малиновая газировка","Морозная арбузная жвачка","Морс из лесных ягод","Персик киви","Персиковый сок","Смородина малина","Холодный спрайт мята","Черника грейпфрут","Черника ежевика","Чернично малиновые черви","Энергетик monster","Энергетик черника","Яблоко виноград","Яблоко вишня","Ягодная жвачка","Ягодный смузи"],"stock":{"Арбуз малина":16,"Виноград алоэ":21,"Виноград вишня":13,"Виноградный чупа чупс":16,"Вишневый эклипс":19,"Вишневый энергетик":18,"Голубая фанта":16,"Ежевичный лимонад":23,"Земляника черешня":16,"Земляничный мохито":22,"Киви клубника":19,"Кислые лесные ягоды":11,"Клубника гранат":22,"Клубничный холс":23,"Малиновая газировка":22,"Морозная арбузная жвачка":18,"Морс из лесных ягод":21,"Персик киви":22,"Персиковый сок":22,"Смородина малина":20,"Холодный спрайт мята":19,"Черника грейпфрут":25,"Черника ежевика":20,"Чернично малиновые черви":21,"Энергетик monster":13,"Энергетик черника":23,"Яблоко виноград":21,"Яблоко вишня":24,"Ягодная жвачка":17,"Ягодный смузи":22}},{"name":"SWEET ЗОМБИ","meta":"50mg","price":"16 Br","isNew":true,"flavors":["Ананас лайм земляника","Апельсин клубника","Бабл гам","Виноград ежевика","Виноградный леденец","Виноградный энергетик","Дикие лесные ягоды","Кислые малина лайм","Кислый скитлс","Клубника киви","Клубничный мохито","Ледяная малина","Ледяной виноград","Ледяной киви","Малина гранат","Малиновый энергетик","Манго киви","Мандарин персик","Морозная вишня","Персик киви","Персик манго","Розовый лимонад","Сладкая мятная жвачка","Фанта с голубой малиной","Фруктовый чупа-чупс","Черешня земляника","Черника ежевика","Чернично малиновые червячки","Экзотические фрукты","Ягодный микс"],"stock":{"Ананас лайм земляника":24,"Апельсин клубника":27,"Бабл гам":22,"Виноград ежевика":24,"Виноградный леденец":24,"Виноградный энергетик":24,"Дикие лесные ягоды":25,"Кислые малина лайм":24,"Кислый скитлс":24,"Клубника киви":27,"Клубничный мохито":25,"Ледяная малина":25,"Ледяной виноград":29,"Ледяной киви":28,"Малина гранат":24,"Малиновый энергетик":27,"Манго киви":28,"Мандарин персик":27,"Морозная вишня":27,"Персик киви":29,"Персик манго":26,"Розовый лимонад":30,"Сладкая мятная жвачка":26,"Фанта с голубой малиной":26,"Фруктовый чупа-чупс":26,"Черешня земляника":25,"Черника ежевика":26,"Чернично малиновые червячки":25,"Экзотические фрукты":28,"Ягодный микс":19}},{"name":"BOSHKI","meta":"20mg","price":"13 Br","isNew":true,"flavors":["EXOTIC (хвойный коктейль манго дыня)","ICE CS (хвойная клубничная кола)","ICE ДАЧНЫЕ (хвойный лимонад груша клубника)","ICE ДОБРЫЕ (хвойный щербет лесные ягоды)","ICE ДОКТОРСКИЕ (хвойный доктор пеппер)","ICE СОЧНЫЕ (хвойный сок яблоко апельсин)","ICE ТРОПИЧЕСКИЕ (хвойно-тропический коктейль манго мандарин)","ICE ЯГОДКИ (ягодки)","NEON (с хвоей арбуз черника)","БОДРЫЕ (хвойный энергетик)","ДОБРЫЕ (хвойный щербет лесные ягоды)","ЗИМНИЕ (с хвоей ледяной ананас)","ЗЛЫЕ (хвойный лимонад смородина)","КУБАНСКИЕ (хвойный щербет виноград)","САДОВЫЕ (с хвоей садовая клубника)","САХАРНЫЕ (с хвойными нотками малиновое варенье)","ЧЕРНЫЕ (хвойная кока кола)"],"stock":{"EXOTIC (хвойный коктейль манго дыня)":44,"ICE CS (хвойная клубничная кола)":47,"ICE ДАЧНЫЕ (хвойный лимонад груша клубника)":47,"ICE ДОБРЫЕ (хвойный щербет лесные ягоды)":43,"ICE ДОКТОРСКИЕ (хвойный доктор пеппер)":46,"ICE СОЧНЫЕ (хвойный сок яблоко апельсин)":46,"ICE ТРОПИЧЕСКИЕ (хвойно-тропический коктейль манго мандарин)":47,"ICE ЯГОДКИ (ягодки)":44,"NEON (с хвоей арбуз черника)":38,"БОДРЫЕ (хвойный энергетик)":45,"ДОБРЫЕ (хвойный щербет лесные ягоды)":45,"ЗИМНИЕ (с хвоей ледяной ананас)":41,"ЗЛЫЕ (хвойный лимонад смородина)":39,"КУБАНСКИЕ (хвойный щербет виноград)":45,"САДОВЫЕ (с хвоей садовая клубника)":45,"САХАРНЫЕ (с хвойными нотками малиновое варенье)":42,"ЧЕРНЫЕ (хвойная кока кола)":40}},{"name":"BJORN HEADSHOT","meta":"100mg","price":"16 Br","isNew":true,"flavors":["Абрикос груша","Абрикос лимонад","Ананас кокос","Банан с кислинкой","Брусника яблоко","Гранат мандарин","Гранат яблоко","Грейпфрут сибирские ягоды","Груша брусника","Дыня клюква","Ежевика с кислинкой","Киви алоэ","Киви арбуз","Клубника с кислинкой","Малина клюква","Нектарин вишня","Персик с кислинкой","Слива лимонад","Черника брусника","Яблочный skittles"],"stock":{"Абрикос груша":26,"Абрикос лимонад":28,"Ананас кокос":25,"Банан с кислинкой":22,"Брусника яблоко":23,"Гранат мандарин":24,"Гранат яблоко":24,"Грейпфрут сибирские ягоды":23,"Груша брусника":23,"Дыня клюква":25,"Ежевика с кислинкой":16,"Киви алоэ":25,"Киви арбуз":23,"Клубника с кислинкой":22,"Малина клюква":23,"Нектарин вишня":16,"Персик с кислинкой":22,"Слива лимонад":28,"Черника брусника":21,"Яблочный skittles":19}},{"name":"SLIME","meta":"20mg","price":"14 Br","isNew":true,"flavors":["Апельсин черника лед","Арбуз клубника лед","Виноградный сок лед","Вишневая кола лед","Вишнево-виноградный холс","Голубика смородина лед","Дыня арбуз земляника лед","Кислая вишня","Кислая клюква виноград","Кислая черника лайм","Кислое киви клубника","Кислое яблоко киви","Кислые вишневые червячки","Кислые лесные ягоды","Кислый ананас малина","Кислый виноград смородина","Кислый малиновый энергетик","Кислый мармелад клубника","Кислый скитлс","Кислый цитрус виноград","Кислый чупа-чупс","Кислый ягодный швепс","Ледяной спрайт","Табак вишня","Ягодные леденцы лед","Ягодный энергетик лед"],"stock":{"Апельсин черника лед":28,"Арбуз клубника лед":27,"Виноградный сок лед":28,"Вишневая кола лед":28,"Вишнево-виноградный холс":29,"Голубика смородина лед":29,"Дыня арбуз земляника лед":28,"Кислая вишня":28,"Кислая клюква виноград":26,"Кислая черника лайм":28,"Кислое киви клубника":25,"Кислое яблоко киви":26,"Кислые вишневые червячки":28,"Кислые лесные ягоды":26,"Кислый ананас малина":27,"Кислый виноград смородина":25,"Кислый малиновый энергетик":29,"Кислый мармелад клубника":26,"Кислый скитлс":25,"Кислый цитрус виноград":27,"Кислый чупа-чупс":26,"Кислый ягодный швепс":28,"Ледяной спрайт":27,"Табак вишня":25,"Ягодные леденцы лед":29,"Ягодный энергетик лед":26}},{"name":"BJORN СОН ПРИЗРАКА","meta":"80mg (Extra Hard)","price":"16 Br","isNew":true,"flavors":["Ананас манго","Вишня","Вишнёвая кола со льдом","Киви маракуйя гуава","Кислая черника и малина","Кислое яблоко","Кислый лимон киви","Ледяная клубника личи","Лесные ягоды","Лесные ягоды с холодком","Лимон лайм","Личи со льдом","Манго со льдом","Маракуйя апельсин гуава","Маракуйя мандарин","Тропический радужный взрыв","Черника грейпфрут","Черника малина вишня","Энергетик","Яблоко персик","Персик клюква","Фанта ягоды","Яблоко грейпфрут","Харибо маршмеллоу","Брусника виноград","Гранат апельсин","Ежевика клубника","Киви банан","Клубника апельсин","Виноград арбуз лимонад","Маракуйя манго","Спрайт лимон","Тропический лед","Ананас грейпфрут","Конфета шипучка","Манго лимон","Мандарин киви","Ментос кислая груша","Банан груша","Цитрусовый лимонад","Абрикосовый компот","Жвачка турбо","Редбулл груша"],"stock":{"Ананас манго":21,"Вишня":5,"Вишнёвая кола со льдом":13,"Киви маракуйя гуава":20,"Кислая черника и малина":6,"Кислое яблоко":17,"Кислый лимон киви":0,"Ледяная клубника личи":26,"Лесные ягоды":0,"Лесные ягоды с холодком":12,"Лимон лайм":0,"Личи со льдом":0,"Манго со льдом":20,"Маракуйя апельсин гуава":22,"Маракуйя мандарин":23,"Тропический радужный взрыв":15,"Черника грейпфрут":21,"Черника малина вишня":6,"Энергетик":0,"Яблоко персик":17,"Персик клюква":27,"Фанта ягоды":20,"Яблоко грейпфрут":24,"Харибо маршмеллоу":24,"Брусника виноград":18,"Гранат апельсин":26,"Ежевика клубника":18,"Киви банан":19,"Клубника апельсин":27,"Виноград арбуз лимонад":16,"Маракуйя манго":19,"Спрайт лимон":22,"Тропический лед":20,"Ананас грейпфрут":26,"Конфета шипучка":23,"Манго лимон":27,"Мандарин киви":24,"Ментос кислая груша":23,"Банан груша":23,"Цитрусовый лимонад":25,"Абрикосовый компот":26,"Жвачка турбо":20,"Редбулл груша":17},"img":"images/bjorn-son-80.webp"},{"name":"HQD","meta":"2%","price":"17 Br","isNew":true,"flavors":["Banana ice","Black dragon","Black ice","Blueberry cherry cranberry","Blueberry lemonade","Blueberry raspberry","Blueberry sour raspberry","Cherry ice","Cherry lime raspberry","Fizzy cherry","Grape mint","Grapey","Gummy bear","Ice mint","Lemon lime","Mr blue","Orange soda","Peach ice","Strawberry banana","Strawberry ice","Strawberry raspberry cherry ice","Watermelon ice"],"stock":{"Banana ice":30,"Black dragon":9,"Black ice":18,"Blueberry cherry cranberry":29,"Blueberry lemonade":8,"Blueberry raspberry":29,"Blueberry sour raspberry":10,"Cherry ice":29,"Cherry lime raspberry":30,"Fizzy cherry":17,"Grape mint":30,"Grapey":30,"Gummy bear":29,"Ice mint":30,"Lemon lime":30,"Mr blue":32,"Orange soda":10,"Peach ice":28,"Strawberry banana":30,"Strawberry ice":30,"Strawberry raspberry cherry ice":30,"Watermelon ice":28},"img":"images/hqd-2.webp"},{"name":"HQD","meta":"5%","price":"17 Br","isNew":true,"flavors":["Banana ice","Black dragon","Black ice","Blueberry cherry cranberry","Blueberry lemonade","Blueberry raspberry","Blueberry sour raspberry","Cherry ice","Cherry lime raspberry","Fizzy cherry","Grape mint","Grapey","Gummy bear","Ice mint","Lemon lime","Mr blue","Orange soda","Peach ice","Strawberry banana","Strawberry ice","Strawberry raspberry cherry ice","Watermelon ice"],"stock":{"Banana ice":30,"Black dragon":30,"Black ice":37,"Blueberry cherry cranberry":30,"Blueberry lemonade":30,"Blueberry raspberry":29,"Blueberry sour raspberry":30,"Cherry ice":30,"Cherry lime raspberry":30,"Fizzy cherry":28,"Grape mint":30,"Grapey":30,"Gummy bear":29,"Ice mint":29,"Lemon lime":30,"Mr blue":30,"Orange soda":30,"Peach ice":29,"Strawberry banana":30,"Strawberry ice":10,"Strawberry raspberry cherry ice":30,"Watermelon ice":30},"img":"images/hqd-5.webp"},{"name":"РАЗЪЕБАШКА","meta":"80mg (Extra Hard)","price":"14 Br","isNew":true,"flavors":["Ананасовый чупа-чупс","Арбузно вишневый лед","Арбузно малиновый лимонад","Виноград киви","Виноград малина","Виноградно малиновый пунш","Виноградный демон","Виноградный энергетик","Вишнево малиновый компот","Вишневый сироп","Клубничный коктейль","Малиновая жвачка","Дынно банановый коктейль","Жвачка киви","Земляника вишня","Клубнично малиновый мус","Малиново банановый фреш","Малиново смородиновый микс","Малиновый смузи","Малиновый энергетик","Персиковый сок","Свежий арбуз","Смородина виноград","Смородиновая жвачка","Смородиновый скитлс","Спелая дыня","Чернично смородиновый морс","Энергетик","Яблоко киви","Яблочный лимонад"],"stock":{"Ананасовый чупа-чупс":0,"Арбузно вишневый лед":0,"Арбузно малиновый лимонад":0,"Виноград киви":0,"Виноград малина":0,"Виноградно малиновый пунш":0,"Виноградный демон":0,"Виноградный энергетик":0,"Вишнево малиновый компот":0,"Вишневый сироп":0,"Клубничный коктейль":0,"Малиновая жвачка":0,"Дынно банановый коктейль":0,"Жвачка киви":0,"Земляника вишня":0,"Клубнично малиновый мус":0,"Малиново банановый фреш":0,"Малиново смородиновый микс":0,"Малиновый смузи":0,"Малиновый энергетик":0,"Персиковый сок":0,"Свежий арбуз":0,"Смородина виноград":0,"Смородиновая жвачка":0,"Смородиновый скитлс":0,"Спелая дыня":0,"Чернично смородиновый морс":0,"Энергетик":0,"Яблоко киви":0,"Яблочный лимонад":0},"img":"images/razebashka.webp"},{"name":"ISTERIKA classic","meta":"20mg (Strong)","price":"15 Br","isNew":true,"flavors":["Ананас ежевика","Арбузные леденцы","Ежевичный мармелад","Зеленый берн","Клубника + малиновое варенье","Клубника банан дыня","Клубника драгонфрут","Кола чупа-чупс","Лимонад черника","Маракуйя грейпфрут","Персик зеленый виноград","Фруктовые мармеладные мишки","Черная смородина груша","Экзотик микс","Яблоко лесной микс"],"stock":{"Ананас ежевика":13,"Арбузные леденцы":10,"Ежевичный мармелад":10,"Зеленый берн":12,"Клубника + малиновое варенье":10,"Клубника банан дыня":8,"Клубника драгонфрут":18,"Кола чупа-чупс":5,"Лимонад черника":21,"Маракуйя грейпфрут":23,"Персик зеленый виноград":4,"Фруктовые мармеладные мишки":17,"Черная смородина груша":3,"Экзотик микс":7,"Яблоко лесной микс":1},"img":"images/isterika-classic.webp"},{"name":"DOGSWILL","meta":"70mg","price":"15 Br","isNew":true,"flavors":["Арбузная жвачка с мятой","Барбарисовые конфеты и вишня","Виноград вишня","Виноградная содовая","Вишня яблоко","Домашний смородиновый лимонад","Жвачка с ягодами","Земляничный фреш","Малина киви","Малина лемонграсс","Малиновый лимонад","Морс из малины","Мята лайм","Персик клубника","Персиковый лимонад","Розовый лимонад","Тропический энергетик","Черника голубика","Яблоко киви","Ягодный редбулл"],"stock":{"Арбузная жвачка с мятой":0,"Барбарисовые конфеты и вишня":1,"Виноград вишня":0,"Виноградная содовая":0,"Вишня яблоко":0,"Домашний смородиновый лимонад":0,"Жвачка с ягодами":0,"Земляничный фреш":0,"Малина киви":0,"Малина лемонграсс":8,"Малиновый лимонад":0,"Морс из малины":0,"Мята лайм":0,"Персик клубника":0,"Персиковый лимонад":0,"Розовый лимонад":4,"Тропический энергетик":0,"Черника голубика":0,"Яблоко киви":0,"Ягодный редбулл":0},"img":"images/dogswill-70.webp"},{"name":"CATSWILL PREMIUM","meta":"20mg","price":"18 Br","isNew":true,"flavors":["SWEET Голубика черный виноград","SWEET Ежевика мята виноград","SWEET Карамельное яблоко","SWEET Клубника банан яблоко","SWEET Лимонад вишня арбуз","SWEET Малина клюква","SWEET Нектарин скитлс персик","SWEET Скитлс лимонад мандарин","SWEET Фрутелла апельсин клубника","SWEET Черешневый сок","SWEET Яблочный скитлс","ICE Клубника малина","ICE Апельсин вишня лимон","ICE Банан манго","ICE Зелёное яблоко лимон мята","ICE Клюква киви","SOUR Ежевика","ICE Черешня мята","ICE Малина лимон","ICE Синяя малина","ICE Черная смородина лайм мята","SOUR Киви малина","ICE Ягодный ментол","ICE клубничный мохито мята лайм","SOUR Вишневый чупа-чупс","SOUR Вишня лимон","SOUR Клубника кактус","SOUR Смородина малина","SOUR Тик так апельсин клубника","SOUR Черный виноград","SOUR Клубничный энергетик","SOUR Лайм черника","SOUR Малина вишня"],"stock":{"SWEET Голубика черный виноград":0,"SWEET Ежевика мята виноград":0,"SWEET Карамельное яблоко":0,"SWEET Клубника банан яблоко":0,"SWEET Лимонад вишня арбуз":0,"SWEET Малина клюква":0,"SWEET Нектарин скитлс персик":0,"SWEET Скитлс лимонад мандарин":0,"SWEET Фрутелла апельсин клубника":0,"SWEET Черешневый сок":0,"SWEET Яблочный скитлс":1,"ICE Клубника малина":0,"ICE Апельсин вишня лимон":1,"ICE Банан манго":0,"ICE Зелёное яблоко лимон мята":0,"ICE Клюква киви":2,"SOUR Ежевика":0,"ICE Черешня мята":3,"ICE Малина лимон":5,"ICE Синяя малина":0,"ICE Черная смородина лайм мята":0,"SOUR Киви малина":0,"ICE Ягодный ментол":1,"ICE клубничный мохито мята лайм":0,"SOUR Вишневый чупа-чупс":0,"SOUR Вишня лимон":0,"SOUR Клубника кактус":2,"SOUR Смородина малина":0,"SOUR Тик так апельсин клубника":2,"SOUR Черный виноград":0,"SOUR Клубничный энергетик":0,"SOUR Лайм черника":1,"SOUR Малина вишня":0},"img":"images/catswill-premium.webp"},{"name":"PIXEL SOUR","meta":"20mg","price":"14 Br","isNew":true,"flavors":["Ананас апельсин","Виноградный чупа чупс","Вишневые червячки","Грейпфрут вишня","Клубника малина лайм","Клюква лайм","Лайм ежевика","Лимонад малина арбуз","Малина апельсин","Скитлс","Тропический микс","Черная смородина","Черничный энергетик","Яблоко клубника","Ягодный морс"],"stock":{"Ананас апельсин":0,"Виноградный чупа чупс":0,"Вишневые червячки":0,"Грейпфрут вишня":3,"Клубника малина лайм":0,"Клюква лайм":0,"Лайм ежевика":0,"Лимонад малина арбуз":0,"Малина апельсин":0,"Скитлс":0,"Тропический микс":0,"Черная смородина":0,"Черничный энергетик":0,"Яблоко клубника":0,"Ягодный морс":0},"img":"images/pixel-sour.webp"},{"name":"ANNIMA LOVE","meta":"20mg (Strong)","price":"15,5 Br","isNew":true,"flavors":["Мохито с клубникой","Смородина вишня черника","Смородиновый лимонад","Сочный персик","Черника гранат","Черника ежевика","Энергетик малина","Энергетик ягоды","Вишнёвый сок","Дыня черника","Кислая вишня","Кислые ягодные червячки","Кислый скитлс","Клубника банан","Клубника киви","Ледяной виноград","Малиновый лимонад","Морозные лесные ягоды","Морозный Ред Булл","Морс из диких ягод"],"stock":{"Мохито с клубникой":4,"Смородина вишня черника":14,"Смородиновый лимонад":26,"Сочный персик":6,"Черника гранат":23,"Черника ежевика":2,"Энергетик малина":18,"Энергетик ягоды":0,"Вишнёвый сок":19,"Дыня черника":16,"Кислая вишня":15,"Кислые ягодные червячки":3,"Кислый скитлс":23,"Клубника банан":23,"Клубника киви":30,"Ледяной виноград":0,"Малиновый лимонад":29,"Морозные лесные ягоды":0,"Морозный Ред Булл":5,"Морс из диких ягод":15},"img":"images/annima-love.webp"},{"name":"RICK and MORTY BAD ACID","meta":"20mg (Strong)","price":"15 Br","isNew":true,"flavors":["АНАНАС ПЕРСИК","АПЕЛЬСИНОВЫЙ АДРЕНАЛИН","ВИНОГРАДНЫЙ ЧУПА-ЧУПС","ВИШНЁВАЯ БОМБА","ЗЕЛЁНЫЙ ЧАЙ ЛЕМОНГРАСС","КИВИ ЛАЙМ","КЛЮКВА ЛАЙМ","ЛЕСНЫЕ ЯГОДЫ","МАЛИНА АРБУЗ","ТРОПИЧЕСКИЙ МАНГО","ФРУКТОВЫЙ СКИТЛС","ЧЁРНАЯ СМОРОДИНА","ЧЕРВЯЧКИ ГОЛУБИКА МАЛИНА","ЧЕРНИЧНАЯ ФАНТА","ЯБЛОКО ЛАЙМ","МАЛИНА СМОРОДИНА","ЧЕРНИКА ЛИМОН","КЛУБНИЧНЫЙ МОХИТО","ЯГОДНЫЙ МОРС","СПРАЙТ АРБУЗ ЛАЙМ","АНАНАСОВЫЕ ЛЕДЕНЦЫ","ВИНОГРАД ЛАЙМ","ВИШНЯ КЛЮКВА","ЕЖЕВИКА ЛАЙМ","КЛУБНИКА МАЛИНА ЛАЙМ","ЛИМОННЫЕ ЛЕДЕНЦЫ","ПЕРСИКОВЫЙ ЛИМОНАД","ЧЕРНИКА ЭНЕРГЕТИК","ЯБЛОКО КЛУБНИКА","ЯГОДНЫЙ МАРМЕЛАД","МАРМЕЛАДНЫЕ ЧЕРВЯЧКИ ГОЛУБИКА МАЛИНА","МАРМЕЛАДНЫЕ ЯГОДЫ"],"stock":{"АНАНАС ПЕРСИК":43,"АПЕЛЬСИНОВЫЙ АДРЕНАЛИН":41,"ВИНОГРАДНЫЙ ЧУПА-ЧУПС":37,"ВИШНЁВАЯ БОМБА":45,"ЗЕЛЁНЫЙ ЧАЙ ЛЕМОНГРАСС":44,"КИВИ ЛАЙМ":44,"КЛЮКВА ЛАЙМ":46,"ЛЕСНЫЕ ЯГОДЫ":40,"МАЛИНА АРБУЗ":43,"ТРОПИЧЕСКИЙ МАНГО":45,"ФРУКТОВЫЙ СКИТЛС":41,"ЧЁРНАЯ СМОРОДИНА":39,"ЧЕРВЯЧКИ ГОЛУБИКА МАЛИНА":0,"ЧЕРНИЧНАЯ ФАНТА":45,"ЯБЛОКО ЛАЙМ":49,"МАЛИНА СМОРОДИНА":48,"ЧЕРНИКА ЛИМОН":48,"КЛУБНИЧНЫЙ МОХИТО":46,"ЯГОДНЫЙ МОРС":46,"СПРАЙТ АРБУЗ ЛАЙМ":47,"АНАНАСОВЫЕ ЛЕДЕНЦЫ":46,"ВИНОГРАД ЛАЙМ":42,"ВИШНЯ КЛЮКВА":41,"ЕЖЕВИКА ЛАЙМ":47,"КЛУБНИКА МАЛИНА ЛАЙМ":46,"ЛИМОННЫЕ ЛЕДЕНЦЫ":48,"ПЕРСИКОВЫЙ ЛИМОНАД":48,"ЧЕРНИКА ЭНЕРГЕТИК":39,"ЯБЛОКО КЛУБНИКА":48,"ЯГОДНЫЙ МАРМЕЛАД":0,"МАРМЕЛАДНЫЕ ЧЕРВЯЧКИ ГОЛУБИКА МАЛИНА":41,"МАРМЕЛАДНЫЕ ЯГОДЫ":46},"img":"images/rick-morty-bad-acid.webp"},{"name":"PODONKI & MALASIAN ARCADE","meta":"20mg (Strong)","price":"14,5 Br","isNew":true,"flavors":["Арбузный слаш","Барбарисовый энергетик","Виноград ежевика","Вишневый энергетик","Дыня клубника банан","Киви персик","Кислый малиновый мармелад","Клубника ананасовые кольца","Кола ягоды","Лесные ягоды","Лимонад голубика","Малина черника","Манго маракуйя","Маунтин дью кислое яблоко","Нектарин","Скитлс лайм","Сладкая мятная жвачка","Цитрусовый микс","Черная смородина личи","Яблоко вишня"],"stock":{"Арбузный слаш":19,"Барбарисовый энергетик":15,"Виноград ежевика":0,"Вишневый энергетик":0,"Дыня клубника банан":18,"Киви персик":15,"Кислый малиновый мармелад":20,"Клубника ананасовые кольца":22,"Кола ягоды":17,"Лесные ягоды":0,"Лимонад голубика":19,"Малина черника":7,"Манго маракуйя":10,"Маунтин дью кислое яблоко":23,"Нектарин":23,"Скитлс лайм":18,"Сладкая мятная жвачка":6,"Цитрусовый микс":16,"Черная смородина личи":20,"Яблоко вишня":10},"img":"images/podonki-arcade.webp"},{"name":"Husky Malasian","meta":"20mg (Strong)","price":"16 Br","isNew":true,"flavors":["Berserk (микс лесных ягод со льдом)","Red warg (ледяной клубнично-малиновый смузи)","Sour beast (ледяной микс киви с клубникой)","Jungle hunter (индийский манго с цитрусами)","Shake pears (ледяной смузи из груши, персика и личи)","Ice woody (морозная свежесть+нотки сладкого ментола+хвоя)","Gum wolf (ледяная арбузная жвачка с ментолом)","Lemon flock (мощьный цитрусовый микс со льдом)","Tropic hunter (ледяной микс дыни, ананаса и манго)","Wolfberry (ледяная волчья ягода)","Miami Snow (микс ананаса+личи+банана+льда)","Big Ball (микс арбуза+дыни+клубника+лёд)","Blood Boy (двойной австралийский сладкий манго+лёд)","Dark Flesh (черника, гуава со льдом)","Yellow King (микс из спелых дынь, с нотками алоэ и льда)","Yoggi Doggy (смесь йогурта из персика клубники и льда)"],"stock":{"Berserk (микс лесных ягод со льдом)":0,"Red warg (ледяной клубнично-малиновый смузи)":0,"Sour beast (ледяной микс киви с клубникой)":0,"Jungle hunter (индийский манго с цитрусами)":0,"Shake pears (ледяной смузи из груши, персика и личи)":0,"Ice woody (морозная свежесть+нотки сладкого ментола+хвоя)":0,"Gum wolf (ледяная арбузная жвачка с ментолом)":0,"Lemon flock (мощьный цитрусовый микс со льдом)":0,"Tropic hunter (ледяной микс дыни, ананаса и манго)":0,"Wolfberry (ледяная волчья ягода)":0,"Miami Snow (микс ананаса+личи+банана+льда)":0,"Big Ball (микс арбуза+дыни+клубника+лёд)":0,"Blood Boy (двойной австралийский сладкий манго+лёд)":0,"Dark Flesh (черника, гуава со льдом)":0,"Yellow King (микс из спелых дынь, с нотками алоэ и льда)":0,"Yoggi Doggy (смесь йогурта из персика клубники и льда)":0},"img":"images/husky-malasian.webp"},{"name":"Husky Malasian","meta":"20mg","price":"16 Br","isNew":true,"flavors":["Berserk (микс лесных ягод со льдом) NEW!","Gum wolf (ледяная арбузная жвачка с ментолом)","Ice woody (морозная свежесть+нотки сладкого ментола+хвоя)","Jungle hunter (индийский манго с цитрусами) NEW!","Lemon flock (мощьный цитрусовый микс со льдом)","Red warg (ледяной клубнично-малиновый смузи)","Shake pears (ледяной смузи из груши, персика и личи)","Sour beast (ледяной микс киви с клубникой)","Tropic hunter (ледяной микс дыни, ананаса и манго)","Wolfberry (ледяная волчья ягода)","Big Ball (микс арбуза+дыни+клубника+лёд)","Blood Boy (двойной австралийский сладкий манго+лёд)","Miami Snow (микс ананаса+личи+банана+льда)","Dark Flesh (черника, гуава со льдом)","Yoggi Doggy (смесь йогурта из персика клубники и льда)","Yellow King (микс из спелых дынь, с нотками алоэ и льда)"],"stock":{"Berserk (микс лесных ягод со льдом) NEW!":0,"Gum wolf (ледяная арбузная жвачка с ментолом)":0,"Ice woody (морозная свежесть+нотки сладкого ментола+хвоя)":0,"Jungle hunter (индийский манго с цитрусами) NEW!":4,"Lemon flock (мощьный цитрусовый микс со льдом)":11,"Red warg (ледяной клубнично-малиновый смузи)":0,"Shake pears (ледяной смузи из груши, персика и личи)":7,"Sour beast (ледяной микс киви с клубникой)":0,"Tropic hunter (ледяной микс дыни, ананаса и манго)":0,"Wolfberry (ледяная волчья ягода)":9,"Big Ball (микс арбуза+дыни+клубника+лёд)":0,"Blood Boy (двойной австралийский сладкий манго+лёд)":9,"Miami Snow (микс ананаса+личи+банана+льда)":9,"Dark Flesh (черника, гуава со льдом)":7,"Yoggi Doggy (смесь йогурта из персика клубники и льда)":2,"Yellow King (микс из спелых дынь, с нотками алоэ и льда)":4},"img":"images/husky-malasian.webp"},{"name":"Husky White 3x ICE","meta":"20mg","price":"16 Br","isNew":true,"flavors":["CHEW PEAK ледяная жвачка с манго","COLD PASSION ледяная маракуйя","BUZZZ ледяная черника с арбузом","FANGERINE ледяная фанта с мандарином","MINT WIND ледяная мятная жвачка","PATAYA HEAD ледяной ананасовый сок с лимоном","PINK LEMONADE ледяной малиновый лимонад","SNOW SORBET ледяное дынное мороженое","STEEP SLOPE ледяной персик и клубничные конфеты","SWEET VALE ледяные конфеты с личи"],"stock":{"CHEW PEAK ледяная жвачка с манго":7,"COLD PASSION ледяная маракуйя":11,"BUZZZ ледяная черника с арбузом":4,"FANGERINE ледяная фанта с мандарином":7,"MINT WIND ледяная мятная жвачка":0,"PATAYA HEAD ледяной ананасовый сок с лимоном":9,"PINK LEMONADE ледяной малиновый лимонад":4,"SNOW SORBET ледяное дынное мороженое":6,"STEEP SLOPE ледяной персик и клубничные конфеты":6,"SWEET VALE ледяные конфеты с личи":12},"img":"images/husky-white.webp"},{"name":"MONSTER LIQUID HARDCORE","meta":"60mg","price":"13 Br","img":"images/monster-hardcore.webp","flavors":["Ананасовый коктейль","Апельсиновый коктейль","Барбарисовый коктейль","Виноградный коктейль","Вишневый коктейль","Гранатовый коктейль","Грейпфрутовый коктейль","Земляничный коктейль","Киви коктейль","Клубничный коктейль","Малиновый коктейль","Манговый коктейль","Маракуйя коктейль","Персиковый коктейль","Скитлс коктейль","Смородиновый коктейль","Фруктовый коктейль","Черничный коктейль","Экзотический коктейль","Яблочный коктейль"],"stock":{"Ананасовый коктейль":0,"Апельсиновый коктейль":17,"Барбарисовый коктейль":13,"Виноградный коктейль":0,"Вишневый коктейль":0,"Гранатовый коктейль":11,"Грейпфрутовый коктейль":21,"Земляничный коктейль":0,"Киви коктейль":14,"Клубничный коктейль":3,"Малиновый коктейль":14,"Манговый коктейль":14,"Маракуйя коктейль":25,"Персиковый коктейль":10,"Скитлс коктейль":11,"Смородиновый коктейль":13,"Фруктовый коктейль":11,"Черничный коктейль":3,"Экзотический коктейль":17,"Яблочный коктейль":11}},{"name":"MONSTER LIQUID ICEBERG","meta":"60mg","price":"13 Br","img":"images/monster-iceberg.webp","flavors":["Ананас и личи","Вишня и грейпфрут","Арбузный фреш","Вишневый смузи","Киви и лайм","Ледяной гранат","Ледяной персик","Ледяные ягоды","Малиновый смузи","Манго и маракуйя","Ментоловый спрайт","Морозная малина","Морозная пинаколада","Морозный виноград","Персик и малина","Розовый лимонад","Смородиновый смузи","Тропический смузи","Фейхоа и клубника","Земляничный мохито"],"stock":{"Ананас и личи":18,"Вишня и грейпфрут":18,"Арбузный фреш":0,"Вишневый смузи":8,"Киви и лайм":16,"Ледяной гранат":18,"Ледяной персик":0,"Ледяные ягоды":0,"Малиновый смузи":13,"Манго и маракуйя":11,"Ментоловый спрайт":4,"Морозная малина":0,"Морозная пинаколада":14,"Морозный виноград":0,"Персик и малина":12,"Розовый лимонад":21,"Смородиновый смузи":16,"Тропический смузи":19,"Фейхоа и клубника":20,"Земляничный мохито":24}},{"name":"MONSTER LIQUID SOURLINE","meta":"60mg","price":"13 Br","img":"images/monster-sourline.webp","flavors":["Ананасовая газировка","Апельсин и черника","Барбарисовый швепс","Виноград и смородина","Вишневый энергетик","Вишня и гранат","Вишня и клюква","Киви и лайм","Кислотный скитлс","Клубника и лимон","Клюква и смородина","Лимонад ситро","Лимонные леденцы","Малина и грейпфрут","Малина и личи","Маракуйя и киви","Мармеладная шипучка","Смородиновый швепс","Цитрусовая шипучка","Яблочная шипучка"],"stock":{"Ананасовая газировка":9,"Апельсин и черника":13,"Барбарисовый швепс":18,"Виноград и смородина":0,"Вишневый энергетик":0,"Вишня и гранат":2,"Вишня и клюква":10,"Киви и лайм":2,"Кислотный скитлс":0,"Клубника и лимон":12,"Клюква и смородина":23,"Лимонад ситро":24,"Лимонные леденцы":24,"Малина и грейпфрут":22,"Малина и личи":16,"Маракуйя и киви":4,"Мармеладная шипучка":2,"Смородиновый швепс":10,"Цитрусовая шипучка":17,"Яблочная шипучка":15}},{"name":"CHROME PINK","meta":"20mg","price":"14 Br","img":"images/chrome-pink.png","flavors":["Бабл гам","Вишневый пломбир","Вишня клубника","Кактусовая груша","Клубничный пончик с молоком","Кокос и ананас","Малиновый йогурт","Ментос виноград","Розовая гуава","Сакура"],"stock":{"Бабл гам":0,"Вишневый пломбир":0,"Вишня клубника":0,"Кактусовая груша":0,"Клубничный пончик с молоком":0,"Кокос и ананас":0,"Малиновый йогурт":0,"Ментос виноград":0,"Розовая гуава":0,"Сакура":0}},{"name":"CHROME BASIC","meta":"20mg","price":"14 Br","img":"images/chrome-basic.png","flavors":["Киви грейпфрут","Клубника личи","Клубничный мохито","Малиновый лимонад","Манго ананас","Мятный арбуз","Персик ежевика","Черника лимон","Энергетик с деревенской вишней","Яблоко алоэ"],"stock":{"Киви грейпфрут":5,"Клубника личи":0,"Клубничный мохито":0,"Малиновый лимонад":0,"Манго ананас":0,"Мятный арбуз":0,"Персик ежевика":0,"Черника лимон":0,"Энергетик с деревенской вишней":0,"Яблоко алоэ":0}},{"name":"CHROME GENETIC","meta":"20mg","price":"14 Br","img":"images/chrome-genetic.png","flavors":["Перечная мята","Ред булл с черникой","Черешня и мята","Черная смородина арбуз","Яблоко виноград","Мандарин и голубая малина","Ананас маракуйя","Апельсиновый тик так","Ежевика манго","Земляника персик","Клубника лимон"],"stock":{"Перечная мята":0,"Ред булл с черникой":0,"Черешня и мята":0,"Черная смородина арбуз":0,"Яблоко виноград":0,"Мандарин и голубая малина":0,"Ананас маракуйя":0,"Апельсиновый тик так":0,"Ежевика манго":0,"Земляника персик":0,"Клубника лимон":0}},{"name":"CHROME SOUR","meta":"20mg","price":"14 Br","img":"images/chrome-sour.png","flavors":["Грейпфрут малина","Дикая земляника","Крыжовник апельсин","Манго лимон","Маракуйя смородина","Мармеладные червячки","Ред булл ананас","Свежее зеленое яблоко","Черешня груша","Шампанское клубника"],"stock":{"Грейпфрут малина":0,"Дикая земляника":0,"Крыжовник апельсин":0,"Манго лимон":0,"Маракуйя смородина":0,"Мармеладные червячки":0,"Ред булл ананас":0,"Свежее зеленое яблоко":0,"Черешня груша":0,"Шампанское клубника":0}},{"name":"CHROME NORTH","meta":"20mg","price":"14 Br","img":"images/chrome-north.png","flavors":["Ананас лимон","Апероль шпритц","Голубая малина","Грейпфрут","Киви","Клубничный милкшейк со льдом","Персиковый чай со льдом","Ред булл с грейпфрутом","Скитлс","Эклипс вишня"],"stock":{"Ананас лимон":0,"Апероль шпритц":0,"Голубая малина":0,"Грейпфрут":9,"Киви":0,"Клубничный милкшейк со льдом":0,"Персиковый чай со льдом":0,"Ред булл с грейпфрутом":7,"Скитлс":0,"Эклипс вишня":0}},{"name":"CHROME PHOENIX","meta":"20mg","price":"14 Br","img":"images/chrome-phoenix.png","flavors":["Вишня лимон","Гранатовый швепс","Киви тархун","Клубника с апельсином","Крапива лайм","Ледяная клубника банан","Лесные ягоды с мятой","Малина имбирь","Маунтин дью","Фейхоа грейпфрут","Хвоя ананас"],"stock":{"Вишня лимон":0,"Гранатовый швепс":0,"Киви тархун":0,"Клубника с апельсином":0,"Крапива лайм":0,"Ледяная клубника банан":0,"Лесные ягоды с мятой":0,"Малина имбирь":0,"Маунтин дью":0,"Фейхоа грейпфрут":0,"Хвоя ананас":0}},{"name":"HOTSPOT x CATSWILL Killer","meta":"70mg","price":"14,5 Br","img":"images/hotspot-catswill-killer.webp","flavors":["Арбуз клубника черника","Арбуз малина лед","Виноград ежевика","Виноград черника мята","Виноградная содовая","Вишня ананас апельсин","Груша персик малина лимонад","Дыня малина лед","Кислая клубника ананас","Кислая мамба лесная земляника","Кислая черная смородина","Кислые желейные трубочки с малиной","Кислый вишневый чупа чупс","Ледяная черешня с черникой","Ледяной арбуз с ягодами","Лимонад апельсин яблоко","Лимонад дыня апельсин","Лимонад земляника мята","Лимонад персик малина","Малиновый энергетик с клубникой","Маракуйя ананас жвачка","Мармеладные червячки малина лайм","Мятная яблочная жвачка","Освежающая жвачка персик манго","Харибо тропический фрукты","Харибо ягодный мармелад","Черешня абрикос клубника лед","Черешня клубника лед","Энергетик яблоко смородина малина","Ягодная дыня жвачка"],"stock":{"Арбуз клубника черника":0,"Арбуз малина лед":0,"Виноград ежевика":0,"Виноград черника мята":0,"Виноградная содовая":0,"Вишня ананас апельсин":0,"Груша персик малина лимонад":0,"Дыня малина лед":0,"Кислая клубника ананас":0,"Кислая мамба лесная земляника":0,"Кислая черная смородина":0,"Кислые желейные трубочки с малиной":0,"Кислый вишневый чупа чупс":0,"Ледяная черешня с черникой":0,"Ледяной арбуз с ягодами":0,"Лимонад апельсин яблоко":0,"Лимонад дыня апельсин":0,"Лимонад земляника мята":0,"Лимонад персик малина":0,"Малиновый энергетик с клубникой":0,"Маракуйя ананас жвачка":0,"Мармеладные червячки малина лайм":0,"Мятная яблочная жвачка":0,"Освежающая жвачка персик манго":0,"Харибо тропический фрукты":0,"Харибо ягодный мармелад":0,"Черешня абрикос клубника лед":0,"Черешня клубника лед":0,"Энергетик яблоко смородина малина":0,"Ягодная дыня жвачка":0}},{"name":"BJORN ZLOY V2.0","meta":"20mg (Hard)","price":"14 Br","img":"images/bjorn-zloy-v2.webp","flavors":["Апельсин гранат клюква","Ваниль вишня","Виноград кактус","Виноград мармелад маршмеллоу","Вишня клубника","Груша","Ежевика","Жвачка арбуз дыня","Кактус лайм апельсин","Киви абрикос","Киви ананас","Киви лимон клюква","Клубничный лимонад","Клубничный холс","Клюква арбуз","Малина банан","Малиновая газировка","Манго малина","Мед","Морозное яблоко","Мохито","Мята стиморол","Огурец клубника базилик","Персик","Персик зеленый чай","Смородина малина яблоко","Табак вишня","Фанта маракуйя","Черника лимон","Черника малина гранат","Энергетик маракуйя","Энергетик монстер","Яблоко виноград","Яблоко малина","Яблоко персик","Ягодный напиток"],"stock":{"Апельсин гранат клюква":0,"Ваниль вишня":22,"Виноград кактус":0,"Виноград мармелад маршмеллоу":21,"Вишня клубника":18,"Груша":0,"Ежевика":21,"Жвачка арбуз дыня":21,"Кактус лайм апельсин":0,"Киви абрикос":23,"Киви ананас":23,"Киви лимон клюква":0,"Клубничный лимонад":23,"Клубничный холс":0,"Клюква арбуз":21,"Малина банан":0,"Малиновая газировка":23,"Манго малина":17,"Мед":0,"Морозное яблоко":0,"Мохито":23,"Мята стиморол":0,"Огурец клубника базилик":0,"Персик":20,"Персик зеленый чай":0,"Смородина малина яблоко":21,"Табак вишня":0,"Фанта маракуйя":25,"Черника лимон":25,"Черника малина гранат":25,"Энергетик маракуйя":25,"Энергетик монстер":24,"Яблоко виноград":21,"Яблоко малина":20,"Яблоко персик":19,"Ягодный напиток":23}},{"name":"BJORN ZLOY","meta":"60mg (Hard)","price":"13 Br","img":"images/bjorn-zloy.webp","flavors":["Кола","Лесные ягоды","Апельсин","Виноград алоэ","Виноград вишня","Вишня","Дыня ананас","Кислая маракуйя лимон","Клубника банан","Манго личи персик","Персик маракуйя","Смородина черника лимон","Кокос банан дыня","Грейпфрут с черешней","Клубника мороженое","Арбузная жвачка","Дикая клубника","Маракуйя ананас","Мята ментол","Скитлс","Киви клубника","Кислая малина","Черника апельсин","Энергетик виноград"],"stock":{"Кола":0,"Лесные ягоды":15,"Апельсин":0,"Виноград алоэ":14,"Виноград вишня":19,"Вишня":22,"Дыня ананас":0,"Кислая маракуйя лимон":0,"Клубника банан":0,"Манго личи персик":0,"Персик маракуйя":0,"Смородина черника лимон":0,"Кокос банан дыня":0,"Грейпфрут с черешней":23,"Клубника мороженое":0,"Арбузная жвачка":14,"Дикая клубника":0,"Маракуйя ананас":20,"Мята ментол":0,"Скитлс":17,"Киви клубника":18,"Кислая малина":16,"Черника апельсин":20,"Энергетик виноград":18}},{"name":"BJORN ZLOY LONG","meta":"80mg (Extra Hard)","price":"14 Br","img":"images/bjorn-zloy-long.webp","flavors":["Виноград арбуз","Виноградный чупа-чупс","Вишня DR PEPPER","Ежевика малина","Киви яблоко","Клубника банан","Клюква апельсин","Малиновая газировка","Мандарин персик","Морс из лесных ягод","Мята спрайт","Персик абрикос","Фруктовый мармелад","Энергетик черника","Ягодная жвачка","Андалузское помело груша","Сикоку юдзу энергетик","Балийский драгонфрут груша","Алоэ и груша наджу","Амазонский асаи черника","Анатолийский гранат черешня","Сицилийский апельсин грейпфрут","Гоа манго гималайская облепиха","Сайгонская гуава","Таежные ягоды","Тайский ананас кокос","Тибетский белый персик алоэ","Цитрус намиб маракуйя","Юкатанский лайм розовый цитрус","Цейлонский цитрус мед"],"stock":{"Виноград арбуз":0,"Виноградный чупа-чупс":0,"Вишня DR PEPPER":0,"Ежевика малина":0,"Киви яблоко":0,"Клубника банан":0,"Клюква апельсин":0,"Малиновая газировка":0,"Мандарин персик":0,"Морс из лесных ягод":0,"Мята спрайт":0,"Персик абрикос":0,"Фруктовый мармелад":0,"Энергетик черника":0,"Ягодная жвачка":0,"Андалузское помело груша":40,"Сикоку юдзу энергетик":30,"Балийский драгонфрут груша":44,"Алоэ и груша наджу":46,"Амазонский асаи черника":31,"Анатолийский гранат черешня":27,"Сицилийский апельсин грейпфрут":34,"Гоа манго гималайская облепиха":38,"Сайгонская гуава":40,"Таежные ягоды":11,"Тайский ананас кокос":39,"Тибетский белый персик алоэ":36,"Цитрус намиб маракуйя":44,"Юкатанский лайм розовый цитрус":39,"Цейлонский цитрус мед":43}},{"name":"BJORN ТЕМНЫЙ ХОР","meta":"80mg (Extra Hard)","price":"12 Br","img":"images/bjorn-temny-hor.webp","flavors":["Арбуз лед","Арбуз мята","Голубика лед","Груша лед","Кислая вишня","Кислое зеленое яблоко","Кислый грейпфрут","Кислый ягодный микс","Клубника мята","Клубничный лимонад","Лимон лайм","Личи лед","Малина кислый лед","Манго лед","Мятная жвачка","Чистая мята","Эвкалипт мята","Энергетик лед","Ягодный микс ментол","Ягоды мята"],"stock":{"Арбуз лед":0,"Арбуз мята":0,"Голубика лед":0,"Груша лед":0,"Кислая вишня":0,"Кислое зеленое яблоко":0,"Кислый грейпфрут":0,"Кислый ягодный микс":0,"Клубника мята":0,"Клубничный лимонад":0,"Лимон лайм":0,"Личи лед":0,"Малина кислый лед":0,"Манго лед":0,"Мятная жвачка":0,"Чистая мята":0,"Эвкалипт мята":0,"Энергетик лед":0,"Ягодный микс ментол":0,"Ягоды мята":0}},{"name":"BJORN JOKER","meta":"20mg (Extra Hard)","price":"14 Br","img":"images/bjorn-joker-extrahard.webp","flavors":["Апельсин маракуйя","Арбуз дыня","Виноград черная смородинв","Виноград ягоды","Вишня клюква","Гуава ананас","Зеленое яблоко груша","Киви клубника","Киви маракуйя","Клубника банан","Кола вишня","Кола со льдом","Лимон лайм","Манго ананас","Манго маракуйя","Персик кокос ананас","Персик со льдом","Халапеньо лайм","Черника мята","Энергетик","Яблоко виноград"],"stock":{"Апельсин маракуйя":0,"Арбуз дыня":0,"Виноград черная смородинв":0,"Виноград ягоды":0,"Вишня клюква":0,"Гуава ананас":0,"Зеленое яблоко груша":0,"Киви клубника":0,"Киви маракуйя":0,"Клубника банан":0,"Кола вишня":0,"Кола со льдом":0,"Лимон лайм":0,"Манго ананас":0,"Манго маракуйя":0,"Персик кокос ананас":0,"Персик со льдом":0,"Халапеньо лайм":5,"Черника мята":0,"Энергетик":0,"Яблоко виноград":0}},{"name":"BJORN JOKER","meta":"20mg (Hard)","price":"14 Br","img":"images/bjorn-joker-hard.webp","flavors":["Арбуз дыня","Виноград черная смородинв","Виноград ягоды","Вишня клюква","Гуава ананас","Зеленое яблоко груша","Киви клубника","Киви маракуйя","Клубника банан","Кола вишня","Кола со льдом","Лимон лайм","Манго ананас","Манго маракуйя","Персик кокос ананас","Персик со льдом","Халапеньо лайм","Черника мята","Энергетик","Яблоко виноград","Апельсин маракуйя"],"stock":{"Арбуз дыня":0,"Виноград черная смородинв":0,"Виноград ягоды":0,"Вишня клюква":0,"Гуава ананас":0,"Зеленое яблоко груша":0,"Киви клубника":0,"Киви маракуйя":0,"Клубника банан":0,"Кола вишня":0,"Кола со льдом":0,"Лимон лайм":0,"Манго ананас":0,"Манго маракуйя":0,"Персик кокос ананас":0,"Персик со льдом":0,"Халапеньо лайм":0,"Черника мята":0,"Энергетик":0,"Яблоко виноград":0,"Апельсин маракуйя":0}},{"name":"BJORN JOKER","meta":"20mg (Soft)","price":"13,5 Br","img":"images/bjorn-joker-soft.webp","flavors":["Апельсин маракуйя","Арбуз дыня","Виноград черная смородина","Виноград ягоды","Вишня клюква","Гуава ананас","Зеленое яблоко груша","Киви клубника","Киви маракуйя","Клубника банан","Кола вишня","Кола со льдом","Лимон лайм","Манго ананас","Манго маракуйя","Персик кокос ананас","Персик со льдом","Халапеньо лайм","Черника мята","Энергетик","Яблоко виноград"],"stock":{"Апельсин маракуйя":0,"Арбуз дыня":0,"Виноград черная смородина":0,"Виноград ягоды":0,"Вишня клюква":0,"Гуава ананас":0,"Зеленое яблоко груша":0,"Киви клубника":0,"Киви маракуйя":0,"Клубника банан":0,"Кола вишня":0,"Кола со льдом":0,"Лимон лайм":0,"Манго ананас":0,"Манго маракуйя":0,"Персик кокос ананас":0,"Персик со льдом":0,"Халапеньо лайм":0,"Черника мята":0,"Энергетик":0,"Яблоко виноград":0}},{"name":"BJORN СОН ПРИЗРАКА","meta":"20mg (Hard)","price":"14 Br","img":"images/bjorn-son-hard.webp","flavors":["Ананас манго","Вишневая кола со льдом","Вишня","Киви маракуйя гуава","Кислая черника и малина","Кислое яблоко","Лесные ягоды","Кислый лимон киви","Ледяная клубника личи","Лесные ягоды с холодком","Лимон лайм","Личи со льдом","Манго со льдом","Маракуйя апельсин гуава","Тропический радужный взрыв","Черника грейпфрут","Маракуйя мандарин","Черника малина вишня","Энергетик","Яблоко персик"],"stock":{"Ананас манго":0,"Вишневая кола со льдом":0,"Вишня":0,"Киви маракуйя гуава":0,"Кислая черника и малина":0,"Кислое яблоко":0,"Лесные ягоды":0,"Кислый лимон киви":0,"Ледяная клубника личи":0,"Лесные ягоды с холодком":0,"Лимон лайм":0,"Личи со льдом":0,"Манго со льдом":0,"Маракуйя апельсин гуава":0,"Тропический радужный взрыв":0,"Черника грейпфрут":0,"Маракуйя мандарин":0,"Черника малина вишня":0,"Энергетик":0,"Яблоко персик":0}},{"name":"BJORN СОН ПРИЗРАКА","meta":"20mg (Soft)","price":"14 Br","img":"images/bjorn-son-soft.webp","flavors":["Ананас манго","Вишневая кола со льдом","Вишня","Киви маракуйя гуава","Кислая черника и малина","Кислое яблоко","Кислый лимон киви","Ледяная клубника личи","Лесные ягоды","Лесные ягоды с холодком","Лимон лайм","Личи со льдом","Манго со льдом","Маракуйя апельсин гуава","Маракуйя мандарин","Тропический радужный взрыв","Черника грейпфрут","Черника малина вишня","Энергетик","Яблоко персик"],"stock":{"Ананас манго":0,"Вишневая кола со льдом":0,"Вишня":0,"Киви маракуйя гуава":0,"Кислая черника и малина":0,"Кислое яблоко":0,"Кислый лимон киви":0,"Ледяная клубника личи":0,"Лесные ягоды":0,"Лесные ягоды с холодком":0,"Лимон лайм":0,"Личи со льдом":0,"Манго со льдом":0,"Маракуйя апельсин гуава":0,"Маракуйя мандарин":0,"Тропический радужный взрыв":0,"Черника грейпфрут":0,"Черника малина вишня":0,"Энергетик":0,"Яблоко персик":0}},{"name":"VOZOL SALT PRIME","meta":"50mg","price":"16 Br","img":"images/vozol-salt-prime.webp","flavors":["BERRY","BERRY PEACH","BLUE RASPBERRY","BLUE RAZZ LEMON","BLUEBERRY ICE","BLUEBERRY WATERMELON","CHERRY COLA","DRAGONFRUIT BANANA CHERRY","GRAPE ICE","KIWI PASSIONFRUIT GUAVA","LAVAFIRE","LEMON LIME","LOVE 777","MINT ICE","MIXED BERRIES","PEACH ICE","PEACH MANGO WATERMELON","PINEAPPLE PASSION FRUIT LIME","POMEGRANATE LEMONADE","PURLE CANDY","SOUR APPLE ICE","STRAWBERRY ICE","STRAWBERRY ICE CREAM","STRAWBERRY KIWI","STRAWBERRY WATERMELON","VANILLA CREAM TOBACCO","WATERMELON BUBBLEGUM","WATERMELON ICE"],"stock":{"BERRY":29,"BERRY PEACH":28,"BLUE RASPBERRY":29,"BLUE RAZZ LEMON":10,"BLUEBERRY ICE":29,"BLUEBERRY WATERMELON":29,"CHERRY COLA":30,"DRAGONFRUIT BANANA CHERRY":28,"GRAPE ICE":29,"KIWI PASSIONFRUIT GUAVA":29,"LAVAFIRE":17,"LEMON LIME":29,"LOVE 777":29,"MINT ICE":30,"MIXED BERRIES":29,"PEACH ICE":29,"PEACH MANGO WATERMELON":15,"PINEAPPLE PASSION FRUIT LIME":18,"POMEGRANATE LEMONADE":20,"PURLE CANDY":29,"SOUR APPLE ICE":29,"STRAWBERRY ICE":30,"STRAWBERRY ICE CREAM":11,"STRAWBERRY KIWI":27,"STRAWBERRY WATERMELON":14,"VANILLA CREAM TOBACCO":30,"WATERMELON BUBBLEGUM":29,"WATERMELON ICE":30}},{"name":"LOST MARY ICE","meta":"20mg (Hard)","price":"15,5 Br","img":"images/lostmary-ice.webp","flavors":["Арбуз","Виноград","Клюквенный лимонад","Кола","Ледяная клубника","Ледяная красная смородина","Ледяной энергетик","Мята"],"stock":{"Арбуз":0,"Виноград":0,"Клюквенный лимонад":5,"Кола":6,"Ледяная клубника":0,"Ледяная красная смородина":0,"Ледяной энергетик":0,"Мята":0}},{"name":"LOST MARY ICE","meta":"20mg","price":"15 Br","img":"images/lostmary-ice.webp","flavors":["Арбуз","Виноград","Клюквенный лимонад","Кола","Ледяная клубника","Ледяная красная смородина","Ледяной энергетик","Мята"],"stock":{"Арбуз":0,"Виноград":0,"Клюквенный лимонад":0,"Кола":0,"Ледяная клубника":2,"Ледяная красная смородина":0,"Ледяной энергетик":0,"Мята":0}},{"name":"LOST MARY REGULAR","meta":"20mg (Hard)","price":"15,5 Br","img":"images/lostmary-regular.webp","flavors":["Ананас клюква","Вишня","Вишня черная смородина","Ежевика малина лимон","Киви маракуйя гуава","Клубника вишня лимон","Клубника киви","Клубника малина вишня лед","Лимон лайм","Лимонад черника малина","Розовый грейпфрут","Черника","Яблоко киви","Яблоко персик","Яблочный лимонад","Ягодный микс"],"stock":{"Ананас клюква":14,"Вишня":16,"Вишня черная смородина":0,"Ежевика малина лимон":14,"Киви маракуйя гуава":12,"Клубника вишня лимон":17,"Клубника киви":11,"Клубника малина вишня лед":16,"Лимон лайм":16,"Лимонад черника малина":17,"Розовый грейпфрут":19,"Черника":7,"Яблоко киви":16,"Яблоко персик":15,"Яблочный лимонад":21,"Ягодный микс":1}},{"name":"LOST MARY REGULAR","meta":"20mg","price":"15 Br","img":"images/lostmary-regular.webp","flavors":["Ананас клюква","Вишня","Вишня черная смородина","Ежевика малина лимон","Киви маракуйя гуава","Клубника вишня лимон","Клубника киви","Клубника малина вишня лед","Лимон лайм","Лимонад черника малина","Розовый грейпфрут","Черника","Яблоко киви","Яблоко персик","Яблочный лимонад","Ягодный микс"],"stock":{"Ананас клюква":0,"Вишня":0,"Вишня черная смородина":0,"Ежевика малина лимон":0,"Киви маракуйя гуава":0,"Клубника вишня лимон":0,"Клубника киви":1,"Клубника малина вишня лед":1,"Лимон лайм":0,"Лимонад черника малина":0,"Розовый грейпфрут":0,"Черника":0,"Яблоко киви":0,"Яблоко персик":0,"Яблочный лимонад":0,"Ягодный микс":2}},{"name":"LOST MARY SOUR","meta":"20mg (Hard)","price":"15,5 Br","img":"images/lostmary-sour.webp","flavors":["Кислое яблоко","Кислые дикие ягоды","Кислые ягоды лимон","Кислый ананас","Клубника кислая малина","Лимон апельсин","Черника кислая малина","Черника лайм грейпфрут"],"stock":{"Кислое яблоко":13,"Кислые дикие ягоды":10,"Кислые ягоды лимон":19,"Кислый ананас":11,"Клубника кислая малина":10,"Лимон апельсин":19,"Черника кислая малина":7,"Черника лайм грейпфрут":22}},{"name":"LOST MARY SOUR","meta":"20mg","price":"15 Br","img":"images/lostmary-sour.webp","flavors":["Кислое яблоко","Кислые дикие ягоды","Кислые ягоды лимон","Кислый ананас","Клубника кислая малина","Лимон апельсин","Черника кислая малина","Черника лайм грейпфрут"],"stock":{"Кислое яблоко":0,"Кислые дикие ягоды":0,"Кислые ягоды лимон":0,"Кислый ананас":0,"Клубника кислая малина":0,"Лимон апельсин":0,"Черника кислая малина":0,"Черника лайм грейпфрут":0}},{"name":"OGGO КILLERША","meta":"80mg","price":"16 Br","img":"images/oggo-killersha.webp","flavors":["Ананас малина с кислинкой","Арбуз черника","Арбузный фреш с клубникой","Банан земляника","Вишня с кислинкой","Киви яблоко энергетик","Кислая апельсиновая конфета","Кислая жвачка лимон с малиной","Кислая манго виноград","Кислая яблочная шипучка","Кислый виноградный лимонад","Кислый лайм клюква","Классический энергетик","Лимонад апельсин вишня","Садовая груша со смородиной","Садовые ягоды баблгам","Скитлс с кислинкой","Спелое киви с сочным грейпфрутом","Энергетик лесная малина с клубникой","Энергетик с лесными ягодами"],"stock":{"Ананас малина с кислинкой":2,"Арбуз черника":12,"Арбузный фреш с клубникой":21,"Банан земляника":14,"Вишня с кислинкой":9,"Киви яблоко энергетик":14,"Кислая апельсиновая конфета":32,"Кислая жвачка лимон с малиной":29,"Кислая манго виноград":16,"Кислая яблочная шипучка":26,"Кислый виноградный лимонад":22,"Кислый лайм клюква":24,"Классический энергетик":16,"Лимонад апельсин вишня":19,"Садовая груша со смородиной":16,"Садовые ягоды баблгам":25,"Скитлс с кислинкой":18,"Спелое киви с сочным грейпфрутом":24,"Энергетик лесная малина с клубникой":15,"Энергетик с лесными ягодами":4}},{"name":"ISTERIKA x САМОУБИЙЦА V2 DANGER","meta":"20mg (Hard)","price":"14 Br","img":"images/isterika-samoubijca-v2.webp","flavors":["Адреналин раш с лесными ягодами","Виноград дыня","Виноград клубника","Виноградная жвачка","Вишневая жвачка","Вишневый ментос","Вишня энергетик","Двойной виноград","Киви энергетик","Кислый скитлс","Клубника киви мята","Лесные ягоды","Малина ежевика","Малиновый энергетик","Ментос смородина малина","Фанта виноград","Фруктовый мармелад","Черника смородина","Черника энергетик","Ягодный энергетик"],"stock":{"Адреналин раш с лесными ягодами":0,"Виноград дыня":0,"Виноград клубника":0,"Виноградная жвачка":0,"Вишневая жвачка":0,"Вишневый ментос":0,"Вишня энергетик":0,"Двойной виноград":0,"Киви энергетик":0,"Кислый скитлс":0,"Клубника киви мята":0,"Лесные ягоды":0,"Малина ежевика":0,"Малиновый энергетик":0,"Ментос смородина малина":0,"Фанта виноград":0,"Фруктовый мармелад":0,"Черника смородина":0,"Черника энергетик":0,"Ягодный энергетик":0}},{"name":"MRAZZ!","meta":"70mg (Extra Hard)","price":"14 Br","img":"images/mrazz.webp","flavors":["Ананас вишня","Ананасовый сок","Арбуз малина","Виноградный чупа чупс","Жвачка смородина","Жвачка тутти фрути","Кислая клюква лимон","Кислые лесные ягоды","Кислый скитлс","Клубника банан","Лайм яблоко","Личи виноград мята","Малиновый пунш","Морс ежевика малина","Персик груша дыня","Персиковый лимонад","Черничный бабл гам","Энергетик лесные ягоды","Энергетик яблоко киви","Яблоко виноград"],"stock":{"Ананас вишня":24,"Ананасовый сок":27,"Арбуз малина":21,"Виноградный чупа чупс":19,"Жвачка смородина":25,"Жвачка тутти фрути":17,"Кислая клюква лимон":28,"Кислые лесные ягоды":15,"Кислый скитлс":20,"Клубника банан":26,"Лайм яблоко":28,"Личи виноград мята":25,"Малиновый пунш":24,"Морс ежевика малина":24,"Персик груша дыня":25,"Персиковый лимонад":28,"Черничный бабл гам":23,"Энергетик лесные ягоды":15,"Энергетик яблоко киви":27,"Яблоко виноград":25}},{"name":"MRAZZ! Sour","meta":"70mg (Extra Hard)","price":"14 Br","img":"images/mrazz-sour.webp","flavors":["Ананас дыня","Апельсин лайм","Апельсиновый энергетик","Арбуз клубника","Вишня киви","Вишня клубника","Грейпфрут","Дикие ягоды","Дыня малина","Ежевика арбуз","Ежевика помело","Киви малина","Клубника киви","Лимонная шипучка","Малина ананас","Мандарин маракуйя","Маракуйя банан манго","Тик так манго","Тропический микс","Фруктовый скитлс","Цитрусовые конфеты","Черная смородина","Черничная фанта","Яблоко лайм","Ягодные червячки"],"stock":{"Ананас дыня":2,"Апельсин лайм":14,"Апельсиновый энергетик":5,"Арбуз клубника":8,"Вишня киви":5,"Вишня клубника":0,"Грейпфрут":21,"Дикие ягоды":0,"Дыня малина":3,"Ежевика арбуз":0,"Ежевика помело":21,"Киви малина":14,"Клубника киви":20,"Лимонная шипучка":5,"Малина ананас":9,"Мандарин маракуйя":13,"Маракуйя банан манго":13,"Тик так манго":12,"Тропический микс":0,"Фруктовый скитлс":0,"Цитрусовые конфеты":20,"Черная смородина":0,"Черничная фанта":0,"Яблоко лайм":12,"Ягодные червячки":0}},{"name":"TOXIC ALFA","meta":"20mg (Hard)","price":"11 Br","img":"images/toxic-alfa.webp","flavors":["Брусничный морс","Виноградная черника","Зеленое манго","Лесные ягоды","Малина кислая","Миринда апельсин","Персиковый йогурт","Сладкая мята","Смородина холс","Сочная дыня"],"stock":{"Брусничный морс":0,"Виноградная черника":0,"Зеленое манго":0,"Лесные ягоды":0,"Малина кислая":0,"Миринда апельсин":0,"Персиковый йогурт":0,"Сладкая мята":0,"Смородина холс":0,"Сочная дыня":0}},{"name":"УБИВАШКА","meta":"80mg (Extra Hard)","price":"13 Br","img":"images/ubivashka.webp","flavors":["Яблочный лимонад","Ягодный взрыв","Арбузный адреналин","Виноградная фанта","Виноградный лимонад","Вишневый лимонад","Вишня лайм","Вишня яблоко","Клубнично арбузный скитлс","Клубничные червячки","Малина банан","Малина смородина","Малиново-арбузное варенье","Малиновый лимонад","Ред Булл","Смородиновая конфета","Тропический смузи","Фруктовые леденцы","Энергетик классический","Яблоко киви","Ежевика клубника","Киви виноград","Малина черника земляника","Кислая вишня редбул смородина","Кислый виноград клубника","Кислый земляничный чупа-чупс","Фанта голубая малина","Черешня малина","Черника вишня","Ягодный морс"],"stock":{"Яблочный лимонад":12,"Ягодный взрыв":0,"Арбузный адреналин":0,"Виноградная фанта":0,"Виноградный лимонад":0,"Вишневый лимонад":0,"Вишня лайм":0,"Вишня яблоко":0,"Клубнично арбузный скитлс":0,"Клубничные червячки":0,"Малина банан":11,"Малина смородина":2,"Малиново-арбузное варенье":26,"Малиновый лимонад":22,"Ред Булл":0,"Смородиновая конфета":21,"Тропический смузи":1,"Фруктовые леденцы":18,"Энергетик классический":2,"Яблоко киви":3,"Ежевика клубника":0,"Киви виноград":2,"Малина черника земляника":8,"Кислая вишня редбул смородина":0,"Кислый виноград клубника":0,"Кислый земляничный чупа-чупс":0,"Фанта голубая малина":7,"Черешня малина":9,"Черника вишня":6,"Ягодный морс":0}},{"name":"ELFLIQ Ice King","meta":"30mg","price":"16,5 Br","img":"images/elfliq-ice-king.webp","flavors":["Iced apple","Iced banana cake","Iced blueberry","Iced grape","Iced hami melon","Iced mango","Iced mango peach","Iced mint","Iced passion fruit","Iced peach","Iced pomegranate","Iced strawberry mango","Iced strawberry yakult","Iced watermelon","Taro ice cream"],"stock":{"Iced apple":0,"Iced banana cake":0,"Iced blueberry":0,"Iced grape":0,"Iced hami melon":0,"Iced mango":0,"Iced mango peach":0,"Iced mint":0,"Iced passion fruit":0,"Iced peach":0,"Iced pomegranate":0,"Iced strawberry mango":0,"Iced strawberry yakult":0,"Iced watermelon":0,"Taro ice cream":5}},{"name":"ELFLIQ (Premium)","meta":"50mg","price":"16,5 Br","img":"images/elfliq-premium.webp","flavors":["Watermelon (арбуз)","Cuba tobacco (кремовый табак)","Pink grapefruit (розовый грейпфрут)","Pink lemonade soda (розовый лимонад)","Cherry (вишня)","Grape (виноград)","Strawberry Kiwi (клубника киви)","Double apple (двойное яблоко)","Blue Razz Ice - Голубая малина с холодком","Strawberry Raspberry Cherry ice (клубника малина вишня лед)","Strawberry Cherry Lemon (клубника вишня лимон)","Blueberry raspberry pomegranate (черника малина гранат)","Peach ice (персик с холодком)","Sour watermelon gummy","Green grape rose","Grape cherry","Sour apple","Watermelon cherry","Blackberry lemon","Cherry lemon peach","Blueberry sour raspberry (черника сочная малина)","Blueberry ice (черника лёд)","Strawberry Snoow (клубника морожное)","Strawberry Ice (клубника холодок)","Spearmint (холодная мята)","Lemon Lime (лимон лайм)","Kiwi passion fruit guava (киви маракуйя гуава)","P&B Cloudd","Elfbull ice (ледяной энергетик)","Cotton candy (сахарная вата лёд)","Cherry Cola (кола вишня)","Cool mint","Pineapple ice","Cola","Blu razz lemonade (лимонад голубика малина)","Apple peach (яблоко персик)","Elf Jack","Blackcurrant Aniseed","Pineapple Colada","Apple Pear","Blueberry Rose Mint","Mango Peach","Strawberry Banana","Raspberry Lychee","Pina Colada","Pink Lemonade","Jasmine Raspberry","Snoow tobacco","Rhubard snoow"],"stock":{"Watermelon (арбуз)":0,"Cuba tobacco (кремовый табак)":0,"Pink grapefruit (розовый грейпфрут)":0,"Pink lemonade soda (розовый лимонад)":0,"Cherry (вишня)":0,"Grape (виноград)":0,"Strawberry Kiwi (клубника киви)":0,"Double apple (двойное яблоко)":0,"Blue Razz Ice - Голубая малина с холодком":0,"Strawberry Raspberry Cherry ice (клубника малина вишня лед)":0,"Strawberry Cherry Lemon (клубника вишня лимон)":0,"Blueberry raspberry pomegranate (черника малина гранат)":0,"Peach ice (персик с холодком)":0,"Sour watermelon gummy":0,"Green grape rose":0,"Grape cherry":0,"Sour apple":0,"Watermelon cherry":0,"Blackberry lemon":0,"Cherry lemon peach":0,"Blueberry sour raspberry (черника сочная малина)":0,"Blueberry ice (черника лёд)":0,"Strawberry Snoow (клубника морожное)":0,"Strawberry Ice (клубника холодок)":0,"Spearmint (холодная мята)":0,"Lemon Lime (лимон лайм)":0,"Kiwi passion fruit guava (киви маракуйя гуава)":0,"P&B Cloudd":0,"Elfbull ice (ледяной энергетик)":0,"Cotton candy (сахарная вата лёд)":0,"Cherry Cola (кола вишня)":0,"Cool mint":0,"Pineapple ice":0,"Cola":0,"Blu razz lemonade (лимонад голубика малина)":0,"Apple peach (яблоко персик)":0,"Elf Jack":0,"Blackcurrant Aniseed":0,"Pineapple Colada":0,"Apple Pear":0,"Blueberry Rose Mint":0,"Mango Peach":0,"Strawberry Banana":0,"Raspberry Lychee":0,"Pina Colada":0,"Pink Lemonade":0,"Jasmine Raspberry":0,"Snoow tobacco":13,"Rhubard snoow":18}},{"name":"HOT SPOT x МОНАШКА","meta":"70mg (Strong)","price":"14,5 Br","img":"images/hotspot-monashka.webp","flavors":["Ананас малина","Апельсин малина","Вишневый компот","Вишня ананас мята","Вишня ледяной лайм","Грейпфрут базилик","Груша виноград","Ежевика арбуз","Ежевика банан","Киви питайя алоэ","Клубника киви базилик","Клубника лайм","Клубничный мохито","Кола тамаринд лайм","Красный апельсин со специями","Крыжовник малина смородина","Лайм абрикос мята","Ледяной энергетик","Лимонный скитлс","Малина ежевика","Манго вишня","Манго черная смородина","Мармеладные червячки","Морозные лесные ягоды","Персик личи","Персик черная смородина","Черничный энергетик","Экзотические фрукты","Яблоко малина мята","Яблоко маракуйя","Кислое яблоко конфеты груша","Кислые ленточки вишня черника","Кислые ленточки клубника киви","Кислый клубничный чупа чупс","Кислый скитлс малина ананас","Розовый лимонад малина","Скитлс лимон мандарин","Цитрусовый микс мята","Черника виноград ментос"],"stock":{"Ананас малина":0,"Апельсин малина":0,"Вишневый компот":0,"Вишня ананас мята":0,"Вишня ледяной лайм":0,"Грейпфрут базилик":3,"Груша виноград":0,"Ежевика арбуз":0,"Ежевика банан":0,"Киви питайя алоэ":0,"Клубника киви базилик":0,"Клубника лайм":0,"Клубничный мохито":0,"Кола тамаринд лайм":7,"Красный апельсин со специями":9,"Крыжовник малина смородина":0,"Лайм абрикос мята":0,"Ледяной энергетик":0,"Лимонный скитлс":0,"Малина ежевика":0,"Манго вишня":0,"Манго черная смородина":0,"Мармеладные червячки":0,"Морозные лесные ягоды":0,"Персик личи":0,"Персик черная смородина":0,"Черничный энергетик":0,"Экзотические фрукты":0,"Яблоко малина мята":0,"Яблоко маракуйя":0,"Кислое яблоко конфеты груша":0,"Кислые ленточки вишня черника":0,"Кислые ленточки клубника киви":0,"Кислый клубничный чупа чупс":0,"Кислый скитлс малина ананас":0,"Розовый лимонад малина":0,"Скитлс лимон мандарин":0,"Цитрусовый микс мята":0,"Черника виноград ментос":0}},{"name":"DOGSWILL","meta":"20mg","price":"12,5 Br","img":"images/dogswill.webp","flavors":["Mountain Dew","Барбарисовые конфеты","Виноград черника смородина","Виноградная жвачка","Вишневый мармелад","Голубика","Киви ананас","Кислый чупачупс с холодком","Клубнично-банановая жвачка","Лайм с кислой малиной","Малина персик","Микс вишни и малины","Персик нектарин","Редбулл с лесными ягодами","Скитлс лимонный","Фанта с виноградом","Черная вишня","Черничный лимонад","Яблоко вишня","Ягодный морс"],"stock":{"Mountain Dew":0,"Барбарисовые конфеты":0,"Виноград черника смородина":0,"Виноградная жвачка":0,"Вишневый мармелад":0,"Голубика":0,"Киви ананас":0,"Кислый чупачупс с холодком":0,"Клубнично-банановая жвачка":0,"Лайм с кислой малиной":0,"Малина персик":0,"Микс вишни и малины":0,"Персик нектарин":0,"Редбулл с лесными ягодами":0,"Скитлс лимонный":0,"Фанта с виноградом":0,"Черная вишня":0,"Черничный лимонад":0,"Яблоко вишня":0,"Ягодный морс":0}},{"name":"SLIME PREMIUM LIQUID","meta":"60mg (Extra Hard)","price":"13 Br","img":"images/slime-premium.webp","flavors":["Кислое киви клубника","Кислое яблоко киви","Кислые вишневые червячки","Кислые лесные ягоды","Кислый ананас малина","Кислый виноград смородина","Кислый малиновый энергетик","Кислый мармелад клубника","Кислый скитлс","Апельсин черника","Кислый цитрус виноград","Кислый чупа-чупс","Кислый ягодный швепс","Табак вишня","Ягодные леденцы","Бодрящий спрайт","Виноградный сок","Арбуз клубника","Вишневая кола","Ягодный энергетик","Вишнево-виноградный холс","Голубика смородина","Дыня арбуз земляника","Кислая вишня","Кислая клюква виноград","Кислая черника лайм"],"stock":{"Кислое киви клубника":0,"Кислое яблоко киви":0,"Кислые вишневые червячки":0,"Кислые лесные ягоды":0,"Кислый ананас малина":0,"Кислый виноград смородина":0,"Кислый малиновый энергетик":0,"Кислый мармелад клубника":0,"Кислый скитлс":0,"Апельсин черника":0,"Кислый цитрус виноград":0,"Кислый чупа-чупс":0,"Кислый ягодный швепс":0,"Табак вишня":0,"Ягодные леденцы":0,"Бодрящий спрайт":0,"Виноградный сок":0,"Арбуз клубника":0,"Вишневая кола":0,"Ягодный энергетик":0,"Вишнево-виноградный холс":0,"Голубика смородина":0,"Дыня арбуз земляника":0,"Кислая вишня":0,"Кислая клюква виноград":0,"Кислая черника лайм":0}},{"name":"ANNIMA LOVE KILLER","meta":"80mg (Extra Hard)","price":"14 Br","img":"images/annima-killer.webp","flavors":["Ананас апельсин","Апельсин вишня","Арбузный смузи","Банан клубника","Виноград алоэ","Виноград вишня","Виноград малина арбуз","Виноградная фанта","Виноградный чупа-чупс","Вишневая газировка","Вишневый морс","Вишня скитлс лимон","Груша малина газировка","Ежевичный лимонад","Земляника виноград","Клубничный коктейль","Лесные ягоды","Малина апельсин","Малина черника","Персик клубника","Персиковый лимонад","Ред Булл с ананасом","Розовый лимонад","Тропический банан","Фруктовый тик-так","Фруктовый энергетик","Чернично-малиновые червячки","Яблоко киви","Яблочный лимонад","Ягодная жвачка"],"stock":{"Ананас апельсин":0,"Апельсин вишня":0,"Арбузный смузи":0,"Банан клубника":0,"Виноград алоэ":0,"Виноград вишня":0,"Виноград малина арбуз":0,"Виноградная фанта":0,"Виноградный чупа-чупс":0,"Вишневая газировка":0,"Вишневый морс":0,"Вишня скитлс лимон":0,"Груша малина газировка":0,"Ежевичный лимонад":0,"Земляника виноград":0,"Клубничный коктейль":0,"Лесные ягоды":0,"Малина апельсин":0,"Малина черника":0,"Персик клубника":0,"Персиковый лимонад":0,"Ред Булл с ананасом":0,"Розовый лимонад":0,"Тропический банан":0,"Фруктовый тик-так":0,"Фруктовый энергетик":0,"Чернично-малиновые червячки":0,"Яблоко киви":0,"Яблочный лимонад":0,"Ягодная жвачка":0}},{"name":"ANNIMA LOVE ZOMBI","meta":"20mg (Strong)","price":"14 Br","img":"images/annima-zombi.webp","flavors":["Алоэ виноград","Ананас киви","Арбузный бабл гам","Вишня лед","Грейпфрут вишня","Ежевичный лимонад","Киви клубника","Клубника банан","Клубнично-вишневый лимонад","Клубничный леденец","Лесной микс","Лесные ягоды","Малина с кислинкой","Мандариновая фанта","Морозный ред булл","Персиковый шейк","Фанта маракуйя","Энергетик виноград","Яблоко виноград","Яблоко персик"],"stock":{"Алоэ виноград":0,"Ананас киви":0,"Арбузный бабл гам":0,"Вишня лед":0,"Грейпфрут вишня":0,"Ежевичный лимонад":0,"Киви клубника":0,"Клубника банан":0,"Клубнично-вишневый лимонад":0,"Клубничный леденец":0,"Лесной микс":0,"Лесные ягоды":0,"Малина с кислинкой":0,"Мандариновая фанта":0,"Морозный ред булл":0,"Персиковый шейк":0,"Фанта маракуйя":0,"Энергетик виноград":0,"Яблоко виноград":0,"Яблоко персик":0}},{"name":"RELL EAZY","meta":"2% (Hard)","price":"14 Br","img":"images/rell-eazy.webp","flavors":["Арбузно-клубничный коктейль","Баблгам","Барбарис","Кислое зеленое яблоко","Клубничная шипучка","Ледяной энергетик","Лесная черника со льдом","Малиновый лимонад","Морозная вишня","Смородиновый морс","Темный виноград","Тропический микс","Ягодная жвачка","Зеленое яблоко с киви","Клубничный фреш с дыней"],"stock":{"Арбузно-клубничный коктейль":0,"Баблгам":12,"Барбарис":5,"Кислое зеленое яблоко":0,"Клубничная шипучка":5,"Ледяной энергетик":11,"Лесная черника со льдом":0,"Малиновый лимонад":5,"Морозная вишня":0,"Смородиновый морс":11,"Темный виноград":0,"Тропический микс":9,"Ягодная жвачка":11,"Зеленое яблоко с киви":1,"Клубничный фреш с дыней":1}},{"name":"RICK and MORTY RUSSIA","meta":"70mg (Extra Hard)","price":"13 Br","img":"images/rick-morty-russia.webp","flavors":["Арбузная жвачка","Виноград киви","Виноградный энергетик","Вишневый чупа чупс","Земляничный мохито","Клубника банан","Клубника земляника","Лесные ягоды","Черешня смородина","Черника вишня","Экзотический микс","Яблочный энергетик","Ягодный морс","Энергетик барбарис","Манго скитлс","Сибирские ягоды","Сладкое яблоко мандарин","Тропический бабл гам","Арбузный фреш","Энергетик ананас","Компот из клюквы и смородины","Брусника клюква","Виноградная фанта","Черная смородина","Дыня персик","Малина апельсин","Малиновое варенье","Мармеладные червячки","Смородина голубика","Фруктовый скитлс"],"stock":{"Арбузная жвачка":38,"Виноград киви":43,"Виноградный энергетик":44,"Вишневый чупа чупс":45,"Земляничный мохито":46,"Клубника банан":49,"Клубника земляника":49,"Лесные ягоды":39,"Черешня смородина":48,"Черника вишня":45,"Экзотический микс":47,"Яблочный энергетик":47,"Ягодный морс":47,"Энергетик барбарис":46,"Манго скитлс":46,"Сибирские ягоды":49,"Сладкое яблоко мандарин":48,"Тропический бабл гам":48,"Арбузный фреш":47,"Энергетик ананас":48,"Компот из клюквы и смородины":50,"Брусника клюква":50,"Виноградная фанта":45,"Черная смородина":48,"Дыня персик":48,"Малина апельсин":47,"Малиновое варенье":49,"Мармеладные червячки":47,"Смородина голубика":49,"Фруктовый скитлс":46}},{"name":"RICK and MORTY CATSWILL","meta":"20mg (Hard)","price":"16 Br","img":"images/rick-morty-catswill.webp","flavors":["Банан дыня мята","Голубика арбуз лед","Малина яблоко лед","Фрутелла лайм лимон малина","Арбуз морозная черешня","Бабл-гам лимон апельсин грейпфрут","Кислые ленточки клубника ежевика","Скитлс маракуйя лимон"],"stock":{"Банан дыня мята":0,"Голубика арбуз лед":0,"Малина яблоко лед":0,"Фрутелла лайм лимон малина":0,"Арбуз морозная черешня":0,"Бабл-гам лимон апельсин грейпфрут":0,"Кислые ленточки клубника ежевика":0,"Скитлс маракуйя лимон":0}},{"name":"Рик и Морти на ЗаМеРзОнЕ","meta":"20mg (Strong)","price":"12 Br","img":"images/rick-morty-zamerzone.webp","flavors":["ДРИППИ (ледяная арбуз жвачка)","ФЛИППИ (гуава, ананас, лёд)","МИССИКС (смородина, виноград, лёд)","МОРТИ (гранатовый мармелад со льдом)","РИК (яблоко, киви, лёд)","БЛИМ БЛАМ (кокос, дыня, лёд)","КАЛИПСО (маракуйя, мандарин, лёд)","ДИАБЛО (персик, кактус, лёд)","БАЛТРОМАВ (ягодный энергетик со льдом)","КРОВОТОК (красный апельсин)","ГЛУТИ (ягодный пунш)","ГЛИР-ГЛОП (малиновый мармелад)","НУБ-НУБ (клубничный коктейль)","АРМАГЕДОН (двойной манго)","ЖИРАФ (черная смородина лимонад)","БИБО (малина ежевика)","ЗИЛ (алоэ виноград)","ГЛУНЧ (клубника киви)","СКРОПОН (кола вишня)","ПОНЬЕТА (манго арбуз)","КОНЦЕРТО (клюква лайм)","САМЕР (молочный улун)","ЛЕСНОЙ КОРНВЕЛИУС (лесные ягоды)","ФРУНДЕЛЬ (банан клубника)","ДЕВИН (виноградный холс)","АРТРИЦИЯ (барбарисовый лимонад)","ДЖЕРРИ (дыня персик)","ГАРБЛОВИАНЕЦ (мятный бабблгам)","ПТИЧЬЯ ЛИЧНОСТЬ (тропический банан)","ГОЛДЕНФОЛД (клюква земляника)","САММЕР (ягодная жвачка)","ГАРОЛЬД (розовый лимонад)","КИАРА (кислые вишневые червячки)","РУБИАН (грейпфрут черная смородина)","ДАЙЕН (кислый ананас апельсин)","БЛУМ (клубника ежевика)","ШЛИМИПАНТС (кислые чернично-малиновые червячки)","ДЖЕССИКА (клубничная фанта)","НЕБУЛОН (черничная фанта)","ЭЛАИ (манго драгонфрут)","БЭТ (спрайт)","ЛЮЦИУС (киви маракуйя гуава)","ГЕРРИ (кислый малиново-грейпфрутовый швепс)","ПОНЧО (кислый лайм арбуз)","ПРЕЗИДЕНТ (яблочный энергетик)","РЕНЕГАД (кислый скиттлс)","СКВОНЧИ (пинаколада)","ШЕСТЕРЕНКОГОЛОВЫЙ (земляника виноград)","ТЕРРИ (клубника арбуз)","ЮНИТИ (морс)","СУПЕРНОВА (лимонад виноград вишня)","ЮНИТИ (мятное мороженое)","НЕБУЛОН (черника, молоко, лёд)","ГОЛДЕНФОЛД (айс латте)","БЭТ (бузина маракуйя)","БЛУМ (личи, фейхоа, лёд)","ХАРОЛЬД (роза личи)"],"stock":{"ДРИППИ (ледяная арбуз жвачка)":0,"ФЛИППИ (гуава, ананас, лёд)":0,"МИССИКС (смородина, виноград, лёд)":0,"МОРТИ (гранатовый мармелад со льдом)":0,"РИК (яблоко, киви, лёд)":0,"БЛИМ БЛАМ (кокос, дыня, лёд)":0,"КАЛИПСО (маракуйя, мандарин, лёд)":0,"ДИАБЛО (персик, кактус, лёд)":0,"БАЛТРОМАВ (ягодный энергетик со льдом)":0,"КРОВОТОК (красный апельсин)":0,"ГЛУТИ (ягодный пунш)":0,"ГЛИР-ГЛОП (малиновый мармелад)":0,"НУБ-НУБ (клубничный коктейль)":0,"АРМАГЕДОН (двойной манго)":0,"ЖИРАФ (черная смородина лимонад)":0,"БИБО (малина ежевика)":0,"ЗИЛ (алоэ виноград)":0,"ГЛУНЧ (клубника киви)":0,"СКРОПОН (кола вишня)":0,"ПОНЬЕТА (манго арбуз)":0,"КОНЦЕРТО (клюква лайм)":0,"САМЕР (молочный улун)":0,"ЛЕСНОЙ КОРНВЕЛИУС (лесные ягоды)":0,"ФРУНДЕЛЬ (банан клубника)":0,"ДЕВИН (виноградный холс)":0,"АРТРИЦИЯ (барбарисовый лимонад)":0,"ДЖЕРРИ (дыня персик)":0,"ГАРБЛОВИАНЕЦ (мятный бабблгам)":0,"ПТИЧЬЯ ЛИЧНОСТЬ (тропический банан)":0,"ГОЛДЕНФОЛД (клюква земляника)":0,"САММЕР (ягодная жвачка)":0,"ГАРОЛЬД (розовый лимонад)":0,"КИАРА (кислые вишневые червячки)":0,"РУБИАН (грейпфрут черная смородина)":0,"ДАЙЕН (кислый ананас апельсин)":0,"БЛУМ (клубника ежевика)":0,"ШЛИМИПАНТС (кислые чернично-малиновые червячки)":0,"ДЖЕССИКА (клубничная фанта)":0,"НЕБУЛОН (черничная фанта)":0,"ЭЛАИ (манго драгонфрут)":0,"БЭТ (спрайт)":0,"ЛЮЦИУС (киви маракуйя гуава)":0,"ГЕРРИ (кислый малиново-грейпфрутовый швепс)":0,"ПОНЧО (кислый лайм арбуз)":0,"ПРЕЗИДЕНТ (яблочный энергетик)":0,"РЕНЕГАД (кислый скиттлс)":0,"СКВОНЧИ (пинаколада)":0,"ШЕСТЕРЕНКОГОЛОВЫЙ (земляника виноград)":0,"ТЕРРИ (клубника арбуз)":0,"ЮНИТИ (морс)":0,"СУПЕРНОВА (лимонад виноград вишня)":0,"ЮНИТИ (мятное мороженое)":0,"НЕБУЛОН (черника, молоко, лёд)":0,"ГОЛДЕНФОЛД (айс латте)":0,"БЭТ (бузина маракуйя)":0,"БЛУМ (личи, фейхоа, лёд)":0,"ХАРОЛЬД (роза личи)":0}},{"name":"RICK and MORTY BAD TRIP","meta":"20mg (Strong)","price":"13,5 Br","img":"images/rick-morty-bad-trip.webp","flavors":["Яблоко виноград","Банан кокос","Клубника банан","Ягодный энергетик","Черника ежевика","Черника малина","Черная вишня","Смородина мармелад","Фруктовые пластинки","Грейпфрутовый швепс","Киви личи","Киви гуава маракуйя","Манго личи персик","Северные ягоды","Персик бабл гам","Гранат смородина","Скитлс лимон лайм","Земляника драгонфрут","Клубника земляника","Арбуз малина","Барбарисовый энергетик","Виноградный энергетик","Гранат клубника","Клубника вишня","Земляничный мохито","Кола лайм","Манго грейпфрут","Садовые ягоды","Черника мята","Яблоко малина"],"stock":{"Яблоко виноград":44,"Банан кокос":45,"Клубника банан":41,"Ягодный энергетик":41,"Черника ежевика":45,"Черника малина":43,"Черная вишня":46,"Смородина мармелад":43,"Фруктовые пластинки":46,"Грейпфрутовый швепс":47,"Киви личи":46,"Киви гуава маракуйя":45,"Манго личи персик":45,"Северные ягоды":43,"Персик бабл гам":50,"Гранат смородина":44,"Скитлс лимон лайм":48,"Земляника драгонфрут":50,"Клубника земляника":43,"Арбуз малина":44,"Барбарисовый энергетик":49,"Виноградный энергетик":46,"Гранат клубника":50,"Клубника вишня":45,"Земляничный мохито":45,"Кола лайм":49,"Манго грейпфрут":48,"Садовые ягоды":48,"Черника мята":44,"Яблоко малина":46}},{"name":"RICK and MORTY BAD ICE","meta":"20mg (Strong)","price":"13,5 Br","img":"images/rick-morty-bad-ice.webp","flavors":["АНАНАС КИВИ","АРБУЗНЫЙ СМУЗИ","ВИНОГРАДНАЯ ФАНТА","ВИШНЕВЫЙ МОРС","ГРАНАТОВЫЙ МАРМЕЛАД","ГРЕЙПФРУТ КИВИ","ЕЖЕВИКА МЯТА","КИВИ МАНГО","КЛУБНИКА МАНГО","МАЛИНА ЛАЙМ","МАЛИНОВЫЙ ЧАЙ С ЖАСМИНОМ","МАЛИНА АПЕЛЬСИН","РЭД-БУЛЛ","СПРАЙТ","ТАРХУН","ФРУКТОВАЯ ЖВАЧКА","ХОЛОДНАЯ КОЛА","ЧЕРНАЯ СМОРОДИНА КЛЮКВА","ЧЕРНИКА АРБУЗ","ЯБЛОКО ЧЕРНИКА","АРБУЗ МАНГО","ВИНОГРАД АЛОЭ","МАЛИНОВЫЙ МАРМЕЛАД","МАНГОВЫЙ ЭНЕРГЕТИК","МАНГО КЛУБНИКА","ЧЕРНИКА ГРЕЙПФРУТ","ПЕРСИК КЛУБНИКА","ФРУКТОВЫЙ ТИКТАК","ЧЕРНИЧНО-КЛУБНИЧНЫЙ ФРЕШ","АНАНАС КЛЮКВА","МАНГО АПЕЛЬСИН"],"stock":{"АНАНАС КИВИ":0,"АРБУЗНЫЙ СМУЗИ":0,"ВИНОГРАДНАЯ ФАНТА":0,"ВИШНЕВЫЙ МОРС":0,"ГРАНАТОВЫЙ МАРМЕЛАД":0,"ГРЕЙПФРУТ КИВИ":0,"ЕЖЕВИКА МЯТА":0,"КИВИ МАНГО":0,"КЛУБНИКА МАНГО":0,"МАЛИНА ЛАЙМ":0,"МАЛИНОВЫЙ ЧАЙ С ЖАСМИНОМ":0,"МАЛИНА АПЕЛЬСИН":0,"РЭД-БУЛЛ":0,"СПРАЙТ":0,"ТАРХУН":0,"ФРУКТОВАЯ ЖВАЧКА":0,"ХОЛОДНАЯ КОЛА":0,"ЧЕРНАЯ СМОРОДИНА КЛЮКВА":0,"ЧЕРНИКА АРБУЗ":0,"ЯБЛОКО ЧЕРНИКА":0,"АРБУЗ МАНГО":0,"ВИНОГРАД АЛОЭ":0,"МАЛИНОВЫЙ МАРМЕЛАД":0,"МАНГОВЫЙ ЭНЕРГЕТИК":0,"МАНГО КЛУБНИКА":0,"ЧЕРНИКА ГРЕЙПФРУТ":0,"ПЕРСИК КЛУБНИКА":0,"ФРУКТОВЫЙ ТИКТАК":0,"ЧЕРНИЧНО-КЛУБНИЧНЫЙ ФРЕШ":0,"АНАНАС КЛЮКВА":0,"МАНГО АПЕЛЬСИН":0}},{"name":"PODONKI x BLOOD","meta":"20mg","price":"11 Br","img":"images/podonki-blood.webp","flavors":["Брусничный морс","Виноград черника","Вишня лайм","Кислые вишневые червячки","Классический бабл гам","Клубника банан","Клубника ежевика","Конфеты смородина мята","Лесные ягоды","Малина гранат","Малиновый лимонад","Персиковый лимонад","Скитлс","Сочная малина","Тропический микс","Черная смородина","Черника малина","Черный виноград","Яблоко виноград","Ягодный энергетик"],"stock":{"Брусничный морс":2,"Виноград черника":0,"Вишня лайм":5,"Кислые вишневые червячки":0,"Классический бабл гам":20,"Клубника банан":0,"Клубника ежевика":0,"Конфеты смородина мята":25,"Лесные ягоды":0,"Малина гранат":11,"Малиновый лимонад":18,"Персиковый лимонад":0,"Скитлс":16,"Сочная малина":9,"Тропический микс":0,"Черная смородина":10,"Черника малина":0,"Черный виноград":10,"Яблоко виноград":4,"Ягодный энергетик":1}},{"name":"PODONKI LAST HAP V2","meta":"20mg (Strong)","price":"13,5 Br","img":"images/podonki-lasthap.webp","flavors":["Apple lemonade","Apple worms","Blackberry lemonade","Blackcurrant lemonade","Blackcurrant marmalade","Cherry and peach","Cherry cola","Coconut raspberry","Cowberry morse","Currant halls","Currant skittles","Energy drink","Energy drink with raspberries","Exotic fruits","Forest berry","Grape candy halls","Green mango and currant","Ice cherry lime","Ice cream watermelon","Ice double apple","Ice mix berries","Ice strawberry banana","Ice watermelon","Lychee grape mint","Mango orange guava","Mint blueberry raspberry","Sour lemon lime","Sour passion fruit","Strawberry raspberry bubble gum","Wild strawberry bubble gum"],"stock":{"Apple lemonade":0,"Apple worms":0,"Blackberry lemonade":0,"Blackcurrant lemonade":0,"Blackcurrant marmalade":0,"Cherry and peach":0,"Cherry cola":0,"Coconut raspberry":0,"Cowberry morse":0,"Currant halls":0,"Currant skittles":0,"Energy drink":0,"Energy drink with raspberries":0,"Exotic fruits":0,"Forest berry":0,"Grape candy halls":0,"Green mango and currant":0,"Ice cherry lime":0,"Ice cream watermelon":1,"Ice double apple":0,"Ice mix berries":0,"Ice strawberry banana":3,"Ice watermelon":0,"Lychee grape mint":0,"Mango orange guava":0,"Mint blueberry raspberry":0,"Sour lemon lime":0,"Sour passion fruit":0,"Strawberry raspberry bubble gum":0,"Wild strawberry bubble gum":0}},{"name":"PODONKI CRITICAL","meta":"20mg (Strong)","price":"13 Br","img":"images/podonki-critical.webp","flavors":["Апельсиновое драже","Бабл гам","Виноградная конфета","Дыня кокос","Земляника груша","Кислый киви","Ледяной ананас","Лимонные черви","Манго апельсин","Кислый малиновый лимонад","Кола сода айс","Смородина виноград","Яблочный холс","Ягодный смузи","Ягодный энергетик","Кислая смородина с черникой","Кислые вишнёвые червячки","Кислый скитлс","Кислые лесные ягоды","Малина ежевика лёд"],"stock":{"Апельсиновое драже":0,"Бабл гам":0,"Виноградная конфета":0,"Дыня кокос":0,"Земляника груша":0,"Кислый киви":0,"Ледяной ананас":0,"Лимонные черви":0,"Манго апельсин":0,"Кислый малиновый лимонад":0,"Кола сода айс":0,"Смородина виноград":0,"Яблочный холс":0,"Ягодный смузи":0,"Ягодный энергетик":0,"Кислая смородина с черникой":0,"Кислые вишнёвые червячки":0,"Кислый скитлс":0,"Кислые лесные ягоды":0,"Малина ежевика лёд":0}},{"name":"PODONKI PODGON","meta":"20mg","price":"13 Br","img":"images/podonki-podgon.webp","flavors":["Апельсин мята","Виноград мята","Виноград холлс","Ананас манго","Ананасовая газировка","Апельсин","Дыня банан","Ежевика малина","Ежевика черника","Ежевичный лимонад","Жвачка черника мята","Зеленый манго","Земляничная конфета","Кисло-сладкий киви","Классический баббл гам","Кокос малина","Лесные ягоды","Лимон мята","Лимонные черви","Малина гранат","Малина земляника","Малина мята","Малина хвоя","Малиновая конфета","Малиновый лимонад","Ментол мята","Мультифрукт","Скитлс","Смородина виноград","Смородина малина","Смородина мята","Смородина холлс","Смородина черника","Сочная дыня","Тропические фрукты","Фруктово мятная жвачка","Черничная конфета","Яблоко вишня","Ягодный микс мята","Ягодный энергетик"],"stock":{"Апельсин мята":0,"Виноград мята":0,"Виноград холлс":0,"Ананас манго":0,"Ананасовая газировка":0,"Апельсин":0,"Дыня банан":0,"Ежевика малина":0,"Ежевика черника":0,"Ежевичный лимонад":0,"Жвачка черника мята":0,"Зеленый манго":0,"Земляничная конфета":0,"Кисло-сладкий киви":0,"Классический баббл гам":0,"Кокос малина":0,"Лесные ягоды":0,"Лимон мята":0,"Лимонные черви":1,"Малина гранат":0,"Малина земляника":0,"Малина мята":0,"Малина хвоя":1,"Малиновая конфета":1,"Малиновый лимонад":1,"Ментол мята":0,"Мультифрукт":0,"Скитлс":0,"Смородина виноград":0,"Смородина малина":0,"Смородина мята":1,"Смородина холлс":0,"Смородина черника":0,"Сочная дыня":0,"Тропические фрукты":0,"Фруктово мятная жвачка":0,"Черничная конфета":0,"Яблоко вишня":0,"Ягодный микс мята":0,"Ягодный энергетик":0}},{"name":"Podonki & Анархия","meta":"20mg (Strong)","price":"13 Br","img":"images/podonki-anarhiya.webp","flavors":["Крила СУПЕР j0j...(Виноград айс","Пировал славянский люд..(Черносмородиновый лемонад","Этот солнечный ливень..(Ананас айс","Давай разворотим этот..(Тархун лимон","Когда на пороге дома...(Малина личи","Лимонные д... (лимонный мармелад) NEW","Надо ехать в Кастрому (мохито с клубникой) NEW","Не верю я, что пала моя империя (малиново-гранатовое пламя) NEW","Ёжик, я гений (микс груши с кокосом) NEW","В лучах искусственного...(Лимон айс","Грустная сказка с хуевым...(Чизкейк с голубирой","Вдоль реки огни горят...(Апельсин айс","Слаще меда (дыня с бананом) NEW","Я счастлив по-своему..(Клюквенная содовая","Коллекторы пришли...(Манго айс"],"stock":{"Крила СУПЕР j0j...(Виноград айс":0,"Пировал славянский люд..(Черносмородиновый лемонад":0,"Этот солнечный ливень..(Ананас айс":0,"Давай разворотим этот..(Тархун лимон":0,"Когда на пороге дома...(Малина личи":0,"Лимонные д... (лимонный мармелад) NEW":7,"Надо ехать в Кастрому (мохито с клубникой) NEW":0,"Не верю я, что пала моя империя (малиново-гранатовое пламя) NEW":0,"Ёжик, я гений (микс груши с кокосом) NEW":3,"В лучах искусственного...(Лимон айс":1,"Грустная сказка с хуевым...(Чизкейк с голубирой":0,"Вдоль реки огни горят...(Апельсин айс":0,"Слаще меда (дыня с бананом) NEW":0,"Я счастлив по-своему..(Клюквенная содовая":2,"Коллекторы пришли...(Манго айс":0}},{"name":"PODONKI & MALASIAN V3","meta":"20mg (Strong)","price":"10 Br","img":"images/podonki-malasian-v3.webp","flavors":["Ананас киви","Арбуз маракуйя","Виноград клубника","Виноградный лимонад","Вишня ананас","Дыня","Жвачка клубника киви","Желтое манго","Киви яблоко","Кокос груша банан","Кола мармеладные мишки","Лимон лайм","Малина ежевика","Малина клубника","Мармеладные мишки с лимоном","Розовый лимонад","Черника малина лимон","Черника смородина","Черника смородина анис","Яблоко черешня"],"stock":{"Ананас киви":17,"Арбуз маракуйя":0,"Виноград клубника":4,"Виноградный лимонад":0,"Вишня ананас":17,"Дыня":21,"Жвачка клубника киви":10,"Желтое манго":23,"Киви яблоко":23,"Кокос груша банан":23,"Кола мармеладные мишки":21,"Лимон лайм":23,"Малина ежевика":0,"Малина клубника":0,"Мармеладные мишки с лимоном":28,"Розовый лимонад":0,"Черника малина лимон":23,"Черника смородина":8,"Черника смородина анис":26,"Яблоко черешня":14}},{"name":"PODONKI INFERNO","meta":"20mg (Strong)","price":"14 Br","img":"images/podonki-inferno.webp","flavors":["Арбуз черника","Вишня слива груша","Грейпфрут малина клубника","Клубника банан","Клубника вишня","Клубничная шипучка","Малина ежевика","Малина черника","Персик","Цитрусовый микс","Черника вишня","Черника лед"],"stock":{"Арбуз черника":0,"Вишня слива груша":0,"Грейпфрут малина клубника":0,"Клубника банан":5,"Клубника вишня":0,"Клубничная шипучка":0,"Малина ежевика":0,"Малина черника":0,"Персик":0,"Цитрусовый микс":0,"Черника вишня":0,"Черника лед":0}},{"name":"EVIL HUSKY","meta":"20mg (Hard)","price":"13,5 Br","img":"images/evil-husky.webp","flavors":["Ананасовый лимонад","Апельсин помело","Арбузный фреш","Виноградный компот","Вишневый морс","Ананасовые тропики","Злые ягоды","Клубника банан","Клубничное шампанское","Малина ежевика","Микс ягод","Нектарин","Синий виноград","Тропический смузи","Фруктовый мармелад","Цитрус с ягодами","Черничный джем","Яблочный сок","Ягодные конфетки","Ягодный гранат"],"stock":{"Ананасовый лимонад":41,"Апельсин помело":50,"Арбузный фреш":30,"Виноградный компот":35,"Вишневый морс":28,"Ананасовые тропики":40,"Злые ягоды":37,"Клубника банан":44,"Клубничное шампанское":31,"Малина ежевика":26,"Микс ягод":24,"Нектарин":41,"Синий виноград":23,"Тропический смузи":33,"Фруктовый мармелад":57,"Цитрус с ягодами":50,"Черничный джем":38,"Яблочный сок":46,"Ягодные конфетки":40,"Ягодный гранат":34}},{"name":"Husky & Мишка","meta":"20mg (Strong)","price":"12,5 Br","img":"images/husky-mishka-a.webp","flavors":["Сладкая мята","Киви - мята","Фруктовая жвачка","Клубника банан","Клюквенный джем","Манго - облепиха","Малина гранат","Арбуз - клубника","Маракуйя юдзу","Энергетик - кактус","Бошки - ягоды","Смородина - мята","Вишневый мохито","Розовый лимонад","Дюшес яблоко","Голубика малина","Красный апельсин","Яблочный сорбет","Ягодный мармелад","Банановый смузи","Красный виноград","Холс смородина","Черри физзи","Малина грейпфрут","Фруктовый лед","Кофе 3 в 1","Летний десерт","Дикая ягода","Северный морс","Тропический закат"],"stock":{"Сладкая мята":32,"Киви - мята":38,"Фруктовая жвачка":35,"Клубника банан":14,"Клюквенный джем":46,"Манго - облепиха":0,"Малина гранат":29,"Арбуз - клубника":32,"Маракуйя юдзу":0,"Энергетик - кактус":0,"Бошки - ягоды":34,"Смородина - мята":0,"Вишневый мохито":0,"Розовый лимонад":48,"Дюшес яблоко":0,"Голубика малина":42,"Красный апельсин":0,"Яблочный сорбет":0,"Ягодный мармелад":42,"Банановый смузи":25,"Красный виноград":37,"Холс смородина":46,"Черри физзи":48,"Малина грейпфрут":36,"Фруктовый лед":39,"Кофе 3 в 1":37,"Летний десерт":48,"Дикая ягода":35,"Северный морс":42,"Тропический закат":40}},{"name":"Husky & Мишка","meta":"20mg","price":"12,5 Br","img":"images/husky-mishka-b.webp","flavors":["Малина гранат","Манго-облепиха","Сладкая мята","Арбуз-клубника","Клубника банан","Смородина-мята","Клюквенный джем","Фруктовая Жвачка","Энергетик-кактус","Бошки-ягоды","Киви-мята","Маракуйя-юдзу","Розовый лимонад","Дюшес яблоко","Вишневый мохито","Голубика малина","Красный апельсин","Яблочный сорбет","Банановый смузи","Малина Грейпфрут","Красный виноград","Фруктовый лед","Холс смородина","Ягодный мармелад","Черри физзи","Тропический закат","Кофе 3 в 1","Летний десерт","Дикая ягода","Северный морс"],"stock":{"Малина гранат":36,"Манго-облепиха":0,"Сладкая мята":20,"Арбуз-клубника":17,"Клубника банан":44,"Смородина-мята":14,"Клюквенный джем":47,"Фруктовая Жвачка":46,"Энергетик-кактус":0,"Бошки-ягоды":48,"Киви-мята":15,"Маракуйя-юдзу":0,"Розовый лимонад":45,"Дюшес яблоко":0,"Вишневый мохито":41,"Голубика малина":47,"Красный апельсин":0,"Яблочный сорбет":50,"Банановый смузи":0,"Малина Грейпфрут":50,"Красный виноград":42,"Фруктовый лед":51,"Холс смородина":46,"Ягодный мармелад":52,"Черри физзи":51,"Тропический закат":48,"Кофе 3 в 1":45,"Летний десерт":49,"Дикая ягода":41,"Северный морс":49}},{"name":"Husky Double Ice","meta":"20mg (Strong)","price":"13,5 Br","img":"images/husky-double-ice-b.webp","flavors":["Arctic strike (северный манго с холодком)","Chilly kiwi (арктический киви с холодком)","Explosive balt (гранатовый сок с холодком)","Frosty palm (смесь тропических фруктов с холодком)","North sweet (медовая дыня с холодком)","Siberian black (ягодное варенье с холодком)","Winter river (ледяная кола с холодком)","Tropic Dew (пинаколада с холодком)","Animal jam (лесные ягоды+малиновый джем+лёд)","Blue Lemonade (черничный лимонад двойной лёд)","Spark Day (виноградная газировка+манго и лёд)","Sweet Dream (черника+лимон+клубника+лёд)","Tasty splash (кисло-сладкая вишня+зелёное яблоко+лёд)","Tropic Cream (мороженое с ананасом, лимоном и льдом)"],"stock":{"Arctic strike (северный манго с холодком)":0,"Chilly kiwi (арктический киви с холодком)":0,"Explosive balt (гранатовый сок с холодком)":0,"Frosty palm (смесь тропических фруктов с холодком)":0,"North sweet (медовая дыня с холодком)":0,"Siberian black (ягодное варенье с холодком)":0,"Winter river (ледяная кола с холодком)":0,"Tropic Dew (пинаколада с холодком)":0,"Animal jam (лесные ягоды+малиновый джем+лёд)":0,"Blue Lemonade (черничный лимонад двойной лёд)":0,"Spark Day (виноградная газировка+манго и лёд)":0,"Sweet Dream (черника+лимон+клубника+лёд)":0,"Tasty splash (кисло-сладкая вишня+зелёное яблоко+лёд)":0,"Tropic Cream (мороженое с ананасом, лимоном и льдом)":0}},{"name":"Husky Double Ice","meta":"20mg","price":"13,5 Br","img":"images/husky-double-ice-a.webp","flavors":["Explosive balt (гранатовый сок с холодком) NEW!","Arctic strike (северный манго с холодком)","Chilly kiwi (арктический киви с холодком)","Frosty palm (смесь тропических фруктов с холодком)","North sweet (медовая дыня с холодком)","Siberian black (ягодное варенье с холодком)","Tropic Dew (пинаколада с холодком) NEW!","Winter river (ледяная кола с холодком)","Animal jam (лесные ягоды+малиновый джем+лёд)","Blue Lemonade (черничный лимонад двойной лёд)","Sweet Dream (черника+лимон+клубника+лёд)","Spark Day (виноградная газировка+манго и лёд)","Tasty splash (кисло-сладкая вишня+зелёное яблоко+лёд)","Tropic Cream (мороженое с ананасом, лимоном и льдом)"],"stock":{"Explosive balt (гранатовый сок с холодком) NEW!":0,"Arctic strike (северный манго с холодком)":0,"Chilly kiwi (арктический киви с холодком)":0,"Frosty palm (смесь тропических фруктов с холодком)":0,"North sweet (медовая дыня с холодком)":0,"Siberian black (ягодное варенье с холодком)":0,"Tropic Dew (пинаколада с холодком) NEW!":0,"Winter river (ледяная кола с холодком)":0,"Animal jam (лесные ягоды+малиновый джем+лёд)":0,"Blue Lemonade (черничный лимонад двойной лёд)":0,"Sweet Dream (черника+лимон+клубника+лёд)":0,"Spark Day (виноградная газировка+манго и лёд)":0,"Tasty splash (кисло-сладкая вишня+зелёное яблоко+лёд)":0,"Tropic Cream (мороженое с ананасом, лимоном и льдом)":0}},{"name":"VLIQ SHOCK","meta":"20mg (Strong)","price":"14 Br","img":"images/vliq-shock.webp","flavors":["АНАНАС ЛИМОН ЛЕД","АНАНАСОВАЯ СОДОВАЯ ЛЕД","АРБУЗ ЛИМОН ЛЕД","ВИНОГРАД ЛЕД","ВИШНЯ ЛЕД","КИВИ ЛЕД","КЛУБНИКА ЛЕД","КЛЮКВА ЛЕД","КОЛА ЛЕД","ЛИМОННЫЙ ПИРОГ ЛЕД","ЛИЧИ ЛЕД","МАЛИНА ЛЕД","МАНГО ЛЕД","МАРАКУЙЯ ЛЕД","МАРМЕЛАД ЛЕД","МАУНТИН ДЬЮ ЛЕД","ПИНКМАН ЛЕД","ПОМЕЛО МАНГО ЛЕД","СКИТТЛС ЛЕД","СМОРОДИНА ЛЕД","ШАМПАНСКОЕ С ПЕРСИКОМ ЛЕД","ЭНЕРГЕТИК ЛЕД","ЯБЛОКО ЛЕД","ЯГОДНЫЙ МИКС ЛЕД"],"stock":{"АНАНАС ЛИМОН ЛЕД":0,"АНАНАСОВАЯ СОДОВАЯ ЛЕД":0,"АРБУЗ ЛИМОН ЛЕД":0,"ВИНОГРАД ЛЕД":0,"ВИШНЯ ЛЕД":0,"КИВИ ЛЕД":0,"КЛУБНИКА ЛЕД":0,"КЛЮКВА ЛЕД":0,"КОЛА ЛЕД":0,"ЛИМОННЫЙ ПИРОГ ЛЕД":0,"ЛИЧИ ЛЕД":0,"МАЛИНА ЛЕД":0,"МАНГО ЛЕД":0,"МАРАКУЙЯ ЛЕД":0,"МАРМЕЛАД ЛЕД":0,"МАУНТИН ДЬЮ ЛЕД":0,"ПИНКМАН ЛЕД":0,"ПОМЕЛО МАНГО ЛЕД":0,"СКИТТЛС ЛЕД":0,"СМОРОДИНА ЛЕД":0,"ШАМПАНСКОЕ С ПЕРСИКОМ ЛЕД":0,"ЭНЕРГЕТИК ЛЕД":0,"ЯБЛОКО ЛЕД":0,"ЯГОДНЫЙ МИКС ЛЕД":0}},{"name":"Freeze Monkey Max Flavor","meta":"20mg","price":"12 Br","img":"images/freeze-monkey.webp","flavors":["Ананас","Апероль","Арбузный Лимонад","Банан Kлубника","Виноград с Aлоэ","Голубая Малина","Груша","Груша Яблоко","Гуава","Дыня","Жёлтое Манго с Малиной","Кактус","Киви","Клубника","Ананас Клубника Лемонграсс","Клубника Лимон Манго","Лимонад Клубника Базилик","Личи с Тропическими Фруктами","Лимон Малина","Мармелад","Мятный Тик Так","Персик","Пинаколада","Роза с Жасмином","Сладкий Грейпфрут","Энергетик с Манго","Яблоко","Ягодный Йогурт","Ягоды с Мятой","Морковь","Клубника ананас"],"stock":{"Ананас":0,"Апероль":0,"Арбузный Лимонад":0,"Банан Kлубника":0,"Виноград с Aлоэ":0,"Голубая Малина":0,"Груша":0,"Груша Яблоко":0,"Гуава":0,"Дыня":0,"Жёлтое Манго с Малиной":0,"Кактус":0,"Киви":0,"Клубника":0,"Ананас Клубника Лемонграсс":0,"Клубника Лимон Манго":0,"Лимонад Клубника Базилик":0,"Личи с Тропическими Фруктами":0,"Лимон Малина":0,"Мармелад":0,"Мятный Тик Так":0,"Персик":0,"Пинаколада":0,"Роза с Жасмином":0,"Сладкий Грейпфрут":0,"Энергетик с Манго":0,"Яблоко":0,"Ягодный Йогурт":0,"Ягоды с Мятой":0,"Морковь":26,"Клубника ананас":0}},{"name":"CATSWILL EXTRA","meta":"20mg","price":"12 Br","img":"images/catswill-extra.webp","flavors":["Виноград малина скитлс","Виноград персик","Виноград смородина скитлс","Вишня арбуз лёд","Вишня бабл-гам мята","Абрикос мандарин скитлс","Виноград арбуз скитлс","Виноград дыня","Виноград лайм мята","Виноград малина арбуз","Вишня скитлс лимон","Вишня яблоко мелисса","Груша малина газировка","Драконий фрукт клубника малина","Ежевика виноград ментос","Ежевика клубника","Зелёный чай клубника лайм","Киви малина скитлс","Киви манго","Кислая яблочная хубба-бубба","Кислое яблоко лайм киви","Кислое яблоко персик","Кислые ленточки клубника киви","Кислые ленточки черешня голубика","Кислый ананас лимон","Кислый виноград клубника","Кислый земляничный чупа-чупс","Кислый мандариновый скитлс","Кислый персик маракуйя","Кислый швепс грейпфрут","Клубника лёд личи","Клубнично-яблочный скитлс","Клюква лимон скитлс","Кокос ананас лёд","Лайм малина лёд","Ледяная морошка малина","Ледяные лесные ягоды","Лесные ягоды яблоко","Летний лимонад лимон мята","Лимон груша","Лимон яблоко лёд","Лимонад дыня малина","Лимонная шипучка","Мандарин сладкое яблоко","Ментос дыня арбуз","Ментос персик апельсин","Морозная ледяная мелисса","Морозная черешня","Морозная черника лимон","Морозный черный виноград","Морошка скитлс лимон","Мятный ментос","Освежающий чай персик лимон","Персик апельсин","Персик виноград клубника","Персик кислая вишня","Персик лимон лед","Розовый лимонад малина","Сакура виноград","Скитлс апельсин лайм","Скитлс кактус лимон","Скитлс малина клубника","Скитлс яблоко лёд","Сок киви гранат лёд","Фанта с голубой малиной","Хубба-бубба клубника черника арбуз","Цитрусовый мятный микс","Черешня кислый скитлс","Черешня малина","Черная смородина скитлс черника","Черника земляника","Черный виноград апельсин","Черный виноград черника малина","Яблоко виноград","Яблоко малина","Яблоко черная смородина","Яблочная холодная фанта"],"stock":{"Виноград малина скитлс":0,"Виноград персик":0,"Виноград смородина скитлс":0,"Вишня арбуз лёд":0,"Вишня бабл-гам мята":0,"Абрикос мандарин скитлс":0,"Виноград арбуз скитлс":0,"Виноград дыня":0,"Виноград лайм мята":0,"Виноград малина арбуз":0,"Вишня скитлс лимон":0,"Вишня яблоко мелисса":0,"Груша малина газировка":0,"Драконий фрукт клубника малина":0,"Ежевика виноград ментос":0,"Ежевика клубника":0,"Зелёный чай клубника лайм":0,"Киви малина скитлс":0,"Киви манго":0,"Кислая яблочная хубба-бубба":0,"Кислое яблоко лайм киви":0,"Кислое яблоко персик":0,"Кислые ленточки клубника киви":0,"Кислые ленточки черешня голубика":0,"Кислый ананас лимон":0,"Кислый виноград клубника":0,"Кислый земляничный чупа-чупс":0,"Кислый мандариновый скитлс":0,"Кислый персик маракуйя":0,"Кислый швепс грейпфрут":0,"Клубника лёд личи":0,"Клубнично-яблочный скитлс":0,"Клюква лимон скитлс":0,"Кокос ананас лёд":0,"Лайм малина лёд":0,"Ледяная морошка малина":0,"Ледяные лесные ягоды":0,"Лесные ягоды яблоко":0,"Летний лимонад лимон мята":0,"Лимон груша":0,"Лимон яблоко лёд":0,"Лимонад дыня малина":0,"Лимонная шипучка":0,"Мандарин сладкое яблоко":0,"Ментос дыня арбуз":0,"Ментос персик апельсин":0,"Морозная ледяная мелисса":0,"Морозная черешня":0,"Морозная черника лимон":0,"Морозный черный виноград":0,"Морошка скитлс лимон":0,"Мятный ментос":0,"Освежающий чай персик лимон":0,"Персик апельсин":0,"Персик виноград клубника":0,"Персик кислая вишня":0,"Персик лимон лед":0,"Розовый лимонад малина":0,"Сакура виноград":0,"Скитлс апельсин лайм":0,"Скитлс кактус лимон":0,"Скитлс малина клубника":0,"Скитлс яблоко лёд":0,"Сок киви гранат лёд":0,"Фанта с голубой малиной":0,"Хубба-бубба клубника черника арбуз":0,"Цитрусовый мятный микс":0,"Черешня кислый скитлс":0,"Черешня малина":0,"Черная смородина скитлс черника":0,"Черника земляника":0,"Черный виноград апельсин":0,"Черный виноград черника малина":0,"Яблоко виноград":0,"Яблоко малина":0,"Яблоко черная смородина":0,"Яблочная холодная фанта":0}},{"name":"CATSWILL MONSTER CATS","meta":"20mg","price":"15,5 Br","img":"images/catswill-monster-cats.webp","flavors":["Виноградно-вишневый холс лед","Кактус лимон с холодком","Кислая фрутелла клубника лимон","Кислая черника морошка","Кисло сладкая морошка","Кисло-сладкая черная смородина","Кисло-сладкий цитрусовый микс","Кислые ленточки кола лимон","Кислые ленточки тутти фрутти","Черника малина мята лед","Виноград лимон лед","Красное сладкое яблоко с кислинкой"],"stock":{"Виноградно-вишневый холс лед":0,"Кактус лимон с холодком":0,"Кислая фрутелла клубника лимон":0,"Кислая черника морошка":0,"Кисло сладкая морошка":0,"Кисло-сладкая черная смородина":0,"Кисло-сладкий цитрусовый микс":0,"Кислые ленточки кола лимон":0,"Кислые ленточки тутти фрутти":0,"Черника малина мята лед":0,"Виноград лимон лед":0,"Красное сладкое яблоко с кислинкой":0}},{"name":"CATSWILL MONSTER HARD","meta":"20mg (Strong)","price":"16 Br","img":"images/catswill-monster-hard.webp","flavors":["Виноград изабелла грейпфрут","Виноград лимон лёд","Виноградно-вишневый холс","Драконий фрукт клубника холодок","Кактус лимон с холодком","Кислая вишня лимон","Кислая фрутелла клубника лимон","Кислая черника морошка","Кисло сладкая морошка","Кисло-сладкая черная смородина","Кисло-сладкие колечки персик малина","Кисло-сладкий цитрусовый микс","Кислые ленточки кола лимон","Кислые ленточки тутти фрути","Кислючка клюква малина","Клюква лесные ягоды лайм лёд","Красное сладкое яблоко с кислинкой","Лимонад клюква лимон","Сладкий апельсин клубника лимон лёд","Черная смородина арбуз айс","Черника малина мята"],"stock":{"Виноград изабелла грейпфрут":0,"Виноград лимон лёд":0,"Виноградно-вишневый холс":0,"Драконий фрукт клубника холодок":0,"Кактус лимон с холодком":0,"Кислая вишня лимон":0,"Кислая фрутелла клубника лимон":0,"Кислая черника морошка":0,"Кисло сладкая морошка":0,"Кисло-сладкая черная смородина":0,"Кисло-сладкие колечки персик малина":0,"Кисло-сладкий цитрусовый микс":0,"Кислые ленточки кола лимон":0,"Кислые ленточки тутти фрути":0,"Кислючка клюква малина":0,"Клюква лесные ягоды лайм лёд":0,"Красное сладкое яблоко с кислинкой":0,"Лимонад клюква лимон":0,"Сладкий апельсин клубника лимон лёд":0,"Черная смородина арбуз айс":0,"Черника малина мята":0}},{"name":"CATSWILL","meta":"20mg (Strong)","price":"13 Br","img":"images/catswill-a.webp","flavors":["Виноград изабелла алоэ","Ананас лед виноград","Клубника киви","Киви лёд кислинка","Черника лед ежевика","Мятная вишня","Вишневые леденцы","Черничный лимонад с малиной","Кислые яблочные червячки","Кислый виноградный чупа-чупс","Клубника арбуз жвачка","Клубника жвачка банан","Чернично клубничный фреш","Малина лёд ежевика","Морозные лесные ягоды","Айрн брю с долькой апельсина","Кислый скитлс","Кислые червячки с малиной и черешней","Кислая фруктовая жвачка","Ананасовый сироп с виноградом лёд","Вишня персик мята New","Йогурт клубника маракуйя New","Имбирный лимонад с малиной New","Кислый малиновый скитлс","Клубника виноград мята","Хайповый энергетик с черникой New","Клубнично вишнёвая конфета","Лимонад черника лайм New","Мамба кислое яблоко киви New","Лимонад ежевика сироп New","Скитлс с виноградом изабелла New","Мамбо манго апельсин New","Чернично арбузная хуба-буба","Мятная жвачка","Манго сода виноград","Морозная черника лайм","Клубнично арбузная хуба-буба","Апельсин персик шипучка","Морозная клубника с кислинкой","Вишневый ледяной спрайт","Груша лайм мята","Ледяная клубника лимон","Гуава малина ментол","Желатинки манго персик арбуз","Киви лайм шипучка лед","Ледяная малина персик","Ледяное манго малина","Ледяной розовый грейпфрут","Морозный апельсин маракуйя","Табак черника малина лед","Табак яблоко айс","Яблочный лимонад лайм","Сладкий апельсин груша лед","Табак карамель айс","Табак арбуз айс","Сладкое манго черная смородина","Чупа-чупс киви апельсин","Табак виноград айс","Табак жвачка айс","Табак ментол айс","Табак персик манго айс"],"stock":{"Виноград изабелла алоэ":44,"Ананас лед виноград":0,"Клубника киви":45,"Киви лёд кислинка":46,"Черника лед ежевика":41,"Мятная вишня":0,"Вишневые леденцы":43,"Черничный лимонад с малиной":39,"Кислые яблочные червячки":41,"Кислый виноградный чупа-чупс":44,"Клубника арбуз жвачка":0,"Клубника жвачка банан":45,"Чернично клубничный фреш":43,"Малина лёд ежевика":43,"Морозные лесные ягоды":38,"Айрн брю с долькой апельсина":0,"Кислый скитлс":41,"Кислые червячки с малиной и черешней":47,"Кислая фруктовая жвачка":46,"Ананасовый сироп с виноградом лёд":47,"Вишня персик мята New":42,"Йогурт клубника маракуйя New":49,"Имбирный лимонад с малиной New":49,"Кислый малиновый скитлс":43,"Клубника виноград мята":44,"Хайповый энергетик с черникой New":38,"Клубнично вишнёвая конфета":44,"Лимонад черника лайм New":48,"Мамба кислое яблоко киви New":44,"Лимонад ежевика сироп New":44,"Скитлс с виноградом изабелла New":44,"Мамбо манго апельсин New":45,"Чернично арбузная хуба-буба":41,"Мятная жвачка":45,"Манго сода виноград":0,"Морозная черника лайм":47,"Клубнично арбузная хуба-буба":43,"Апельсин персик шипучка":48,"Морозная клубника с кислинкой":45,"Вишневый ледяной спрайт":47,"Груша лайм мята":49,"Ледяная клубника лимон":49,"Гуава малина ментол":47,"Желатинки манго персик арбуз":48,"Киви лайм шипучка лед":49,"Ледяная малина персик":45,"Ледяное манго малина":44,"Ледяной розовый грейпфрут":49,"Морозный апельсин маракуйя":47,"Табак черника малина лед":45,"Табак яблоко айс":48,"Яблочный лимонад лайм":48,"Сладкий апельсин груша лед":46,"Табак карамель айс":47,"Табак арбуз айс":44,"Сладкое манго черная смородина":45,"Чупа-чупс киви апельсин":43,"Табак виноград айс":47,"Табак жвачка айс":49,"Табак ментол айс":43,"Табак персик манго айс":49}},{"name":"CATSWILL","meta":"20mg","price":"13 Br","img":"images/catswill-b.webp","flavors":["Виноград изабелла алоэ","Ананасовый сироп с виноградом лёд","Вишневые леденцы","Киви лёд кислинка","Кислая фруктовая жвачка","Кислые червячки с малиной и черешней","Кислые яблочные червячки","Кислый виноградный чупа-чупс","Кислый скитлс","Клубнично арбузная хуба-буба","Клубника жвачка банан","Клубника киви","Чернично клубничный фреш","Малина лёд ежевика","Морозные лесные ягоды","Мятная жвачка","Черника лед ежевика","Черничный лимонад с малиной","Вишня персик мята New","Йогурт клубника маракуйя New","Имбирный лимонад с малиной New","Кислый малиновый скитлс","Клубника виноград мята","Мамбо манго апельсин New","Лимонад черника лайм New","Клюбнично вишнёвая конфета","Лимонад ежевика сироп New","Мамба кислое яблоко киви New","Скитлс с виноградом изабелла New","Хайповый энергетик с черникой New","Чернично арбузная хуба-буба"],"stock":{"Виноград изабелла алоэ":0,"Ананасовый сироп с виноградом лёд":0,"Вишневые леденцы":0,"Киви лёд кислинка":0,"Кислая фруктовая жвачка":0,"Кислые червячки с малиной и черешней":0,"Кислые яблочные червячки":0,"Кислый виноградный чупа-чупс":0,"Кислый скитлс":0,"Клубнично арбузная хуба-буба":0,"Клубника жвачка банан":0,"Клубника киви":0,"Чернично клубничный фреш":0,"Малина лёд ежевика":0,"Морозные лесные ягоды":0,"Мятная жвачка":0,"Черника лед ежевика":0,"Черничный лимонад с малиной":0,"Вишня персик мята New":0,"Йогурт клубника маракуйя New":0,"Имбирный лимонад с малиной New":0,"Кислый малиновый скитлс":0,"Клубника виноград мята":0,"Мамбо манго апельсин New":0,"Лимонад черника лайм New":0,"Клюбнично вишнёвая конфета":0,"Лимонад ежевика сироп New":0,"Мамба кислое яблоко киви New":0,"Скитлс с виноградом изабелла New":0,"Хайповый энергетик с черникой New":0,"Чернично арбузная хуба-буба":0}},{"name":"CATSWILL SOUR","meta":"20mg (Strong)","price":"13 Br","img":"images/catswill-sour-a.webp","flavors":["Кислый грейпфрут с вишней","Кислый леденец виноград киви яблоко","Кислый лимонад арбуз лайм малина","Кислый дольки персик клубника","Кислая газировка с чёрной смородиной и клюквой","Кислое земляничное мохито","Кислая фанта с черникой","Кислая яблочно-клубничная шипучка","Кислое харибо с колой и черешней","Кислые желатинки маракуйя ананас","Кислые ленточки маракуйя манго","Кислые мармеладные ягоды","Кислые яблочно-лимонные колечки","Кислый виноград лайм","Фанта апельсин с кислой малиной"],"stock":{"Кислый грейпфрут с вишней":0,"Кислый леденец виноград киви яблоко":0,"Кислый лимонад арбуз лайм малина":0,"Кислый дольки персик клубника":0,"Кислая газировка с чёрной смородиной и клюквой":0,"Кислое земляничное мохито":0,"Кислая фанта с черникой":0,"Кислая яблочно-клубничная шипучка":0,"Кислое харибо с колой и черешней":0,"Кислые желатинки маракуйя ананас":0,"Кислые ленточки маракуйя манго":0,"Кислые мармеладные ягоды":0,"Кислые яблочно-лимонные колечки":0,"Кислый виноград лайм":0,"Фанта апельсин с кислой малиной":0}},{"name":"CATSWILL SOUR","meta":"20mg","price":"13 Br","img":"images/catswill-sour-b.webp","flavors":["Кислая газировка с чёрной смородиной и клюквой","Кислое земляничное мохито","Кислая фанта с черникой","Кислая яблочно-клубничная шипучка","Кислое харибо с колой и черешней","Кислые желатинки маракуйя ананас","Кислые ленточки маракуйя манго","Кислые мармеладные ягоды","Кислые яблочно-лимонные колечки","Кислый виноград лайм","Кислый грейпфрут с вишней","Кислый леденец виноград киви яблоко","Кислый лимонад арбуз лайм малина","Кислый дольки персик клубника","Фанта апельсин с кислой малиной"],"stock":{"Кислая газировка с чёрной смородиной и клюквой":0,"Кислое земляничное мохито":0,"Кислая фанта с черникой":0,"Кислая яблочно-клубничная шипучка":0,"Кислое харибо с колой и черешней":0,"Кислые желатинки маракуйя ананас":0,"Кислые ленточки маракуйя манго":0,"Кислые мармеладные ягоды":0,"Кислые яблочно-лимонные колечки":0,"Кислый виноград лайм":0,"Кислый грейпфрут с вишней":0,"Кислый леденец виноград киви яблоко":0,"Кислый лимонад арбуз лайм малина":0,"Кислый дольки персик клубника":0,"Фанта апельсин с кислой малиной":0}},{"name":"САМОУБИЙЦА x ГРЕХ","meta":"2%","price":"13 Br","img":"images/samoubijca-greh.webp","flavors":["Брусника клюква малина","Вишневый компот","Вишня красная смородина","Вишня персик мята","Вишня с барбарисом","Зеленый виноград с нотками киви","Земляника черника","Киви с яблоком","Кислые дикие ягоды","Клубника смородина мята","Малина смородина лимон","Малина черника клюква","Медовая дыня с арбузом","Нектарин дыня","Скитлс","Смородина виноград","Спелая малина с вишней","Экзотический микс","Энергетик клубника виноград","Яблоко земляника"],"stock":{"Брусника клюква малина":0,"Вишневый компот":0,"Вишня красная смородина":0,"Вишня персик мята":0,"Вишня с барбарисом":0,"Зеленый виноград с нотками киви":0,"Земляника черника":0,"Киви с яблоком":0,"Кислые дикие ягоды":0,"Клубника смородина мята":0,"Малина смородина лимон":0,"Малина черника клюква":0,"Медовая дыня с арбузом":0,"Нектарин дыня":0,"Скитлс":0,"Смородина виноград":0,"Спелая малина с вишней":0,"Экзотический микс":0,"Энергетик клубника виноград":0,"Яблоко земляника":0}},{"name":"САМОУБИЙЦА V2 ACID","meta":"70mg","price":"12,5 Br","img":"images/samoubijca-v2-acid.webp","flavors":["Кислый мятный лимон с арбузом","Кислый ананасовый сок с киви","Кислый тархун с земляникой","Кислый грейпфрут с вишней","Кислая малиновая жвачка","Кислый энергетик с грейпфрутом и гранатом","Кислый энергетик со скитлсом","Кислая ежевика с шелковицей","Кислый скитлс с яблоком","Кислая маракуйя и гуава","Кислые мармеладные червячки"],"stock":{"Кислый мятный лимон с арбузом":0,"Кислый ананасовый сок с киви":0,"Кислый тархун с земляникой":0,"Кислый грейпфрут с вишней":0,"Кислая малиновая жвачка":0,"Кислый энергетик с грейпфрутом и гранатом":0,"Кислый энергетик со скитлсом":0,"Кислая ежевика с шелковицей":0,"Кислый скитлс с яблоком":0,"Кислая маракуйя и гуава":0,"Кислые мармеладные червячки":0}}],"disposables":[{"name":"GO2MAGIC HALO X2 dual flavor 40000","meta":"2%","price":"55 Br","isNew":true,"flavors":["Blackberry ice x Blue razz ice","Coconut melon x Raspberry mojito","Lemon mint x Grape ice","Love 66 x Lime cactus","Pineapple coconut x Blueberry ice","Strawberry banana x Chupachups","Strawberry energy x Blackberry lemon mint","Strawberry kiwi x Mint ice","Watermelon ice x Kiwi fruit watermelon lime"],"stock":{"Blackberry ice x Blue razz ice":11,"Coconut melon x Raspberry mojito":11,"Lemon mint x Grape ice":15,"Love 66 x Lime cactus":9,"Pineapple coconut x Blueberry ice":17,"Strawberry banana x Chupachups":12,"Strawberry energy x Blackberry lemon mint":13,"Strawberry kiwi x Mint ice":12,"Watermelon ice x Kiwi fruit watermelon lime":9},"img":"images/go2magic-halo-x2.webp"},{"name":"Elfbar Lush King Pro 40000","meta":"5%","price":"60 Br","isNew":true,"flavors":["Black Currant Pineapple","Black Grape Ice","Blue Razz Ice","Cactus Lime","Cherry Burst","Cucumber Lime","Milky Oolong","Mountain Mint","Pomegranate Burst","Sour Pineapple Ice","Sour Strawberry Dragonfruit","Starfruit Grape","Sur Apple Ice","Tropical Mango","Watermelon Ice"],"stock":{"Black Currant Pineapple":0,"Black Grape Ice":0,"Blue Razz Ice":0,"Cactus Lime":5,"Cherry Burst":0,"Cucumber Lime":8,"Milky Oolong":0,"Mountain Mint":1,"Pomegranate Burst":0,"Sour Pineapple Ice":0,"Sour Strawberry Dragonfruit":0,"Starfruit Grape":0,"Sur Apple Ice":0,"Tropical Mango":0,"Watermelon Ice":0},"img":"images/elfbar-lush-king-pro.webp"},{"name":"ELF BAR Moon Night 40000","meta":"5%","price":"60 Br","isNew":true,"flavors":["Blue Razz Ice","Cherry Watermelon","Grape Raspberry","Grape ice","Kiwi Passionfruit Guava","Lemon Lime","Lime Cola","Mango Peach Watermelon","Miami Mint","Peach Ice","Pomegranate Burst","Watermelon Ice"],"stock":{"Blue Razz Ice":0,"Cherry Watermelon":0,"Grape Raspberry":0,"Grape ice":0,"Kiwi Passionfruit Guava":0,"Lemon Lime":0,"Lime Cola":0,"Mango Peach Watermelon":0,"Miami Mint":0,"Peach Ice":0,"Pomegranate Burst":0,"Watermelon Ice":0},"img":"images/elfbar-moon-night.webp"},{"name":"BJORN TRON 55k","meta":"2%","price":"55 Br","img":"images/bjorn-tron-55k.webp","flavors":["Ананас киви","Виноград клубника","Вишневая кола","Вишня клюква","Вишня со льдом","Грейпфрут малина клубника","Классическая кола","Клубника банан","Клубника лайм малина","Клюква со льдом","Клюква энергетик","Лесные ягоды со льдом","Малина виноград","Малиновая газировка","Смородина виноград","Черника малина","Черника яблоко","Чистый ментол","Яблоко вишня","Яблоко со льдом"],"stock":{"Ананас киви":0,"Виноград клубника":2,"Вишневая кола":4,"Вишня клюква":2,"Вишня со льдом":1,"Грейпфрут малина клубника":5,"Классическая кола":10,"Клубника банан":0,"Клубника лайм малина":0,"Клюква со льдом":12,"Клюква энергетик":11,"Лесные ягоды со льдом":0,"Малина виноград":0,"Малиновая газировка":10,"Смородина виноград":0,"Черника малина":0,"Черника яблоко":0,"Чистый ментол":13,"Яблоко вишня":8,"Яблоко со льдом":12}},{"name":"RICK and MORTY The Anime 15000","meta":"2%","price":"38 Br","img":"images/rick-morty-anime.webp","flavors":["Виноград лайм","Вишневая кола","Вишневый энергетик","Кислый ананас","Клубника киви","Клубника малина","Лесные ягоды","Малина арбуз","Мармеладные червячки","Ягодный морс","Скитлс персик апельсин","Сочная вишня","Спелое манго","Спрайт арбуз","Фанта малина апельсин","Черная смородина","Черника ежевика","Черничная фанта","Энергетик ежевика","Ягодный бабл гам"],"stock":{"Виноград лайм":0,"Вишневая кола":6,"Вишневый энергетик":17,"Кислый ананас":0,"Клубника киви":0,"Клубника малина":4,"Лесные ягоды":0,"Малина арбуз":0,"Мармеладные червячки":0,"Ягодный морс":9,"Скитлс персик апельсин":0,"Сочная вишня":0,"Спелое манго":17,"Спрайт арбуз":2,"Фанта малина апельсин":13,"Черная смородина":0,"Черника ежевика":2,"Черничная фанта":21,"Энергетик ежевика":8,"Ягодный бабл гам":4}},{"name":"RETURNS PULSE","meta":"15000 затяжек","price":"32 Br","img":"images/returns-pulse.webp","flavors":["Blueberry watermelon","Cool mint","Dragon melon","Fcuking fab","Grape B-POP","Juice peach ice","Meta moon","Pink lemonade","Sour apple B-POP","Sour apple ice","Tropical rainbow blast","White gummy ice","Black cherry","Blue razz ice"],"stock":{"Blueberry watermelon":0,"Cool mint":0,"Dragon melon":0,"Fcuking fab":0,"Grape B-POP":0,"Juice peach ice":0,"Meta moon":0,"Pink lemonade":0,"Sour apple B-POP":0,"Sour apple ice":0,"Tropical rainbow blast":0,"White gummy ice":0,"Black cherry":0,"Blue razz ice":0}},{"name":"VOZOL VISTA","meta":"50mg / 40000 затяжек","price":"45 Br","img":"images/vozol-vista.webp","flavors":["Cherry cola","Double apple","Frozen strawberry kiwi","Grape ice","Juice peach","Blueberry ice","Love 777","Blueberry razz ice","Lychee orange passion fruit","Mango passion fruit","Mango peach","Melon gum","Miami mint","Passion fruit raspberry tangerine","Peach berry","Strawberry banana","Strawberry ice","Strawberry mango","Strawberry watermelon","Watermelon bubble gum","Watermelon ice","Cool mint","Blue razz ice"],"stock":{"Cherry cola":17,"Double apple":18,"Frozen strawberry kiwi":19,"Grape ice":15,"Juice peach":19,"Blueberry ice":16,"Love 777":19,"Blueberry razz ice":0,"Lychee orange passion fruit":16,"Mango passion fruit":19,"Mango peach":19,"Melon gum":19,"Miami mint":19,"Passion fruit raspberry tangerine":20,"Peach berry":18,"Strawberry banana":17,"Strawberry ice":19,"Strawberry mango":19,"Strawberry watermelon":19,"Watermelon bubble gum":19,"Watermelon ice":20,"Cool mint":5,"Blue razz ice":18}},{"name":"VOZOL RAVE","meta":"50mg / 40000 затяжек","price":"45 Br","img":"images/vozol-rave.webp","flavors":["Blue razz ice","Blueberry ice","Blueberry watermelon","Cherry cola","Cherry strawberry","Cool mint","Double apple","Dragon fruit banana","Grape ice","Kiwi passion fruit","Love 777","Mango peach","Peach ice","Peach raspberry lemonade","Watermelon bubble gum","Strawberry ice","Strawberry kiwi","Strawberry mango","Strawmelon peach","Strawberry watermelon","Watermelon ice","Watermelon razz rancher"],"stock":{"Blue razz ice":8,"Blueberry ice":12,"Blueberry watermelon":14,"Cherry cola":0,"Cherry strawberry":1,"Cool mint":13,"Double apple":8,"Dragon fruit banana":4,"Grape ice":5,"Kiwi passion fruit":5,"Love 777":7,"Mango peach":7,"Peach ice":15,"Peach raspberry lemonade":6,"Watermelon bubble gum":3,"Strawberry ice":12,"Strawberry kiwi":9,"Strawberry mango":11,"Strawmelon peach":18,"Strawberry watermelon":20,"Watermelon ice":13,"Watermelon razz rancher":18}},{"name":"GTMBAR TURBO 30000","meta":"5%","price":"42 Br","img":"images/gtmbar-turbo.webp","flavors":["Banana milk","Blue razz ice","Blueberry ice","Blueberry raspberry","Cherry soda","Cran grape","Grape ice","Guava kiwi passion fruit","Juicy peach ice","Mango peach watermelon","Miami mint","Triple berry ice","Tropical rainbow blast","Watermelo ice","Love 66"],"stock":{"Banana milk":4,"Blue razz ice":14,"Blueberry ice":13,"Blueberry raspberry":6,"Cherry soda":0,"Cran grape":12,"Grape ice":10,"Guava kiwi passion fruit":13,"Juicy peach ice":11,"Mango peach watermelon":6,"Miami mint":15,"Triple berry ice":12,"Tropical rainbow blast":11,"Watermelo ice":10,"Love 66":13}},{"name":"ELF BAR DUKE 20000","meta":"2%","price":"43 Br","img":"images/elfbar-duke.webp","flavors":["Кислое яблоко лед","Кислый виноград лед","Клубника киви","Клюква ананас","Ледяной арбуз","Лимон лайм","Северные ягоды","Сицилийский апельсин","Черника малина лед","Ананас персик","Виноград гранат","Вишневый всплеск","Вишня лимон","Горная мята","Кислая ежевика лед"],"stock":{"Кислое яблоко лед":12,"Кислый виноград лед":8,"Клубника киви":0,"Клюква ананас":8,"Ледяной арбуз":11,"Лимон лайм":15,"Северные ягоды":0,"Сицилийский апельсин":0,"Черника малина лед":0,"Ананас персик":0,"Виноград гранат":0,"Вишневый всплеск":0,"Вишня лимон":8,"Горная мята":22,"Кислая ежевика лед":0}},{"name":"ELF BAR GH 23000 (Оригинал)","meta":"5%","price":"39 Br","img":"images/elfbar-gh23000.webp","flavors":["APPLE PEAR","BLUE RAZZ ICE","CHERRY COLA","GRAPE ICE","GREEN APPLE ICE","GREEN PLUM SOUR LIME","JASMINE RASPBERRY","POLAR MINT","PURPLE MINT","RASPBERRY WATERMELON LEMON","SOUR WATERMELON CANDY","STRAWBERRY BANANA","STRAWBERRY WATERMELON BUBBLE GUM","WATERMELON CHERRY","WATERMELON ICE","WATERMELON LEMON","PEACH BERRY","STRAWBERRY GRAPE","BLUEBERRY ICE","GRAPE CHERRY","PEACH ICE","WATERMELON BUBBLE GUM","FRESH LEMONADE","JUICY CHERRY","PINEAPPLE","JUICY POMELO","WATERMELON SODA","AKSU APPLE ICE","BLACK GRAPE SODA","ORANGE SODA","SOUR PEACH SODA","SOUR PEAR SODA"],"stock":{"APPLE PEAR":0,"BLUE RAZZ ICE":0,"CHERRY COLA":0,"GRAPE ICE":0,"GREEN APPLE ICE":0,"GREEN PLUM SOUR LIME":0,"JASMINE RASPBERRY":0,"POLAR MINT":1,"PURPLE MINT":0,"RASPBERRY WATERMELON LEMON":0,"SOUR WATERMELON CANDY":1,"STRAWBERRY BANANA":0,"STRAWBERRY WATERMELON BUBBLE GUM":0,"WATERMELON CHERRY":0,"WATERMELON ICE":0,"WATERMELON LEMON":0,"PEACH BERRY":0,"STRAWBERRY GRAPE":0,"BLUEBERRY ICE":0,"GRAPE CHERRY":0,"PEACH ICE":0,"WATERMELON BUBBLE GUM":0,"FRESH LEMONADE":0,"JUICY CHERRY":0,"PINEAPPLE":0,"JUICY POMELO":0,"WATERMELON SODA":15,"AKSU APPLE ICE":0,"BLACK GRAPE SODA":0,"ORANGE SODA":0,"SOUR PEACH SODA":0,"SOUR PEAR SODA":2}}],"pods":[{"name":"BRUSKO DABBLER NICE","meta":"650 мАч","price":"8 Br","img":"images/brusko-dabbler-nice.webp","flavors":["Белый","Бирюзовый","Желтый","Зеленый","Красный","Серый","Синий","Оранжевый"],"stock":{"Белый":15,"Бирюзовый":2,"Желтый":18,"Зеленый":53,"Красный":14,"Серый":0,"Синий":17,"Оранжевый":33},"label":"Цвет"},{"name":"VAPORESSO XROS 6","meta":"1800 мАч","price":"90 Br","img":"images/vaporesso-xros6.webp","flavors":["Abyssal blue","Aurora blue","Carbon fiber gray","Cosmic black","Dreamy pink","Pearl white","Scorching cloud","Silk brown","Silk gray","Silk green","Slate black"],"stock":{"Abyssal blue":0,"Aurora blue":0,"Carbon fiber gray":0,"Cosmic black":0,"Dreamy pink":0,"Pearl white":0,"Scorching cloud":0,"Silk brown":0,"Silk gray":0,"Silk green":0,"Slate black":0},"label":"Цвет"},{"name":"VAPORESSO XROS 6 MINI","meta":"1600 мАч","price":"80 Br","img":"images/vaporesso-xros6-mini.webp","flavors":["Black","Brown","Jelly blue","Jelly green","Jelly orange","Jelly pink","Plume blue","Plume pink","Plume white","Titanium black","Titanium silver"],"stock":{"Black":0,"Brown":0,"Jelly blue":0,"Jelly green":0,"Jelly orange":0,"Jelly pink":0,"Plume blue":0,"Plume pink":0,"Plume white":0,"Titanium black":0,"Titanium silver":0},"label":"Цвет"},{"name":"VAPORESSO XROS 5 NANO","meta":"1600 мАч","price":"85 Br","img":"images/vaporesso-xros5-nano.webp","flavors":["Blue leatherette","Color burst","Black satin","Damascus pink","Damascus silver","Nacre","Orange leftherette","Yellow satin"],"stock":{"Blue leatherette":8,"Color burst":9,"Black satin":0,"Damascus pink":4,"Damascus silver":7,"Nacre":7,"Orange leftherette":9,"Yellow satin":10},"label":"Цвет"}],"parts":[{"name":"Картридж Vaporesso XROS","meta":"","price":"11 Br","img":"images/vaporesso-xros-cart.webp","label":"Сопротивление","flavors":["0.6 Ом, 2 мл","0.8 Ом, 2 мл","0.6 Ом, 3 мл","0.7 Ом, 3 мл","0.8 Ом, 3 мл","1.0 Ом, 2 мл","1.2 Ом, 2 мл"],"stock":{"0.6 Ом, 2 мл":74,"0.8 Ом, 2 мл":0,"0.6 Ом, 3 мл":358,"0.7 Ом, 3 мл":0,"0.8 Ом, 3 мл":343,"1.0 Ом, 2 мл":0,"1.2 Ом, 2 мл":0},"showQty":true},{"name":"Картридж Vaporesso XROS 4 / 4 mini / PRO","meta":"","price":"12 Br","img":"images/vaporesso-xros4-cart.webp","label":"Сопротивление","flavors":["0.4 Ом, 3 мл"],"stock":{"0.4 Ом, 3 мл":492},"showQty":true},{"name":"Картриджи Voopoo VMATE / V.HTRU","meta":"","price":"12 Br","img":"images/voopoo-vmate-cart.webp","label":"Сопротивление","flavors":["V2 / 0.7 Ом, 3 мл","1.2 Ом","V3 / 0.7 Ом, 3 мл"],"stock":{"V2 / 0.7 Ом, 3 мл":0,"1.2 Ом":0,"V3 / 0.7 Ом, 3 мл":0},"showQty":true},{"name":"Картридж VooPoo VMATE MAX","meta":"0.4 Ом","price":"13,5 Br","img":"images/voopoo-vmate-max-cart.webp","label":"Сопротивление","flavors":["0.4 Ом, 3 мл"],"stock":{"0.4 Ом, 3 мл":154},"showQty":true},{"name":"Испаритель VOOPOO PNP-TW/DW","meta":"","price":"12 Br","img":"images/voopoo-pnp-dw80.webp","label":"Сопротивление","flavors":["DW60 — 0.6 Ом, 23 Вт","TW30 — 0.3 Ом, 36 Вт"],"stock":{"DW60 — 0.6 Ом, 23 Вт":9,"TW30 — 0.3 Ом, 36 Вт":0},"showQty":true},{"name":"Испаритель Geekvape B. Mesh Coil","meta":"","price":"12 Br","img":"images/geekvape-b-mesh-coil.webp","label":"Сопротивление","flavors":["0.2 Ом, 50–58 Вт","0.3 Ом, 30–38 Вт","0.4 Ом, 25–35 Вт","0.6 Ом, 15–25 Вт"],"stock":{"0.2 Ом, 50–58 Вт":22,"0.3 Ом, 30–38 Вт":0,"0.4 Ом, 25–35 Вт":0,"0.6 Ом, 15–25 Вт":0},"showQty":true},{"name":"Картридж Geekvape AP2","meta":"для Aegis Pod 2","price":"13 Br","img":"images/geekvape-ap2-cart.webp","label":"Объём","flavors":["4.5 мл"],"stock":{"4.5 мл":5},"showQty":true},{"name":"Испаритель Smoant Battlestar Baby Mesh Coil","meta":"","price":"8 Br","img":"images/smoant-battlestar-coil.webp","label":"Сопротивление","flavors":["0.6 Ом","1.2 Ом"],"stock":{"0.6 Ом":14,"1.2 Ом":0},"showQty":true},{"name":"Испаритель Smoant K-1 Mesh Coil","meta":"для Smoant Knight 80 и Pasito 2","price":"7,5 Br","img":"images/smoant-k1-coil.webp","label":"Сопротивление","flavors":["0.3 Ом, 50–65 Вт"],"stock":{"0.3 Ом, 50–65 Вт":0},"showQty":true},{"name":"JELLYBOX NANO COIL","meta":"для Rancoe Jellybox Nano/xs","price":"9 Br","img":"images/jellybox-nano-coil.webp","label":"Сопротивление","flavors":["0.5 Ом","1.0 Ом"],"stock":{"0.5 Ом":88,"1.0 Ом":0},"showQty":true}],"pouches":[{"name":"Ватки ICEBERG medium","meta":"","price":"13 Br","isNew":true,"flavors":["Black","Energy","Grape","Mint","Peach"],"stock":{"Black":25,"Energy":21,"Grape":25,"Mint":22,"Peach":25}},{"name":"ICEBERG ULTRA","meta":"150mg","price":"13 Br","isNew":true,"flavors":["Hockey limited edition","Black","Cranberry tea","Crazy mix","Double mint","Dragonfire","Emerald","Mandarin","Menthol","Mulled wine","Raspberry tea"],"stock":{"Hockey limited edition":43,"Black":43,"Cranberry tea":40,"Crazy mix":17,"Double mint":0,"Dragonfire":58,"Emerald":57,"Mandarin":19,"Menthol":4,"Mulled wine":36,"Raspberry tea":23}},{"name":"ICEBERG LIMITED EDITION","meta":"130mg","price":"13 Br","isNew":true,"flavors":["Strawberry mango gum","Watermelon mint gum","Cherry apricot gum","Grape gum","Raspberry gum","Strawberry banana gum"],"stock":{"Strawberry mango gum":77,"Watermelon mint gum":74,"Cherry apricot gum":68,"Grape gum":77,"Raspberry gum":76,"Strawberry banana gum":79}},{"name":"ICEBERG HOT ACE","meta":"","price":"13 Br","isNew":true,"flavors":["Ice lime soda 120mg","Ice lime soda 150mg","Ice orange 120mg","Ice pineapple 120mg","Ice pineapple 150mg","Mint blueberry 120mg","Mint blueberry 150mg","Mint grape 120mg","Mint mango 150mg","Mint mango 120mg"],"stock":{"Ice lime soda 120mg":8,"Ice lime soda 150mg":29,"Ice orange 120mg":17,"Ice pineapple 120mg":7,"Ice pineapple 150mg":10,"Mint blueberry 120mg":19,"Mint blueberry 150mg":28,"Mint grape 120mg":8,"Mint mango 150mg":13,"Mint mango 120mg":18}},{"name":"ICEBERG EXTREME","meta":"110mg","price":"13 Br","isNew":true,"flavors":["Ninja orange","Coconut","Double apple","Dragon fruit","Grapefruit pineapple","Guava lime","Gummy bears","Kiwi strawberry","Mango banana"],"stock":{"Ninja orange":34,"Coconut":59,"Double apple":28,"Dragon fruit":52,"Grapefruit pineapple":60,"Guava lime":51,"Gummy bears":32,"Kiwi strawberry":28,"Mango banana":39}},{"name":"GLITCH medium","meta":"75mg","price":"13 Br","isNew":true,"flavors":["Аромат двойной мяты","Аромат эвкалиптовой мяты","Аромат мяты","Аромат полярной мяты","Аромат апельсиновой газировки","Аромат двойного яблока","Аромат жвачки с мятой","Аромат ледяного лимона","Аромат лимонной колы","Аромат ментола","Аромат морозной вишни","Аромат вишневой колы","Аромат ледяного арбуза","Аромат ледяной груши"],"stock":{"Аромат двойной мяты":0,"Аромат эвкалиптовой мяты":5,"Аромат мяты":13,"Аромат полярной мяты":11,"Аромат апельсиновой газировки":0,"Аромат двойного яблока":0,"Аромат жвачки с мятой":7,"Аромат ледяного лимона":1,"Аромат лимонной колы":0,"Аромат ментола":10,"Аромат морозной вишни":0,"Аромат вишневой колы":0,"Аромат ледяного арбуза":0,"Аромат ледяной груши":0}},{"name":"GLITCH strong","meta":"150mg","price":"13 Br","isNew":true,"flavors":["Аромат двойной мяты","Аромат ментола","Аромат полярной мяты","Аромат эвкалиптовой мяты","Аромат апельсиновой газировки","Аромат вишневой колы","Аромат жвачки с мятой","Аромат ледяной груши","Аромат лимонной колы","Аромат морозной вишни","Аромат мяты","Аромат ледяного лимона","Аромат ледяного арбуза","Аромат двойного яблока"],"stock":{"Аромат двойной мяты":2,"Аромат ментола":6,"Аромат полярной мяты":3,"Аромат эвкалиптовой мяты":0,"Аромат апельсиновой газировки":0,"Аромат вишневой колы":0,"Аромат жвачки с мятой":0,"Аромат ледяной груши":0,"Аромат лимонной колы":0,"Аромат морозной вишни":0,"Аромат мяты":7,"Аромат ледяного лимона":0,"Аромат ледяного арбуза":0,"Аромат двойного яблока":0}},{"name":"ICEBERG","meta":"75mg","price":"13 Br","img":"images/iceberg-pouch.webp","flavors":["APPLE LEMON PINEAPPLE","BLACK CURRANT","BLACK MINT","CHERRY","COLA","FROSTY MINT","GRAPE","MELON PEACH","MENTHOL","MINT EXPLOSION","PINEAPPLE MANGO COCONUT","WATERMELON LIME","WILD BERRIES"],"stock":{"APPLE LEMON PINEAPPLE":38,"BLACK CURRANT":48,"BLACK MINT":54,"CHERRY":23,"COLA":33,"FROSTY MINT":66,"GRAPE":43,"MELON PEACH":49,"MENTHOL":61,"MINT EXPLOSION":74,"PINEAPPLE MANGO COCONUT":52,"WATERMELON LIME":53,"WILD BERRIES":14}},{"name":"NIC","meta":"200mg","price":"13 Br","img":"images/nic-pouch.webp","flavors":["Арбузный ред булл","Виноград","Вишня персик мята","Голубая малина","Груша","Дыня арбуз","Киви кактус","Кислое яблоко","Кислый скитлс","Клубничный мохито","Ледяная кола","Лесные ягоды","Лимон мята","Ментол","Мультифрукт","Персик манго","Ред Булл","Смородина малина","Темная вишня","Хард минт"],"stock":{"Арбузный ред булл":8,"Виноград":13,"Вишня персик мята":15,"Голубая малина":13,"Груша":17,"Дыня арбуз":16,"Киви кактус":17,"Кислое яблоко":15,"Кислый скитлс":15,"Клубничный мохито":19,"Ледяная кола":18,"Лесные ягоды":17,"Лимон мята":20,"Ментол":19,"Мультифрукт":17,"Персик манго":19,"Ред Булл":15,"Смородина малина":17,"Темная вишня":16,"Хард минт":19}},{"name":"DUALL","meta":"200mg","price":"13 Br","img":"images/duall-pouch.webp","flavors":["Вишня мята","Мохито мята","Мятная жвачка","Мятные леденцы с эвкалиптом","Полярная мята","Сладкая мята"],"stock":{"Вишня мята":6,"Мохито мята":15,"Мятная жвачка":23,"Мятные леденцы с эвкалиптом":28,"Полярная мята":13,"Сладкая мята":27}},{"name":"АНАРХИЯ","meta":"150mg","price":"13 Br","img":"images/anarhiya-pouch.webp","flavors":["Dr pepper вишня","Алоэ виноград","Арбуз жвачка","Баблгам","Лесные ягоды","Мята спрайт","Холодная мята","Черника апельсин","Энергетик","Яблоко мята"],"stock":{"Dr pepper вишня":25,"Алоэ виноград":5,"Арбуз жвачка":15,"Баблгам":19,"Лесные ягоды":14,"Мята спрайт":24,"Холодная мята":20,"Черника апельсин":15,"Энергетик":16,"Яблоко мята":9}},{"name":"ЗЛАЯ МОНАШКА","meta":"120mg","price":"13 Br","img":"images/zlaya-monashka.webp","flavors":["Дыня мята","Клубника баблгам","Клюква малина","Манго ананас","Энергетик черника"],"stock":{"Дыня мята":0,"Клубника баблгам":0,"Клюква малина":0,"Манго ананас":0,"Энергетик черника":0}},{"name":"САМОУБИЙЦА","meta":"249mg","price":"13 Br","img":"images/samoubijca-pouch-a.webp","flavors":["Двойная мята","Земляника мята","Лимон мята","Малина черника","Черника"],"stock":{"Двойная мята":19,"Земляника мята":16,"Лимон мята":20,"Малина черника":8,"Черника":0}},{"name":"САМОУБИЙЦА (вариант 2)","meta":"249mg","price":"13 Br","img":"images/samoubijca-pouch-b.webp","flavors":["Redbull","Redbull арбуз ията","Redbull вишня","Redbull жвачка","Redbull клубника","Redbull мята","Redbull смородина","Redbull черника мята","Redbull яблоко","Redbull ягоды"],"stock":{"Redbull":18,"Redbull арбуз ията":17,"Redbull вишня":14,"Redbull жвачка":21,"Redbull клубника":20,"Redbull мята":21,"Redbull смородина":18,"Redbull черника мята":22,"Redbull яблоко":20,"Redbull ягоды":19}},{"name":"МОНАШКА & ISTERIKA","meta":"201mg","price":"13 Br","img":"images/monashka-isterika.webp","flavors":["Белый персик","Виноград малина","Вишня брусника","Вишня мята","Дикая малина","Ежевичный энергетик","Клубника арбуз","Лесные ягоды","Холодный редбулл","Энергетик смородина голубика","Яблоко киви","Ягодный чупа-чупс"],"stock":{"Белый персик":15,"Виноград малина":9,"Вишня брусника":18,"Вишня мята":7,"Дикая малина":0,"Ежевичный энергетик":16,"Клубника арбуз":9,"Лесные ягоды":0,"Холодный редбулл":20,"Энергетик смородина голубика":18,"Яблоко киви":0,"Ягодный чупа-чупс":17}},{"name":"DRYMOST","meta":"150mg","price":"13 Br","img":"images/drymost-150.webp","flavors":["Lemoncake strawberry 150mg","Raspberry strawberry 150mg","Banana boom 150mg","Apple 150mg","Cola grape 150mg","Energy mix 150mg","Grapefruit lemonade 150mg","Lime Mint 150 mg","Pineapple jam 150mg","Mint 150mg","Mint breeze 150mg"],"stock":{"Lemoncake strawberry 150mg":0,"Raspberry strawberry 150mg":0,"Banana boom 150mg":0,"Apple 150mg":1,"Cola grape 150mg":0,"Energy mix 150mg":0,"Grapefruit lemonade 150mg":0,"Lime Mint 150 mg":0,"Pineapple jam 150mg":0,"Mint 150mg":0,"Mint breeze 150mg":0}},{"name":"DRYMOST VOLT","meta":"75mg","price":"13 Br","img":"images/drymost-volt-75.webp","flavors":["CLASSIC BARBERRY 75 mg","MILK MELON JUICE 75 mg","MINT 75 mg","CITRON 75 mg","EUCALYPTUS MINT 75 mg","GRAPE CHUPS 75 mg","PEACH ICE TEA 75 mg","RASPBERRY SODA 75 mg","FRUIT CANDY 75 mg","APPLE CINNAMON 75 mg","BLUEBERRY 75 mg"],"stock":{"CLASSIC BARBERRY 75 mg":0,"MILK MELON JUICE 75 mg":0,"MINT 75 mg":0,"CITRON 75 mg":0,"EUCALYPTUS MINT 75 mg":6,"GRAPE CHUPS 75 mg":0,"PEACH ICE TEA 75 mg":0,"RASPBERRY SODA 75 mg":0,"FRUIT CANDY 75 mg":0,"APPLE CINNAMON 75 mg":0,"BLUEBERRY 75 mg":0}},{"name":"DRYMOST","meta":"50mg","price":"13 Br","img":"images/drymost-50.webp","flavors":["Cool Mint","Freeze"],"stock":{"Cool Mint":6,"Freeze":9}},{"name":"DRYMOST CLASSIC","meta":"25mg","price":"13 Br","img":"images/drymost-classic-25.webp","flavors":["BARBERRY 25","FANTASY 25","GREEN MINT 25","LIME&MINT 25","WHITE MINT 25"],"stock":{"BARBERRY 25":0,"FANTASY 25":0,"GREEN MINT 25":43,"LIME&MINT 25":0,"WHITE MINT 25":62}},{"name":"DRYMOST","meta":"5mg","price":"13 Br","img":"images/drymost-5.webp","flavors":["Cool Mint","Freeze"],"stock":{"Cool Mint":23,"Freeze":29}},{"name":"HOT SPOT x ISTERIKA","meta":"180mg","price":"13 Br","img":"images/hotspot-isterika.webp","flavors":["Виноградная содовая","Барбарис","Доктор пеппер","Дюшес","Классический лимонад","Крем-сода","Малиновый лимонад","Мохито","Пепси","Редбул","Розовый лимонад","Спрайт","Тархун","Фанта"],"stock":{"Виноградная содовая":0,"Барбарис":0,"Доктор пеппер":0,"Дюшес":6,"Классический лимонад":0,"Крем-сода":7,"Малиновый лимонад":0,"Мохито":0,"Пепси":0,"Редбул":0,"Розовый лимонад":9,"Спрайт":0,"Тархун":8,"Фанта":0}},{"name":"ISTERIKA x ГРЕХ","meta":"190mg","price":"13 Br","img":"images/isterika-greh-pouch.webp","flavors":["Бабл гам","Грушевый лимонад","Дыня персик","Кислые ягоды","Клубника малина","Клубничный мохито","Ледяная клюква","Мята","Лимонад натахтари","Редбулл вишня","Смородина ежевика","Тутти фрутти"],"stock":{"Бабл гам":2,"Грушевый лимонад":12,"Дыня персик":7,"Кислые ягоды":0,"Клубника малина":0,"Клубничный мохито":8,"Ледяная клюква":4,"Мята":0,"Лимонад натахтари":12,"Редбулл вишня":0,"Смородина ежевика":7,"Тутти фрутти":12}},{"name":"ICEBURN White Portion","meta":"","price":"13 Br","img":"images/iceburn-white-portion.webp","flavors":["Atomic (Ядерная мята) 150mg","Ice cool (Ледяная мята) 55mg","Purple (Тутти-фрутти) 200mg","Siberian (Сибирская мята) 75mg"],"stock":{"Atomic (Ядерная мята) 150mg":0,"Ice cool (Ледяная мята) 55mg":0,"Purple (Тутти-фрутти) 200mg":0,"Siberian (Сибирская мята) 75mg":0}},{"name":"ICEBURN Ice Cool","meta":"","price":"13 Br","img":"images/iceburn-ice-cool.webp","flavors":["Mint extra hard","Mint hard","Mint strong"],"stock":{"Mint extra hard":10,"Mint hard":6,"Mint strong":4}}]};
+
+var THUMB_ICONS = {
+  liquids: '<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#8c1c3f" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4v3.2l2.2 2.5c.5.6.8 1.3.8 2.1v9.7a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9.8c0-.8.3-1.5.8-2.1L10 5.2V2z"/><path d="M8.3 13h7.4"/></svg>',
+  disposables: '<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#8c1c3f" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="9.3" y="2" width="5.4" height="3.6" rx="1"/><path d="M8.6 5.6h6.8l1 2.8v12.1a1.8 1.8 0 0 1-1.8 1.8H9.4a1.8 1.8 0 0 1-1.8-1.8V8.4l1-2.8z"/><path d="M12 9.5v5.6"/></svg>',
+  pods: '<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#8c1c3f" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="7.2" y="2.5" width="9.6" height="14" rx="3.2"/><rect x="9.4" y="16.6" width="5.2" height="4.2" rx="1.1"/><circle cx="12" cy="8" r="1.3"/></svg>',
+  parts: '<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#8c1c3f" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.6"/><circle cx="12" cy="12" r="2.6"/><path d="M12 4.4v1.8M12 17.8v1.8M4.4 12h1.8M17.8 12h1.8M6.7 6.7l1.3 1.3M16 16l1.3 1.3M6.7 17.3l1.3-1.3M16 8l1.3-1.3"/></svg>',
+  pouches: '<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#8c1c3f" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="7" rx="6.6" ry="2.8"/><path d="M5.4 7v9c0 1.5 2.9 2.8 6.6 2.8s6.6-1.3 6.6-2.8V7"/><path d="M5.4 11.8c0 1.5 2.9 2.8 6.6 2.8s6.6-1.3 6.6-2.8"/></svg>'
+};
+
+var active = 'liquids';
+
+function render(){
+  // nav
+  var nav = document.getElementById('nav');
+  nav.innerHTML = '';
+  CATEGORIES.forEach(function(cat){
+    var b = document.createElement('button');
+    b.textContent = cat.label;
+    if (cat.id === active && !searchQuery.trim()) b.className = 'active';
+    b.addEventListener('click', function(){ setActive(cat.id); document.getElementById('catalog').scrollIntoView({behavior:'smooth'}); });
+    nav.appendChild(b);
+  });
+
+  // tabs
+  var tabs = document.getElementById('tabs');
+  tabs.innerHTML = '';
+  CATEGORIES.forEach(function(cat){
+    var b = document.createElement('button');
+    b.className = 'tab' + (cat.id === active && !searchQuery.trim() ? ' active' : '');
+    b.textContent = cat.label;
+    b.addEventListener('click', function(){ setActive(cat.id); });
+    tabs.appendChild(b);
+  });
+
+  // footer links
+  var fl = document.getElementById('foot-links');
+  fl.innerHTML = '';
+  CATEGORIES.forEach(function(cat){
+    var a = document.createElement('a');
+    a.href = '#catalog';
+    a.textContent = cat.label;
+    a.addEventListener('click', function(){ setActive(cat.id); });
+    fl.appendChild(a);
+  });
+
+  // count / items
+  var q = normSearch(searchQuery);
+  var items;
+  if (q){
+    items = [];
+    CATEGORIES.forEach(function(cat){
+      (PRODUCTS[cat.id] || []).forEach(function(item){
+        var m = matchItem(item, q);
+        if (m) items.push({item: item, cat: cat.id, flavorHit: m === true ? null : m});
+      });
+    });
+    document.getElementById('count-note').textContent = 'Результаты поиска «' + searchQuery.trim() + '»: ' + items.length;
+  } else {
+    items = (PRODUCTS[active] || []).map(function(item){ return {item: item, cat: active, flavorHit: null}; });
+    document.getElementById('count-note').textContent = 'Позиций в категории: ' + items.length;
+  }
+  // товары, которых нет в наличии, — в конец списка
+  items = items.map(function(x, i){ x.i = i; return x; }).sort(function(a, b){
+    return (isSoldOut(a.item) - isSoldOut(b.item)) || (a.i - b.i);
+  });
+
+  // grid
+  var grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  if (!items.length){
+    grid.innerHTML = '<div class="empty-note">Ничего не нашлось. Попробуйте другое название.</div>';
+    return;
+  }
+  items.forEach(function(x){
+    var item = x.item, catId = x.cat;
+    var hasFlavors = Array.isArray(item.flavors) && item.flavors.length > 0;
+    var soldOut = isSoldOut(item);
+    var card = document.createElement('div');
+    card.className = 'card' + (hasFlavors ? ' has-flavors' : '') + (soldOut ? ' sold-out' : '');
+    var thumbInner = item.img
+      ? '<img src="' + escapeHtml(item.img) + '" alt="' + escapeHtml(item.name) + '" loading="lazy" onerror="imgFallback(this,\'' + catId + '\')">'
+      : THUMB_ICONS[catId];
+    card.innerHTML =
+      (q ? '<div class="cat-chip">' + escapeHtml(catLabel(catId)) + '</div>' : '') +
+      '<div class="thumb' + (item.img ? ' has-photo' : '') + '">' + thumbInner + '</div>' +
+      '<div class="name">' + escapeHtml(item.name) + '</div>' +
+      '<div class="meta">' + escapeHtml(item.meta || '') + '</div>' +
+      (x.flavorHit ? '<div class="match">' + escapeHtml(item.label || 'Вкус') + ': <b>' + escapeHtml(x.flavorHit) + '</b></div>' : '') +
+      '<div class="bottom"><span class="price">' + escapeHtml(item.price) + '</span>' + stockBadgeHtml(item) + '</div>' +
+      (soldOut ? '' : '<button type="button" class="pick-btn">' +
+        (hasFlavors ? 'Выбрать ' + escapeHtml((item.label || 'Вкус').toLowerCase()) : 'В корзину') + '</button>');
+    if (hasFlavors){
+      card.addEventListener('click', function(){ openFlavorModal(item); });
+    } else if (!soldOut){
+      var pb = card.querySelector('.pick-btn');
+      pb.addEventListener('click', function(){
+        cartAdd(item, null, 1);
+        pb.classList.add('added'); pb.textContent = 'Добавлено ✓';
+        setTimeout(function(){ pb.classList.remove('added'); pb.textContent = 'В корзину'; }, 1400);
+      });
+    }
+    grid.appendChild(card);
+  });
+}
+
+// Фото ищем сначала по пути из данных (images/...), потом в корне репозитория, и только потом показываем иконку
+function imgFallback(img, catId){
+  var src = img.getAttribute('src') || '';
+  if (!img.dataset.tried){
+    img.dataset.tried = '1';
+    img.src = src.indexOf('images/') === 0 ? src.slice(7) : 'images/' + src;
+    return;
+  }
+  img.parentNode.innerHTML = THUMB_ICONS[catId];
+}
+
+function setActive(id){
+  active = id;
+  if (searchQuery){ searchQuery = ''; searchInput.value = ''; }
+  render();
+}
+
+function catLabel(id){
+  for (var i = 0; i < CATEGORIES.length; i++) if (CATEGORIES[i].id === id) return CATEGORIES[i].label;
+  return '';
+}
+
+// Нет в наличии: qty = 0, либо у всех вкусов остаток 0
+function isSoldOut(item){
+  if (typeof item.qty === 'number') return item.qty <= 0;
+  if (item.stock && Array.isArray(item.flavors) && item.flavors.length){
+    return item.flavors.every(function(fl){ return item.stock[fl] !== undefined && item.stock[fl] <= 0; });
+  }
+  return false;
+}
+
+// ---------- Search ----------
+var searchQuery = '';
+var searchBar = document.getElementById('search-bar');
+var searchInput = document.getElementById('search-input');
+var searchToggle = document.getElementById('search-toggle');
+
+function normSearch(str){
+  return String(str || '').toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9%]+/g, ' ').trim();
+}
+// true — совпало название; строка — совпал вкус; false — нет совпадения
+function matchItem(item, q){
+  var words = q.split(' ');
+  var hay = normSearch(item.name + ' ' + (item.meta || '') + ' ' + catLabel(activeCatOf(item)));
+  if (words.every(function(w){ return hay.indexOf(w) !== -1; })) return true;
+  if (Array.isArray(item.flavors)){
+    var hits = item.flavors.filter(function(fl){
+      var fn = normSearch(fl), fh = fn + ' ' + hay;
+      return words.every(function(w){ return fh.indexOf(w) !== -1; }) &&
+             words.some(function(w){ return fn.indexOf(w) !== -1; });
+    });
+    if (hits.length){
+      // сначала показываем вкус, который есть в наличии
+      var inStock = hits.filter(function(fl){ return !item.stock || item.stock[fl] === undefined || item.stock[fl] > 0; });
+      return (inStock[0] || hits[0]) + (hits.length > 1 ? ' и ещё ' + (hits.length - 1) : '');
+    }
+  }
+  return false;
+}
+function activeCatOf(item){
+  for (var id in PRODUCTS) if (PRODUCTS[id].indexOf(item) !== -1) return id;
+  return '';
+}
+
+function openSearch(){
+  searchBar.classList.add('open');
+  searchToggle.classList.add('active');
+  searchToggle.setAttribute('aria-expanded', 'true');
+  searchInput.focus();
+}
+function closeSearch(){
+  searchBar.classList.remove('open');
+  searchToggle.classList.remove('active');
+  searchToggle.setAttribute('aria-expanded', 'false');
+  if (searchQuery){ searchQuery = ''; searchInput.value = ''; render(); }
+}
+searchToggle.addEventListener('click', function(){
+  if (searchBar.classList.contains('open')) closeSearch(); else openSearch();
+});
+document.getElementById('search-clear').addEventListener('click', closeSearch);
+var searchScrolled = false;
+searchInput.addEventListener('input', function(){
+  searchQuery = searchInput.value;
+  render();
+  if (searchQuery.trim() && !searchScrolled){
+    searchScrolled = true;
+    document.getElementById('catalog').scrollIntoView({behavior: 'smooth'});
+  }
+  if (!searchQuery.trim()) searchScrolled = false;
+});
+searchInput.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') closeSearch();
+  if (e.key === 'Enter') document.getElementById('catalog').scrollIntoView({behavior: 'smooth'});
+});
+document.addEventListener('keydown', function(e){
+  if (e.key === '/' && document.activeElement !== searchInput && !flavorOverlay.classList.contains('open')){
+    e.preventDefault(); openSearch();
+  }
+});
+
+// Остаток для товаров без вкусов (расходники): item.qty = число с vapeopt.site
+// Все вкусы/сопротивления по 0 или qty = 0 -> «Нет в наличии» (красный); qty 1-9 -> «<10 шт.», 10+ -> «10+ шт.»; иначе «В наличии»
+function stockBadgeHtml(item){
+  if (isSoldOut(item)) return '<span class="stock out">Нет в наличии</span>';
+  if (typeof item.qty !== 'number'){
+    if (!item.stock || !Array.isArray(item.flavors)) return '<span class="stock">В наличии</span>';
+    var total = item.flavors.reduce(function(s, fl){ var q = item.stock[fl]; return s + (q > 0 ? q : 0); }, 0);
+    return total < LOW_STOCK_THRESHOLD ? '<span class="stock">&lt;10 шт.</span>' : '<span class="stock">10+ шт.</span>';
+  }
+  if (item.qty <= 0) return '<span class="stock out">Нет в наличии</span>';
+  if (item.qty < 10) return '<span class="stock">&lt;10 шт.</span>';
+  return '<span class="stock">10+ шт.</span>';
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+
+// ---------- Flavor selector modal ----------
+var flavorOverlay = document.getElementById('flavor-modal-overlay');
+var flavorTitle = document.getElementById('flavor-modal-title');
+var flavorPrice = document.getElementById('flavor-modal-price');
+var flavorFieldLabel = document.getElementById('flavor-modal-field-label');
+var flavorList = document.getElementById('flavor-modal-list');
+var flavorStatus = document.getElementById('flavor-modal-status');
+var LOW_STOCK_THRESHOLD = 10;
+
+function updateFlavorStatus(qty){
+  if (qty === undefined || qty === null) { flavorStatus.textContent = ''; flavorStatus.className = 'flavor-modal-status'; return; }
+  if (qty <= 0) { flavorStatus.textContent = 'Не в наличии'; flavorStatus.className = 'flavor-modal-status out'; return; }
+  if (qty < LOW_STOCK_THRESHOLD) { flavorStatus.textContent = 'Осталось менее ' + LOW_STOCK_THRESHOLD + ' шт.'; flavorStatus.className = 'flavor-modal-status low'; return; }
+  flavorStatus.textContent = 'В наличии: ' + LOW_STOCK_THRESHOLD + '+ шт.'; flavorStatus.className = 'flavor-modal-status ok';
+}
+
+function openFlavorModal(item){
+  flavorTitle.textContent = (item.name + ' ' + (item.meta || '')).trim();
+  flavorPrice.textContent = item.price;
+  flavorFieldLabel.textContent = item.label || 'Вкус';
+  flavorList.innerHTML = '';
+  var stock = item.stock || null;
+  var defaultIndex = 0;
+  if (stock){
+    var firstAvailable = item.flavors.findIndex(function(fl){ return stock[fl] === undefined || stock[fl] > 0; });
+    if (firstAvailable !== -1) defaultIndex = firstAvailable;
+  }
+  item.flavors.forEach(function(flavor, i){
+    var qty = stock ? stock[flavor] : undefined;
+    var isOut = qty !== undefined && qty <= 0;
+    var label = document.createElement('label');
+    label.className = 'flavor-option' + (isOut ? ' out-of-stock' : '');
+    var input = document.createElement('input');
+    input.type = 'radio';
+    input.name = 'flavor-choice';
+    input.value = flavor;
+    if (isOut) input.disabled = true;
+    if (i === defaultIndex) input.checked = true;
+    input.addEventListener('change', function(){ updateFlavorStatus(qty); selectFlavor(flavor, isOut); });
+    label.appendChild(input);
+    var span = document.createElement('span');
+    span.className = 'fl-name';
+    span.textContent = flavor;
+    label.appendChild(span);
+    if (isOut){
+      var badge = document.createElement('span');
+      badge.className = 'flavor-badge out';
+      badge.textContent = 'Не в наличии';
+      label.appendChild(badge);
+    } else if (qty !== undefined && qty < LOW_STOCK_THRESHOLD){
+      var badge2 = document.createElement('span');
+      badge2.className = 'flavor-badge low';
+      badge2.textContent = '< ' + LOW_STOCK_THRESHOLD + ' шт.';
+      label.appendChild(badge2);
+    } else if (qty !== undefined){
+      // остаток 10 и больше — показываем у каждого вкуса/цвета/сопротивления
+      var badge3 = document.createElement('span');
+      badge3.className = 'flavor-badge ok';
+      badge3.textContent = LOW_STOCK_THRESHOLD + '+ шт.';
+      label.appendChild(badge3);
+    }
+    flavorList.appendChild(label);
+  });
+  var defaultQty = stock ? stock[item.flavors[defaultIndex]] : undefined;
+  updateFlavorStatus(defaultQty);
+  modalItem = item;
+  modalQty = 1;
+  fmQty.textContent = '1';
+  fmAdded.innerHTML = '';
+  selectFlavor(item.flavors[defaultIndex], defaultQty !== undefined && defaultQty <= 0);
+  flavorOverlay.classList.add('open');
+  flavorOverlay.querySelector('.flavor-modal').scrollTop = 0;
+}
+
+// ---------- Выбор в модалке: количество и «В корзину» ----------
+var modalItem = null, modalFlavor = null, modalQty = 1;
+var fmQty = document.getElementById('fm-qty');
+var fmAdd = document.getElementById('fm-add');
+var fmAdded = document.getElementById('fm-added');
+var fmMinus = document.getElementById('fm-minus');
+
+function selectFlavor(flavor, isOut){
+  modalFlavor = isOut ? null : flavor;
+  fmAdd.disabled = !modalFlavor;
+  fmAdd.textContent = modalFlavor ? 'В корзину' : 'Нет в наличии';
+  fmMinus.disabled = modalQty <= 1;
+}
+fmMinus.addEventListener('click', function(){
+  if (modalQty > 1) modalQty--;
+  fmQty.textContent = modalQty; fmMinus.disabled = modalQty <= 1;
+});
+document.getElementById('fm-plus').addEventListener('click', function(){
+  if (modalQty < 99) modalQty++;
+  fmQty.textContent = modalQty; fmMinus.disabled = false;
+});
+fmAdd.addEventListener('click', function(){
+  if (!modalItem || !modalFlavor) return;
+  cartAdd(modalItem, modalFlavor, modalQty, true);
+  var inCart = 0;
+  cart.forEach(function(r){ if (r.key === cartKey(modalItem, modalFlavor)) inCart = r.qty; });
+  fmAdded.innerHTML = '<span>✓ ' + escapeHtml(modalFlavor) + ' — в корзине ' + inCart + ' шт.</span>' +
+    '<button type="button" id="fm-open-cart">Открыть корзину</button>';
+  document.getElementById('fm-open-cart').addEventListener('click', function(){ closeFlavorModal(); openCart(); });
+  modalQty = 1; fmQty.textContent = '1'; fmMinus.disabled = true;
+});
+
+function closeFlavorModal(){ flavorOverlay.classList.remove('open'); }
+
+// ---------- Корзина ----------
+// Хранится в браузере покупателя; служит списком для скриншота менеджеру.
+var CART_KEY = 'alfavape_cart_v1';
+var cart = loadCart();
+var cartOverlay = document.getElementById('cart-overlay');
+var cartBody = document.getElementById('cart-body');
+
+function loadCart(){
+  try {
+    var raw = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
+    return Array.isArray(raw) ? raw.filter(function(r){ return r && r.key && r.qty > 0; }) : [];
+  } catch (e) { return []; }
+}
+function saveCart(){
+  try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch (e) {}
+  updateCartCount();
+}
+function cartKey(item, flavor){ return item.name + '|' + (item.meta || '') + '|' + (flavor || ''); }
+function parsePrice(p){ var m = String(p || '').replace(',', '.').match(/\d+(\.\d+)?/); return m ? parseFloat(m[0]) : 0; }
+function fmtMoney(n){
+  var r = Math.round(n * 100) / 100;
+  return (r % 1 === 0 ? String(r) : r.toFixed(2).replace(/0$/, '')).replace('.', ',') + ' Br';
+}
+function updateCartCount(){
+  var n = cart.reduce(function(s, r){ return s + r.qty; }, 0);
+  var el = document.getElementById('cart-count');
+  el.textContent = n > 99 ? '99+' : n;
+  el.classList.toggle('show', n > 0);
+}
+function cartAdd(item, flavor, qty, silent){
+  var key = cartKey(item, flavor), row = null;
+  cart.forEach(function(r){ if (r.key === key) row = r; });
+  if (row) row.qty = Math.min(99, row.qty + qty);
+  else cart.push({ key: key, name: item.name, meta: item.meta || '', flavor: flavor || '',
+                   label: item.label || 'Вкус', price: item.price, qty: qty });
+  saveCart();
+  if (!silent) showToast('✓ ' + item.name + (flavor ? ' — ' + flavor : '') + ' в корзине', true);
+}
+// актуальный товар из каталога (цена/наличие могли измениться после добавления)
+function findProduct(row){
+  for (var c in PRODUCTS){
+    var list = PRODUCTS[c];
+    for (var i = 0; i < list.length; i++){
+      if (list[i].name === row.name && (list[i].meta || '') === row.meta) return list[i];
+    }
+  }
+  return null;
+}
+function rowWarning(row, item){
+  if (!item) return 'Товар убран из каталога';
+  if (row.flavor){
+    if (item.stock && item.stock[row.flavor] !== undefined && item.stock[row.flavor] <= 0) return 'Сейчас нет в наличии';
+  } else if (isSoldOut(item)) return 'Сейчас нет в наличии';
+  return '';
+}
+
+function renderCart(){
+  document.getElementById('cart-date').textContent = 'Список от ' + new Date().toLocaleString('ru-RU',
+    { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  if (!cart.length){
+    cartBody.innerHTML = '<div class="cart-empty">Корзина пока пустая.<br>Выберите товары и вкусы в каталоге.<br>' +
+      '<button type="button" id="cart-go">Перейти в каталог</button></div>';
+    document.getElementById('cart-go').addEventListener('click', function(){
+      closeCart(); document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' });
+    });
+    return;
+  }
+  var total = 0, pcs = 0, html = '';
+  cart.forEach(function(r, i){
+    var item = findProduct(r);
+    if (item){ r.price = item.price; if (item.label) r.label = item.label; }
+    var unit = parsePrice(r.price), sum = unit * r.qty;
+    total += sum; pcs += r.qty;
+    var warn = rowWarning(r, item);
+    html += '<div class="cart-row" data-i="' + i + '">' +
+      '<div class="n">' + (i + 1) + '.</div>' +
+      '<div><div class="t">' + escapeHtml(r.name) + (r.meta ? ' <small>' + escapeHtml(r.meta) + '</small>' : '') + '</div>' +
+        (r.flavor ? '<div class="f">' + escapeHtml(r.label) + ': <b>' + escapeHtml(r.flavor) + '</b></div>' : '') +
+        (warn ? '<div class="warn">' + warn + '</div>' : '') + '</div>' +
+      '<div class="right"><div class="sum">' + fmtMoney(sum) + '</div><div class="unit">' + r.qty + ' × ' + escapeHtml(r.price) + '</div></div>' +
+      '<div class="ctrl"><div class="qty-step"><button type="button" data-act="minus" aria-label="Меньше">&minus;</button>' +
+        '<span>' + r.qty + '</span><button type="button" data-act="plus" aria-label="Больше">+</button></div>' +
+        '<button type="button" class="del" data-act="del">Удалить</button></div>' +
+    '</div>';
+  });
+  cartBody.innerHTML =
+    '<div class="cart-hint">📸 Сделайте скриншот этого списка и отправьте его менеджеру — он подтвердит наличие и оформит заказ.</div>' +
+    '<div class="cart-list">' + html + '</div>' +
+    '<div class="cart-total"><span class="l">Итого: ' + cart.length + ' поз. · ' + pcs + ' шт.</span><span class="v">' + fmtMoney(total) + '</span></div>' +
+    '<div class="cart-foot"><button type="button" class="ghost" id="cart-copy">Скопировать текстом</button>' +
+    '<button type="button" class="ghost" id="cart-clear">Очистить корзину</button></div>';
+  saveCart();
+  document.getElementById('cart-copy').addEventListener('click', copyCart);
+  var clearBtn = document.getElementById('cart-clear');
+  clearBtn.addEventListener('click', function(){
+    if (clearBtn.dataset.sure){ cart = []; saveCart(); renderCart(); return; }
+    clearBtn.dataset.sure = '1'; clearBtn.textContent = 'Точно очистить?';
+    setTimeout(function(){ if (clearBtn.isConnected){ delete clearBtn.dataset.sure; clearBtn.textContent = 'Очистить корзину'; } }, 3000);
+  });
+}
+cartBody.addEventListener('click', function(e){
+  var btn = e.target.closest('[data-act]'); if (!btn) return;
+  var row = cart[+btn.closest('.cart-row').dataset.i]; if (!row) return;
+  var act = btn.dataset.act;
+  if (act === 'plus') row.qty = Math.min(99, row.qty + 1);
+  if (act === 'minus') row.qty = row.qty - 1;
+  if (act === 'del' || row.qty <= 0) cart.splice(cart.indexOf(row), 1);
+  saveCart(); renderCart();
+});
+
+function cartText(){
+  var lines = ['Заказ ALFA VAPE', ''], total = 0;
+  cart.forEach(function(r, i){
+    var sum = parsePrice(r.price) * r.qty; total += sum;
+    lines.push((i + 1) + '. ' + r.name + (r.meta ? ' ' + r.meta : '') + (r.flavor ? ' — ' + r.label.toLowerCase() + ': ' + r.flavor : '') +
+      ' — ' + r.qty + ' шт. × ' + r.price + ' = ' + fmtMoney(sum));
+  });
+  lines.push('', 'Итого: ' + fmtMoney(total));
+  return lines.join('\n');
+}
+function copyCart(){
+  var text = cartText();
+  function done(){ showToast('Список скопирован — вставьте его в чат с менеджером', false); }
+  if (navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(done, fallback);
+  } else fallback();
+  function fallback(){
+    var ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+}
+
+function openCart(){
+  renderCart();
+  cartOverlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  cartOverlay.scrollTop = 0;
+}
+function closeCart(){
+  cartOverlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.getElementById('cart-toggle').addEventListener('click', openCart);
+document.getElementById('cart-close').addEventListener('click', closeCart);
+cartOverlay.addEventListener('click', function(e){ if (e.target === cartOverlay) closeCart(); });
+
+var toastEl = document.getElementById('toast'), toastTimer = null;
+function showToast(text, withOpen){
+  document.getElementById('toast-text').textContent = text;
+  document.getElementById('toast-open').style.display = withOpen ? '' : 'none';
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ toastEl.classList.remove('show'); }, 2600);
+}
+document.getElementById('toast-open').addEventListener('click', function(){ toastEl.classList.remove('show'); openCart(); });
+
+document.addEventListener('keydown', function(e){
+  if (e.key !== 'Escape') return;
+  if (cartOverlay.classList.contains('open')) closeCart();
+  else if (flavorOverlay.classList.contains('open')) closeFlavorModal();
+});
+updateCartCount();
+
+document.getElementById('flavor-modal-close').addEventListener('click', closeFlavorModal);
+flavorOverlay.addEventListener('click', function(e){
+  if (e.target === flavorOverlay) closeFlavorModal();
+});
+
+render();
+</script>
+</body>
+</html>
