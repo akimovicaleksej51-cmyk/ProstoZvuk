@@ -323,7 +323,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.20.21а</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.21</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -333,6 +333,8 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
   <span id="outChip" class="chip warn" title="Куда идёт сигнал"><span class="dot"></span><span id="outTxt">Демо: без оборудования</span></span>
   <div class="gm"><label for="gm">Мастер</label><input id="gm" type="range" min="0" max="100" value="100"><span id="gmv" class="mono">100%</span></div>
   <button id="bo" title="Мгновенно погасить весь свет (Пробел)">Блэкаут</button>
+  <button id="standbyBtn" title="Аварийный / дежурный свет: тёплый белый на PAR и френелях">Дежурный</button>
+  <button id="linkChip" class="chip ok" hidden type="button">🔗 Звук</button>
   <button id="helpBtn" class="on" title="Показывать подсказки">Подсказки</button>
   <button id="installBtn" class="primary" hidden title="Поставить программу на рабочий стол">Установить</button>
   <button id="fileBtn">Шоу…</button>
@@ -383,6 +385,11 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
     </div>
   </div>
 
+  <div class="panel" style="margin-top:14px" id="line2Panel">
+    <h2>Линия 2 — второй USB-кабель</h2>
+    <p class="muted" style="margin:0 0 10px;font-size:14px">Если приборы второй линии (например, френели) подключены своим проводом, воткните для них второй USB-DMX-кабель и подключите его здесь. Первый кабель — линия 1, второй — линия 2. Провода линий тогда не соединяйте в один.</p>
+    <div class="row"><button class="primary" data-connect2="open">Подключить второй Open DMX</button><button data-connect2="pro">Второй USB Pro</button><button id="out2Off" hidden>Отключить</button><span id="out2Txt" class="muted" style="font-size:14px"></span></div>
+  </div>
   <div class="panel" style="margin-top:14px" id="midiPanel">
     <h2>Ручной пульт (MIDI)</h2>
     <p class="muted" style="margin:0 0 10px;font-size:14px">Behringer X-Touch и другие MIDI-контроллеры двигают фейдеры и нажимают кнопки этой программы. Свет они сами не включают: сигнал на приборы всё равно идёт через адаптер выше.</p>
@@ -740,7 +747,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 
 <div id="modal" class="modal" hidden><div class="box" id="modalBox"></div></div>
 <div id="toast" class="toast" hidden></div>
-<input id="fileIn" type="file" accept=".json,application/json" hidden>
+<input id="fileIn" type="file" accept=".json,.zip,application/json,application/zip" hidden>
 
 <script id="spOutScript">
 // ---------- общий проигрыватель экрана (используется и в окне экрана, и в предпросмотре) ----------
@@ -1035,6 +1042,7 @@ function compute(now){
       }
     });
   }
+  if(standby) for(const f of show.fixtures){ const v=vals[f.id], p=prof(f); if(p.ch.some(c=>c.a==='pan')){ v.dim=0 } else { v.dim=.55; v.red=1; v.green=.82; v.blue=.55; v.white=1; v.amber=.6; v.uv=0 } }
   // вывод
   dmx.fill(0); dmx2.fill(0);
   for(const f of show.fixtures){
@@ -1129,7 +1137,7 @@ function showSerialWarn(){
 }
 // таймер в воркере: не замедляется в фоне
 let lastTick=0;
-function tick(){const now=performance.now(); try{timelineTick(now)}catch(e){} compute(now); send(); lastTick=now}
+function tick(){const now=performance.now(); try{timelineTick(now)}catch(e){} compute(now); send(); try{send2()}catch(e){} lastTick=now}
 try{
   const wk=new Worker(URL.createObjectURL(new Blob(['setInterval(()=>postMessage(0),25)'],{type:'text/javascript'})));
   wk.onmessage=tick;
@@ -1473,10 +1481,18 @@ $('#fileBtn').onclick=()=>{
   const box=$('#modalBox');
   box.innerHTML=`<h2 style="font-family:var(--f-display);font-size:16px;font-weight:500">Шоу</h2>
     <p class="muted" style="margin:0;font-size:14px">Шоу сохраняется в браузере само. Чтобы перенести на другой компьютер — сохраните файл.</p>
-    <div class="row"><button class="primary" id="mSave">Сохранить в файл</button><button id="mShowOpen">Открыть файл</button><button id="mNew">Новое пустое шоу</button><button id="mDemo">Загрузить пример</button><button id="mClose">Закрыть</button></div>
+    <div class="row"><button class="primary" id="mPack" title="Шоу, видео для экрана и фонограммы — одним файлом">📦 Сохранить всё одним файлом</button><span id="packProg" class="mono muted"></span></div>
+    <p class="muted" style="margin:0;font-size:13px">Этот файл открывается на другом компьютере кнопкой «Открыть файл» — и экран, и музыка сразу на месте, ничего подкидывать не нужно.</p>
+    <div class="row"><button id="mSave">Только шоу (без видео)</button><button id="mShowOpen">Открыть файл</button><button id="mNew">Новое пустое шоу</button><button id="mDemo">Загрузить пример</button><button id="mClose">Закрыть</button></div>
     <p class="muted" style="margin:0;font-size:13px">Если файл не скачивается — скопируйте текст ниже и сохраните его в блокнот как <span class="mono">show.json</span>. Чтобы открыть — вставьте текст и нажмите «Загрузить из текста».</p>
     <textarea id="mTxt" aria-label="Текст шоу">${esc(JSON.stringify(show))}</textarea>
-    <div class="row"><button id="mCopy">Копировать текст</button><button id="mLoad">Загрузить из текста</button></div>`;
+    <div class="row"><button id="mCopy">Копировать текст</button><button id="mLoad">Загрузить из текста</button></div>
+    <h2 style="font-family:var(--f-display);font-size:15px;font-weight:500;margin:6px 0 0">Резервные копии</h2>
+    <p class="muted" style="margin:0;font-size:13px">Программа сама сохраняет копию шоу раз в день, каждые 45 минут работы и перед открытием другого шоу. Хранятся последние 15.</p>
+    <div id="bkList" style="max-height:220px;overflow:auto"></div><div class="row"><button id="bkNow">Сделать копию сейчас</button></div>`;
+  BK.list().then(L=>{ const b=$('#bkList'); if(!b) return; b.innerHTML=bkHtml(L); b.querySelectorAll('[data-bk]').forEach(x=>twoStep(x,'Точно вернуть?',async()=>{ try{ loadShow.noBk=true; await BK.restore(x.dataset.bk); $('#modal').hidden=true; toast('Копия возвращена. Предыдущее состояние тоже сохранено в копиях.') }catch(e){ toast('Не получилось: '+e.message) } finally{ loadShow.noBk=false } })) });
+  $('#bkNow').onclick=async()=>{ await BK.make('вручную'); const L=await BK.list(); $('#bkList').innerHTML=bkHtml(L); toast('Копия сделана.') };
+  $('#mPack').onclick=exportPack;
   $('#modal').hidden=false;
   $('#mClose').onclick=()=>$('#modal').hidden=true;
   $('#mSave').onclick=()=>{try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(Object.assign({},show,{timelines:TLS}))],{type:'application/json'}));a.download='show-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();toast('Файл шоу сохранён в «Загрузки».')}catch(e){toast('Не получилось скачать. Скопируйте текст ниже.')}};
@@ -1487,7 +1503,7 @@ $('#fileBtn').onclick=()=>{
   $('#mLoad').onclick=()=>{try{loadShow(fixShow(JSON.parse($('#mTxt').value)));$('#modal').hidden=true}catch(e){toast('Текст не похож на шоу: '+e.message)}};
 };
 $('#modal').onclick=e=>{if(e.target.id==='modal') $('#modal').hidden=true};
-$('#fileIn').onchange=async e=>{const f=e.target.files[0]; if(!f) return; try{loadShow(fixShow(JSON.parse(await f.text())));$('#modal').hidden=true;toast('Шоу «'+f.name+'» открыто.')}catch(err){toast('Файл не открылся: '+err.message)} e.target.value=''};
+$('#fileIn').onchange=async e=>{const f=e.target.files[0]; if(!f) return; if(/\.zip$/i.test(f.name)){ try{ await importPack(f); $('#modal').hidden=true }catch(err){ toast('Архив не открылся: '+err.message,7000) } e.target.value=''; return } try{loadShow(fixShow(JSON.parse(await f.text())));$('#modal').hidden=true;toast('Шоу «'+f.name+'» открыто.')}catch(err){toast('Файл не открылся: '+err.message)} e.target.value=''};
 function loadShow(s){ try{ if(Array.isArray(s.timelines)){ mergeTimelines(s.timelines); delete s.timelines } if(s.timeline&&s.timeline.events){ mergeTimelines([legacyTL(s.timeline)]); delete s.timeline } }catch(e){}  if(typeof TL!=='undefined'&&TL.mode!=='idle'){try{TL.audio&&TL.audio.pause()}catch(e){} TL.mode='idle'} show=s; prog={}; progFx=[]; sel.clear(); for(const k in RT) delete RT[k]; lastPb=null; save(); renderAll()}
 
 // ---------- MIDI-пульт ----------
@@ -1733,7 +1749,7 @@ function addFiles(list){
     if(hid.includes(f.name)&&!addFiles.explicit) continue;
     if(hid.includes(f.name)) MED().hidden=hid.filter(x=>x!==f.name);
     if(!MED().bin.some(b=>b.file===f.name)){ MED().bin.push({file:f.name,kind:VIDRE.test(f.name)?'video':'image',thumb:null}); added++ } }
-  save(); scrSend({type:'files',files:ok}); renderBin(); renderComp(); genThumbs();
+  save(); scrSend({type:'files',files:ok}); renderBin(); renderComp(); genThumbs(); try{ storeMedia(ok) }catch(e){}
   return ok;
 }
 async function loadDir(h){
@@ -1834,7 +1850,7 @@ function removeFile(f){
   const m=MED();
   for(const k of Object.keys(m.cells)) if(m.cells[k].file===f){ const lid=liveLayerOf(k); if(lid) mClearLayer(lid,true); delete m.cells[k] }
   m.bin=m.bin.filter(b=>b.file!==f); m.hidden=m.hidden||[]; if(!m.hidden.includes(f)) m.hidden.push(f);
-  if(armedFile===f) armedFile=null; save(); renderBin(); renderComp(); toast('Файл убран из списка: '+f);
+  if(armedFile===f) armedFile=null; save(); renderBin(); renderComp(); try{ IDB.del('mf:'+f); for(const k of [...MSTORED]) if(k.startsWith(f+'|')) MSTORED.delete(k) }catch(e){} toast('Файл убран из списка: '+f);
 }
 function renderBin(){
   const b=$('#bin'), list=MED().bin;
@@ -2788,6 +2804,107 @@ renderAll();
 if(show.example) toast('Загружен пример шоу. Замените приборы на свои во вкладке «Приборы».');
 if(window.__beamFixed) setTimeout(()=>toast('Адреса голов Beam возвращены на рабочие: 305, 321, 337, 353.'),1500);
 requestAnimationFrame(frame);
+
+// ---- ZIP без сжатия: один файл с шоу, видео и музыкой
+const ZIP={ T:null,
+  tab(){ if(this.T) return this.T; const t=new Uint32Array(256); for(let n=0;n<256;n++){ let x=n; for(let k=0;k<8;k++) x=x&1?0xEDB88320^(x>>>1):x>>>1; t[n]=x>>>0 } return this.T=t },
+  async crcBlob(b){ const t=this.tab(); let c=0xFFFFFFFF; const CH=8<<20; for(let p=0;p<b.size;p+=CH){ const u=new Uint8Array(await b.slice(p,p+CH).arrayBuffer()); for(let i=0;i<u.length;i++) c=t[(c^u[i])&255]^(c>>>8) } return (c^0xFFFFFFFF)>>>0 },
+  async make(entries,onp){ const enc=new TextEncoder(), parts=[], cen=[]; let off=0, total=entries.reduce((s,e)=>s+e.blob.size,0)||1, done=0;
+    for(const e of entries){ const nm=enc.encode(e.name), crc=await this.crcBlob(e.blob), sz=e.blob.size; if(sz>=0xFFFFFFFF||off>=0xFFFFFFFF) throw new Error('файл больше 4 ГБ');
+      const h=new DataView(new ArrayBuffer(30)); h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true); h.setUint16(10,0,true); h.setUint16(12,0x21,true); h.setUint32(14,crc,true); h.setUint32(18,sz,true); h.setUint32(22,sz,true); h.setUint16(26,nm.length,true); h.setUint16(28,0,true);
+      parts.push(h.buffer,nm,e.blob);
+      const c=new DataView(new ArrayBuffer(46)); c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(10,0,true); c.setUint16(12,0,true); c.setUint16(14,0x21,true); c.setUint32(16,crc,true); c.setUint32(20,sz,true); c.setUint32(24,sz,true); c.setUint16(28,nm.length,true); c.setUint32(42,off,true);
+      cen.push(c.buffer,nm); off+=30+nm.length+sz; done+=sz; onp&&onp(done/total) }
+    const cs=cen.reduce((s,x)=>s+(x.byteLength),0), end=new DataView(new ArrayBuffer(22)); end.setUint32(0,0x06054b50,true); end.setUint16(8,entries.length,true); end.setUint16(10,entries.length,true); end.setUint32(12,cs,true); end.setUint32(16,off,true);
+    return new Blob([...parts,...cen,end.buffer],{type:'application/zip'}) },
+  async read(file){ const tail=new Uint8Array(await file.slice(Math.max(0,file.size-65557)).arrayBuffer()), dv=new DataView(tail.buffer); let p=-1; for(let i=tail.length-22;i>=0;i--) if(dv.getUint32(i,true)===0x06054b50){ p=i; break } if(p<0) throw new Error('это не архив');
+    const n=dv.getUint16(p+10,true), cs=dv.getUint32(p+12,true), co=dv.getUint32(p+16,true), cd=new DataView(await file.slice(co,co+cs).arrayBuffer()), dec=new TextDecoder(), out=[]; let q=0;
+    for(let i=0;i<n;i++){ if(cd.getUint32(q,true)!==0x02014b50) break; const meth=cd.getUint16(q+10,true), sz=cd.getUint32(q+20,true), nl=cd.getUint16(q+28,true), el=cd.getUint16(q+30,true), cl=cd.getUint16(q+32,true), lo=cd.getUint32(q+42,true); const name=dec.decode(new Uint8Array(cd.buffer,q+46,nl)); q+=46+nl+el+cl;
+      if(name.endsWith('/')) continue; if(meth!==0) throw new Error('архив сжат — откройте файл, сохранённый самой программой');
+      const lh=new DataView(await file.slice(lo,lo+30).arrayBuffer()), d=lo+30+lh.getUint16(26,true)+lh.getUint16(28,true); out.push({name,blob:file.slice(d,d+sz)}) } return out } };
+async function saveBig(name,blob,mime){ if(window.showSaveFilePicker){ try{ const h=await showSaveFilePicker({suggestedName:name,types:[{description:'Архив',accept:{[mime||'application/zip']:['.zip']}}]}); const w=await h.createWritable(); await w.write(blob); await w.close(); return h.name }catch(e){ if(e.name==='AbortError') return null } }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove() },4000); return name }
+
+// ---------- линия 2: второй USB-DMX-кабель ----------
+const out2={kind:'none',port:null,writer:null,busy:false};
+async function disconnect2(){ try{out2.writer&&out2.writer.releaseLock()}catch(e){} try{out2.port&&await out2.port.close()}catch(e){} out2.port=out2.writer=null; out2.kind='none'; ui2() }
+function ui2(){ const t=$('#out2Txt'); if(t) t.textContent=out2.kind==='none'?'Не подключён — линия 2 никуда не идёт':out2.kind==='pro'?'Подключён: второй USB Pro':'Подключён: второй Open DMX'; const c=$('#out2Off'); if(c) c.hidden=out2.kind==='none' }
+async function connect2(kind){ if(!('serial' in navigator)){ showSerialWarn(); return } await disconnect2();
+  try{ const port=await navigator.serial.requestPort(); if(port===out.port){ toast('Это тот же кабель, что и для линии 1. Выберите второй.'); return }
+    if(kind==='pro') await port.open({baudRate:57600}); else await port.open({baudRate:250000,dataBits:8,stopBits:2,parity:'none'});
+    out2.port=port; out2.writer=port.writable.getWriter(); out2.kind=kind; ui2(); toast('Второй кабель подключён: в него идёт линия 2 (например, френели).') }
+  catch(e){ if(e.name!=='NotFoundError') toast('Не удалось открыть второй кабель: '+e.message); out2.kind='none'; ui2() } }
+async function send2(){ if(out2.busy||out2.kind==='none'||!out2.writer) return; out2.busy=true;
+  try{ if(out2.kind==='pro'){ const n=513, b=new Uint8Array(n+5); b[0]=0x7E;b[1]=6;b[2]=n&255;b[3]=n>>8; b[4]=0; b.set(dmx2.subarray(1,513),5); b[n+4]=0xE7; await out2.writer.write(b) }
+    else { await out2.port.setSignals({break:true}); await sleep(1); await out2.port.setSignals({break:false}); await out2.writer.write(dmx2.slice(0,513)) } }
+  catch(e){ await disconnect2(); toast('Второй кабель отключился: '+e.message) } out2.busy=false }
+document.querySelectorAll('[data-connect2]').forEach(b=>b.onclick=()=>connect2(b.dataset.connect2));
+$('#out2Off').onclick=()=>{ disconnect2(); toast('Второй кабель отключён.') }; ui2();
+
+// ---------- дежурный свет ----------
+let standby=false;
+$('#standbyBtn').onclick=()=>{ standby=!standby; if(standby&&blackout) $('#bo').click(); $('#standbyBtn').classList.toggle('on',standby); $('#standbyBtn').textContent=standby?'Дежурный ВКЛ':'Дежурный'; toast(standby?'Дежурный свет: тёплый белый на PAR и френелях, головы погашены. Всё остальное не слушается, пока не выключите.':'Дежурный свет выключен.') };
+
+// ---------- видео и картинки хранятся внутри программы ----------
+IDB.keys=async function(){ const db=await this.open(); return new Promise((res,rej)=>{ const q=db.transaction('kv').objectStore('kv').getAllKeys(); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error) }) };
+IDB.del=async function(k){ const db=await this.open(); return new Promise(res=>{ const t=db.transaction('kv','readwrite'); t.objectStore('kv').delete(k); t.oncomplete=()=>res(); t.onerror=()=>res() }) };
+const MSTORED=new Set();
+async function storeMedia(files){ let n=0, fail=0; for(const f of files){ if(!f||!f.name||f.name.startsWith('__')||MSTORED.has(f.name+'|'+f.size)) continue; try{ await IDB.set('mf:'+f.name,f); MSTORED.add(f.name+'|'+f.size); n++ }catch(e){ fail++ } }
+  if(fail) toast('Не хватило места в браузере для '+fail+' файл(ов) — они будут работать до перезапуска.',6000); return n }
+(async()=>{ try{ navigator.storage&&navigator.storage.persist&&navigator.storage.persist() }catch(e){}
+  try{ const ks=(await IDB.keys()).filter(k=>typeof k==='string'&&k.startsWith('mf:')); const list=[]; for(const k of ks){ const f=await IDB.get(k); if(f){ const file=f instanceof File?f:new File([f],k.slice(3)); if(!MF.has(file.name)){ list.push(file) } MSTORED.add(file.name+'|'+file.size) } }
+    if(list.length){ for(const f of list) MF.set(f.name,f); scrSend({type:'files',files:list}); renderBin(); renderComp(); try{genThumbs()}catch(e){} try{edRender()}catch(e){} } }catch(e){} })();
+
+// ---------- резервные копии шоу ----------
+const BK={ async list(){ try{ return (await IDB.get('bkIndex'))||[] }catch(e){ return [] } },
+  async make(label){ try{ const data=JSON.stringify(Object.assign({},show,{timelines:TLS})); const L=await this.list(); if(L.length&&L[0].size===data.length&&L[0].hash===BK.h(data)) return; const id=Date.now().toString(36);
+      await IDB.set('bk:'+id,data); L.unshift({id,t:Date.now(),label,size:data.length,hash:BK.h(data)}); for(const x of L.splice(15)) await IDB.del('bk:'+x.id); await IDB.set('bkIndex',L) }catch(e){} },
+  h(s){ let h=0; for(let i=0;i<s.length;i+=7) h=(h*31+s.charCodeAt(i))|0; return h },
+  async restore(id){ const data=await IDB.get('bk:'+id); if(!data) throw new Error('копия не найдена'); await BK.make('перед возвратом копии'); const s=JSON.parse(data); TLS=[]; curTL=null; loadShow(fixShow(s)); saveTLS(); renderTLList() } };
+setTimeout(async()=>{ const L=await BK.list(), d=new Date().toDateString(); if(!L.length||new Date(L[0].t).toDateString()!==d) BK.make('автокопия за день') },8000);
+setInterval(()=>BK.make('автокопия'),45*60*1000);
+const loadShow0=loadShow;
+loadShow=function(s){ if(!loadShow.noBk) BK.make('перед открытием другого шоу'); return loadShow0(s) };
+function bkHtml(L){ return L.length?L.map(x=>`<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:4px 0"><span>${new Date(x.t).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} <span class="muted">· ${esc(x.label)}</span></span><button data-bk="${x.id}">Вернуть</button></div>`).join(''):'<p class="muted" style="margin:0">Копий пока нет — первая появится в течение минуты.</p>' }
+
+// ---------- шоу одним файлом: с видео и музыкой ----------
+async function exportPack(){ const pe=$('#packProg'); try{ const files=[{name:'show.json',blob:new Blob([JSON.stringify(Object.assign({},show,{timelines:TLS}))],{type:'application/json'})}];
+    const names=new Set(MED().bin.map(b=>b.file)); for(const c of Object.values(MED().cells)) names.add(c.file); for(const r of TLS) for(const l of Object.values((r.tracks&&r.tracks.layers)||{})) for(const b of l) if(b.clip) names.add(b.clip.file);
+    let miss=0; for(const n of names){ const f=MF.get(n); if(f) files.push({name:'media/'+n,blob:f}); else miss++ }
+    const aud=new Set(TLS.map(r=>r.audioName).filter(Boolean)); for(const n of aud){ try{ const f=await IDB.get('audio:'+n); if(f) files.push({name:'audio/'+n,blob:f}) }catch(e){} }
+    toast('Собираю файл…',60000); if(pe) pe.textContent='0%';
+    const blob=await ZIP.make(files,p=>{ if(pe) pe.textContent=Math.round(p*100)+'%' }); if(pe) pe.textContent='';
+    const nm=await saveBig('shou-'+new Date().toISOString().slice(0,10)+'.zip',blob); if(nm) toast(`Сохранено: «${nm}» — шоу, ${files.filter(f=>f.name.startsWith('media/')).length} видео/картинок, ${files.filter(f=>f.name.startsWith('audio/')).length} фонограмм.`+(miss?` Не найдено файлов: ${miss} — их нет в программе.`:''),8000) }
+  catch(e){ if(pe) pe.textContent=''; toast('Не получилось сохранить: '+e.message,7000) } }
+async function importPack(file){ toast('Открываю архив…',30000); const ents=await ZIP.read(file), sj=ents.find(e=>e.name==='show.json'); if(!sj) throw new Error('в архиве нет show.json');
+  const media=ents.filter(e=>e.name.startsWith('media/')).map(e=>new File([e.blob],e.name.slice(6))), aud=ents.filter(e=>e.name.startsWith('audio/'));
+  for(const a of aud){ const f=new File([a.blob],a.name.slice(6)); try{ await IDB.set('audio:'+f.name,f) }catch(e){} }
+  loadShow(fixShow(JSON.parse(await sj.blob.text())));
+  if(media.length){ addFiles.explicit=true; addFiles(media); addFiles.explicit=false }
+  const r=curRec(); if(r&&r.audioName){ TL.audioName=null; restoreAudio(r.audioName) }
+  toast(`Шоу открыто: ${media.length} видео/картинок и ${aud.length} фонограмм уже внутри программы.`,7000) }
+
+// ---------- связь с «Просто Звук» ----------
+const LINK={ch:null,on:false,name:null,last:0};
+try{ LINK.ch=new BroadcastChannel('prosto-link') }catch(e){}
+function linkUi(){ const c=$('#linkChip'); if(!c) return; c.hidden=!LINK.on; c.title=LINK.on?'Свет идёт за «Просто Звук»: '+(LINK.name||'')+' — щёлкните, чтобы отвязать':''; }
+function linkOff(quiet){ LINK.on=false; if(TL.audio) TL.audio.muted=false; linkUi(); if(!quiet) toast('Связь с «Просто Звук» выключена — музыка снова играет здесь.') }
+if(LINK.ch) LINK.ch.onmessage=async e=>{ const m=e.data||{}; if(m.app!=='zvuk') return;
+  if(m.type==='song'&&m.file){ const f=new File([m.file],m.name,{type:m.file.type||''});
+    let r=TLS.find(x=>x.audioName===m.name); if(!r){ const base=m.name.replace(/\.[^.]+$/,'').toLowerCase(); r=TLS.find(x=>x.audioName&&x.audioName.replace(/\.[^.]+$/,'').toLowerCase()===base) }
+    if(r&&r.id!==curTL) selectTL(r.id,true);
+    const cr=curRec(); if(!cr){ toast('Песня пришла из «Просто Звук», но нет ни одного монтажа или записи, к которой её подключить.',6000); return }
+    setAudio(f); if(cr.type==='edit'&&cr.audioName!==f.name){ cr.audioName=f.name; saveTLS() }
+    LINK.on=true; LINK.name=m.name; if(TL.audio) TL.audio.muted=true; linkUi();
+    toast(`🔗 «${m.name}» пришла из «Просто Звук» → ${cr.name}. Жмите ▶ в «Просто Звук» — свет пойдёт следом.`,7000); LINK.ch.postMessage({app:'svet',type:'ok',name:m.name,montage:cr.name}); return }
+  if(m.type==='unlink'){ linkOff(true); return }
+  if(!LINK.on||m.name!==LINK.name||!tlHas()) return; const t=Math.max(0,(m.pos||0)*1000); if(TL.audio) TL.audio.muted=true;
+  if(m.type==='play'){ if(TL.mode==='play'){ TL.t0=performance.now()-t } else { TL.pausedAt=t; $('#pStart').click(); if(TL.audio) TL.audio.muted=true } }
+  else if(m.type==='pause'){ if(TL.mode==='play') pauseResume(); TL.pausedAt=t; if(isEdit()) try{edGo(t,true)}catch(_){} }
+  else if(m.type==='pos'&&TL.mode==='play'){ const cur=nowT(); if(Math.abs(cur-t)>400){ seek(t); TL.t0=performance.now()-t; if(TL.audio) TL.audio.currentTime=t/1000 } else TL.t0=performance.now()-t }
+  else if(m.type==='seek'){ if(TL.mode==='play'){ seek(t); TL.t0=performance.now()-t } else { TL.pausedAt=t; if(isEdit()) try{edGo(t,true)}catch(_){} } uiPlay() } };
+$('#linkChip').onclick=()=>{ linkOff(); try{ LINK.ch.postMessage({app:'svet',type:'unlinked'}) }catch(e){} };
+
 </script>
 <script id="threeSrc" type="text/plain">/**
  * @license
@@ -2805,7 +2922,7 @@ function v3Default() {
   return {
     room: { hallW: 15, hallL: 21, hallH: 4.6, stageW: 15, stageD: 6.5, stageH: 0.9, stageTop: 5.2, portalW: 10.6, portalH: 4.3,
       scrW: 6.2, scrH: 3.5, scrY: 0.6, scrZ: 6.0, rows: 17, raked: 6, rowGap: 0.95, firstRow: 3.2, seats: 8, aisle: 1.4 },
-    view: { haze: 0.3, house: 0.85, houseV: 3, scr: 1, labels: true, beams: true, dark: false, q: 'hi', exp: 1 },
+    view: { haze: 0, hazeV: 1, house: 0.85, houseV: 3, scr: 1, labels: true, beams: true, dark: false, q: 'hi', exp: 1 },
     cam: null, fx: {}
   };
 }
@@ -2817,8 +2934,9 @@ const V3_TEMPLATES = {
 function v3Data() {
   if (!show.stage3d) show.stage3d = v3Default();
   const S = show.stage3d, def = v3Default();
-  const oldV = S.view && S.view.houseV;
+  const oldV = S.view && S.view.houseV, hzV = S.view && S.view.hazeV;
   S.view = Object.assign(def.view, S.view || {});
+  if (hzV !== 1) { S.view.haze = 0; S.view.hazeV = 1; } // в зале нет дыма — по умолчанию без него
   if (oldV !== 3) { S.view.house = 0.85; S.view.houseV = 3; S.view.dark = false; } // зал по умолчанию освещён; темнота — кнопкой
   if (!Array.isArray(S.venues)) { // старый формат: один зал → площадка «Школьный зал»
     S.venues = [{ id: 'school', name: 'Школьный зал', room: Object.assign(V3_TEMPLATES.box.room(), S.room || {}), fx: S.fx || {}, cam: S.cam || null },

@@ -47,6 +47,17 @@ header{display:flex;align-items:center;gap:14px;justify-content:space-between}
 .pvdlg[hidden]{display:none}
 .pvbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;width:min(560px,92vw);display:flex;flex-direction:column;gap:10px}
 .pvbox textarea{width:100%;box-sizing:border-box;background:var(--panel2);color:inherit;border:1px solid var(--line);border-radius:8px;padding:8px;font-family:var(--f-mono);font-size:12px;resize:vertical}
+.marks{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+.marks button{min-height:28px;padding:2px 9px;font-size:13px}
+.mk b{background:#ffd34d;color:#111;border-radius:4px;padding:0 4px;margin-right:2px}
+#mkList{display:contents}
+.lyr{margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.lylines{max-height:240px;overflow:auto;font-size:16px;line-height:1.55;position:relative;padding:4px 2px}
+.ly{padding:1px 6px;border-radius:6px;color:var(--muted);white-space:pre-wrap}
+.ly.tm{cursor:pointer}.ly.tm:hover{background:rgba(255,255,255,.05)}
+.ly.cur{color:var(--text,#fff);background:rgba(255,155,69,.18);font-weight:600}
+#lyrModel,#lyrLang{width:auto;flex:0 0 auto;max-width:210px}
+#lyrEdit{width:100%;box-sizing:border-box;background:var(--panel);color:inherit;border:1px solid var(--line);border-radius:8px;padding:8px;font-family:var(--f-mono);font-size:13px}
 .now{display:flex;flex-direction:column;gap:10px;min-width:0}
 .title{font-size:22px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sub{color:var(--muted);font-size:13px}
@@ -145,11 +156,11 @@ input.tin{width:86px;font-family:var(--f-mono)} input.nin{width:72px;font-family
 <body>
 <div class="app">
 <header>
-  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.7</span></div>
+  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.8</span></div>
   <div class="row">
     <button id="addBtn" title="Добавить песни">＋ Песни…</button>
     <button id="addDirBtn" title="Добавить папку с музыкой">＋ Папка…</button>
-    <input id="fileIn" type="file" accept="audio/*,video/*,.mp3,.wav,.ogg,.m4a,.flac,.aac,.opus,.mp4,.m4v,.mov,.webm" multiple hidden>
+    <input id="fileIn" type="file" accept="audio/*,video/*,.zip,.lrc,.mp3,.wav,.ogg,.m4a,.flac,.aac,.opus,.mp4,.m4v,.mov,.webm" multiple hidden>
   </div>
 </header>
 
@@ -168,9 +179,12 @@ input.tin{width:86px;font-family:var(--f-mono)} input.nin{width:72px;font-family
         <button id="bNext" title="Следующая">⏭</button>
         <button id="bShuffle" class="blue" title="Перемешать"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h3.5c2 0 3.2 1 4.3 2.7l2.4 4.6c1.1 1.7 2.3 2.7 4.3 2.7H21"/><path d="M3 17h3.5c1.3 0 2.2-.4 3-1.2"/><path d="M14.2 8.2c.8-.8 1.7-1.2 3-1.2H21"/><path d="M18 4l3 3-3 3"/><path d="M18 14l3 3-3 3"/></svg></button>
         <button id="bRepeat" class="blue" title="Повтор: выкл / все / одна"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11V9a3 3 0 0 1 3-3h13"/><path d="M17 3l3 3-3 3"/><path d="M20 13v2a3 3 0 0 1-3 3H4"/><path d="M7 21l-3-3 3-3"/></svg></button>
+        <button id="bFade" title="Плавно увести песню (F; с Shift — 8 секунд). Esc — мгновенная тишина">⤵ Увести</button>
+        <button id="bLink" title="Отправить песню в «Просто Свет»">💡 В Свет</button>
       </div>
     </div>
     <div class="seek" id="seek" title="Нажмите — перейти к месту"><canvas id="seekC"></canvas></div>
+    <div class="marks"><button id="mkAdd" title="Поставить метку в текущем месте (клавиша M)">＋ Метка</button><span id="mkList"></span><span style="flex:1"></span><button id="lyrBtn" title="Текст песни">📝 Текст</button></div>
     <div class="ctrls">
       <label class="knob"><span>Громкость</span><input id="vol" type="range" min="0" max="100" value="85"><input class="v" id="volV" type="text" inputmode="decimal" title="Можно вписать число и нажать Enter"></label>
       <label class="knob"><span>Скорость</span><input id="tempo" type="range" min="50" max="200" value="100"><input class="v" id="tempoV" type="text" inputmode="decimal" title="Можно вписать число и нажать Enter"></label>
@@ -178,6 +192,20 @@ input.tin{width:86px;font-family:var(--f-mono)} input.nin{width:72px;font-family
       <label class="knob"><span>Баланс</span><input id="bal" type="range" min="-100" max="100" value="0"><input class="v" id="balV" type="text" inputmode="decimal" title="Можно вписать число и нажать Enter"></label>
     </div>
     <div class="row hint"><button id="resetTP">Сбросить скорость и тон</button> Скорость меняет темп без изменения тона, тональность — тон без изменения темпа. Двойной щелчок по ползунку — сброс. Число можно вписать в окошко справа и нажать <span class="kbd">Enter</span>: например 95, 110, −2, +3 или 0.5 полутона.</div>
+    <div class="lyr" id="lyrBox" hidden>
+      <div class="row" style="justify-content:space-between;gap:6px"><b id="lyrTitle">Текст песни</b><span class="hint" id="lyrSrc"></span></div>
+      <div class="row" style="gap:6px;margin:6px 0">
+        <button id="lyrAsr" title="Программа сама расслышит слова (нужен интернет только в первый раз)">🎤 Распознать</button>
+        <select id="lyrModel" title="Качество распознавания"><option value="Xenova/whisper-base">быстро</option><option value="Xenova/whisper-small">точнее (дольше, ~250 МБ)</option></select>
+        <select id="lyrLang" title="Язык песни"><option value="">язык: авто</option><option value="russian">русский</option><option value="belarusian">белорусский</option><option value="english">английский</option></select>
+        <button id="lyrFileBtn" title="Подгрузить текст из файла .lrc или .txt">📄 Из файла</button><input id="lyrFile" type="file" accept=".lrc,.txt,text/plain" hidden>
+        <button id="lyrEditBtn">✎ Вписать</button><button id="lyrDel" title="Удалить текст">🗑</button>
+        <span class="hint mono" id="lyrProg"></span>
+      </div>
+      <div class="lylines" id="lyrLines"></div>
+      <textarea id="lyrEdit" rows="10" hidden placeholder="Каждая строка — с новой строки. Чтобы строка подсвечивалась под музыку, начните её со времени: [01:23.50] текст"></textarea>
+      <div class="row" style="gap:6px;margin-top:6px"><button id="lyrSave" class="on" hidden>Сохранить</button><button id="lyrCancel" hidden>Отмена</button></div>
+    </div>
   </div>
 </section>
 
@@ -194,6 +222,9 @@ input.tin{width:86px;font-family:var(--f-mono)} input.nin{width:72px;font-family
   <div class="row" style="justify-content:space-between;margin-bottom:10px">
     <div class="row"><input id="plSearch" type="text" placeholder="Поиск по названию" style="width:240px"><span class="muted" id="plInfo"></span></div>
     <div class="row">
+      <button id="plLevel" title="Сделать все песни одинаково громкими (файлы не меняются)">🔊 Выровнять громкость</button>
+      <button id="plPack" title="Сохранить плейлист вместе с песнями одним файлом (если выбрано несколько песен — только их)">📦 В файл</button>
+      <button id="plUnpack" title="Добавить песни из файла, сохранённого «📦 В файл»">📦 Из файла</button><input id="packIn" type="file" accept=".zip" hidden>
       <button id="plCue" title="Послушать выбранную в наушниках">🎧 В наушники</button>
       <button id="plToMix" title="Добавить выбранные в склейку">＋ В склейку</button>
       <button id="plEdit" title="Открыть выбранную в редакторе">✂ В редактор</button>
@@ -1446,6 +1477,7 @@ a.length>D&&(D=a.length,p=0|1.25*D+7200,r=new Int8Array(p));a=u.lame_encode_buff
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const fmt=s=>{ s=Math.max(0,s||0); const m=Math.floor(s/60), x=Math.floor(s%60); return m+':'+String(x).padStart(2,'0') };
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let trG=null, fadeG=null;
 let toastT=0; function toast(t,ms){ const e=$('#toast'); e.textContent=t; e.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>e.hidden=true,ms||3500) }
 const uid=()=>Math.random().toString(36).slice(2,9);
 const KEY='prosto-zvuk';
@@ -1457,7 +1489,7 @@ const PRE=(lc,ls,p2,p3,p4,hs)=>{ const b=PEQ0(); [lc,ls,p2,p3,p4,hs].forEach((v,
 const PRESETS={'Ровно':PRE(),'Голос':PRE({on:true,f:100},{g:-2},{f:300,g:-2,q:1.4},{f:2500,g:3,q:1},{f:5500,g:2,q:1.4},{f:10000,g:2}),'Больше баса':PRE(null,{f:90,g:6}),'Больше верха':PRE(null,null,null,null,null,{f:7000,g:6}),
   'Зал (сцена)':PRE({on:true,f:60},{g:1},{f:250,g:-2,q:1},{f:2500,g:1.5,q:1},null,{g:2}),'Убрать гул':PRE({on:true,f:120,q:.9},null,{f:250,g:-3,q:1.5}),'Рок':PRE(null,{g:4},{f:500,g:-2,q:1},{f:2500,g:2,q:1},null,{g:4}),
   'Поп':PRE(null,{g:2},{f:700,g:1.5,q:.8},{f:2500,g:2.5,q:1},null,{g:2}),'Танцевальная':PRE(null,{f:80,g:6},{f:400,g:-2,q:1},null,{f:6000,g:3,q:1},{g:3}),'Тихо ночью':PRE(null,{g:2},null,null,{f:4000,g:-3,q:1},{g:-3})};
-const S=Object.assign({vol:85,bal:0,peq:PEQ0(),eqOn:true,rta:true,preset:'Ровно',shuffle:false,repeat:0,devMain:'',devCue:'',cueVol:80,cueDupVol:50,myPre:{},cueEq:true,vizMode:'pv',pvAuto:true,pvGlow:60,pvShape:0,pvSens:1.3},(()=>{try{return JSON.parse(localStorage.getItem(KEY+'-s')||'{}')}catch(e){return{}}})());
+const S=Object.assign({vol:85,bal:0,peq:PEQ0(),eqOn:true,rta:true,preset:'Ровно',shuffle:false,repeat:0,devMain:'',devCue:'',cueVol:80,cueDupVol:50,myPre:{},cueEq:true,level:false,fadeSec:4,lyrOpen:false,lufsTarget:-16,vizMode:'pv',pvAuto:true,pvGlow:60,pvShape:0,pvSens:1.3},(()=>{try{return JSON.parse(localStorage.getItem(KEY+'-s')||'{}')}catch(e){return{}}})());
 if(!Array.isArray(S.peq)||S.peq.length!==6) S.peq=PEQ0();
 const saveS=()=>{try{localStorage.setItem(KEY+'-s',JSON.stringify(S))}catch(e){}};
 // ---------- хранение песен (IndexedDB: сами файлы) ----------
@@ -1477,8 +1509,8 @@ function AC(){ if(ctx) return ctx;
   preG=ctx.createGain(); let last=preG;
   S.peq.forEach(()=>{ const b=ctx.createBiquadFilter(); last.connect(b); last=b; eqNodes.push(b) });
   panN=ctx.createStereoPanner(); master=ctx.createGain(); analyser=ctx.createAnalyser(); analyser.fftSize=4096; analyser.smoothingTimeConstant=.78;
-  last.connect(panN); panN.connect(master); master.connect(analyser); analyser.connect(ctx.destination);
-  proc=ctx.createScriptProcessor(4096,1,2); proc.onaudioprocess=onAudio; proc.connect(preG);
+  fadeG=ctx.createGain(); last.connect(panN); panN.connect(fadeG); fadeG.connect(master); master.connect(analyser); analyser.connect(ctx.destination);
+  proc=ctx.createScriptProcessor(4096,1,2); proc.onaudioprocess=onAudio; trG=ctx.createGain(); proc.connect(trG); trG.connect(preG);
   applyEq(); applyVol(); applyBal();
   if(S.devMain&&ctx.setSinkId) ctx.setSinkId(S.devMain).catch(()=>{});
   return ctx }
@@ -1521,9 +1553,13 @@ async function getBuf(t){ if(BUF.has(t.id)) return BUF.get(t.id); const blob=awa
 function keepBuf(id,b){ BUF.set(id,b); const keep=new Set([P.id,ED.id,CUE.id,id,...MX.map(m=>m.id)]); for(const k of [...BUF.keys()]) if(BUF.size>6&&!keep.has(k)) BUF.delete(k) }
 const AUDIO_RE=/\.(mp3|wav|ogg|oga|m4a|aac|flac|opus|webm|wma|mp4|m4v|mov|3gp)$/i;
 async function addFiles(files){
+  files=[...files]; for(const z of files.filter(f=>f&&/\.zip$/i.test(f.name))){ try{ await importPackZ(z) }catch(e){ toast('«'+z.name+'»: '+e.message,6000) } }
+  const lrcs=files.filter(f=>f&&/\.lrc$/i.test(f.name)); files=files.filter(f=>f&&!/\.(zip|lrc)$/i.test(f.name)); if(!files.length&&!lrcs.length) return;
+  if(!files.length){ for(const l of lrcs){ const base=l.name.replace(/\.lrc$/i,'').toLowerCase(), t=PL.find(x=>x.name.toLowerCase()===base); if(t){ await IDB.set('l:'+t.id,{src:'lrc',lines:parseLrc(await l.text())}); t.lyr=true } } savePL(); return toast('Тексты .lrc подключены к песням с такими же названиями.') }
   files=[...files].filter(f=>f&&(f.type.startsWith('audio/')||f.type.startsWith('video/')||AUDIO_RE.test(f.name))); if(!files.length){ toast('Не нашлось ни песен, ни видео. Подходят MP3, WAV, M4A, FLAC, OGG, а из видео — MP4, MOV, M4V, WEBM (берётся звук).'); return }
   files.sort((a,b)=>(a.webkitRelativePath||a.name).localeCompare(b.webkitRelativePath||b.name,'ru',{numeric:true}));
-  let n=0; for(const f of files){ const t={id:uid(),name:f.name.replace(/\.[^.]+$/,''),dur:0}; try{ await IDB.set('f:'+t.id,f) }catch(e){ toast('Не хватает места в браузере для «'+f.name+'».'); continue } PL.push(t); n++ }
+  let n=0; for(const f of files){ const t={id:uid(),name:f.name.replace(/\.[^.]+$/,''),dur:0}; try{ await IDB.set('f:'+t.id,f) }catch(e){ toast('Не хватает места в браузере для «'+f.name+'».'); continue } PL.push(t); n++;
+    const l=lrcs.find(x=>x.name.replace(/\.lrc$/i,'').toLowerCase()===t.name.toLowerCase()); if(l){ try{ await IDB.set('l:'+t.id,{src:'lrc',lines:parseLrc(await l.text())}); t.lyr=true }catch(e){} } }
   savePL(); renderPL(); toast('Добавлено песен: '+n);
   for(const t of PL) if(!t.dur){ try{ const b=await decodeFile(await IDB.get('f:'+t.id)); t.dur=b.duration; if(P.id!==t.id&&ED.id!==t.id) {} else keepBuf(t.id,b); renderPL() }catch(e){ t.bad=true; renderPL(); toast('Не получилось прочитать звук из «'+t.name+'». Если это видео — возможно, в нём звук в редком формате; перегоните его в MP4 (звук AAC) или MP3.',7000) } }
   savePL();
@@ -1538,7 +1574,7 @@ function renderPL(){
   const q=$('#plSearch').value.trim().toLowerCase(), tb=$('#pl tbody');
   const total=PL.reduce((s,t)=>s+(t.dur||0),0); $('#plInfo').textContent=PL.length?`${PL.length} песен · ${fmt(total)}`:'';
   $('#plDrop').hidden=PL.length>0; $('#pl').hidden=!PL.length;
-  tb.innerHTML=PL.map((t,i)=>q&&!t.name.toLowerCase().includes(q)?'':`<tr data-id="${t.id}" draggable="true" class="${selIds.has(t.id)?'sel':''} ${P.id===t.id?'cur':''}"><td class="n">${P.id===t.id&&P.playing?'▶':i+1}</td><td class="t">${esc(t.name)}${t.edited?'<span class="badge">изменена</span>':''}${t.bad?'<span class="badge" style="background:#5a2a24">не читается</span>':''}</td><td class="d">${t.dur?fmt(t.dur):'…'}</td></tr>`).join('');
+  tb.innerHTML=PL.map((t,i)=>q&&!t.name.toLowerCase().includes(q)?'':`<tr data-id="${t.id}" draggable="true" class="${selIds.has(t.id)?'sel':''} ${P.id===t.id?'cur':''}"><td class="n">${P.id===t.id&&P.playing?'▶':i+1}</td><td class="t">${esc(t.name)}${t.edited?'<span class="badge">изменена</span>':''}${S.level&&t.gain!=null?`<span class="badge" title="Поправка громкости" style="background:#1f3a2a">${t.gain>0?'+':''}${t.gain.toFixed(1)} дБ</span>`:''}${t.marks&&t.marks.length?`<span class="badge" style="background:#4a4020" title="Метки">⚑${t.marks.length}</span>`:''}${t.bad?'<span class="badge" style="background:#5a2a24">не читается</span>':''}</td><td class="d">${t.dur?fmt(t.dur):'…'}</td></tr>`).join('');
 }
 $('#pl tbody').addEventListener('click',e=>{ const tr=e.target.closest('tr'); if(!tr) return; const id=tr.dataset.id;
   if(e.shiftKey&&lastSel){ const a=PL.findIndex(t=>t.id===lastSel), b=PL.findIndex(t=>t.id===id); for(let i=Math.min(a,b);i<=Math.max(a,b);i++) selIds.add(PL[i].id) }
@@ -1553,7 +1589,7 @@ $('#pl tbody').addEventListener('drop',e=>{ if(!dragId) return; e.preventDefault
 $('#pl tbody').addEventListener('dragend',()=>{ dragId=null; $$('#pl tr.drag-over').forEach(x=>x.classList.remove('drag-over')) });
 $('#plSearch').oninput=renderPL;
 $('#plDel').onclick=()=>delSel();
-async function delSel(){ if(!selIds.size) return; for(const id of selIds){ if(P.id===id) stopPlay(); IDB.del('f:'+id); IDB.del('o:'+id); BUF.delete(id) } PL=PL.filter(t=>!selIds.has(t.id)); selIds.clear(); savePL(); renderPL() }
+async function delSel(){ if(!selIds.size) return; for(const id of selIds){ if(P.id===id) stopPlay(); IDB.del('f:'+id); IDB.del('o:'+id); IDB.del('l:'+id); BUF.delete(id) } PL=PL.filter(t=>!selIds.has(t.id)); selIds.clear(); savePL(); renderPL() }
 let clrArm=0; $('#plClear').onclick=()=>{ if(Date.now()-clrArm>3000){ clrArm=Date.now(); toast('Нажмите «Очистить» ещё раз, чтобы убрать все песни.'); return } selIds=new Set(PL.map(t=>t.id)); delSel() };
 $('#plEdit').onclick=()=>{ const id=[...selIds][0]||P.id; if(!id) return toast('Выберите песню в плейлисте.'); openEditor(id); openTab('ed') };
 $('#plDl').onclick=async ()=>{ if(!selIds.size) return toast('Выберите песни в плейлисте.'); const EXT={'video/mp4':'mp4','video/quicktime':'mov','video/webm':'webm','audio/mpeg':'mp3','audio/mp3':'mp3','audio/wav':'wav','audio/x-wav':'wav','audio/wave':'wav','audio/ogg':'ogg','audio/flac':'flac','audio/x-flac':'flac','audio/mp4':'m4a','audio/x-m4a':'m4a','audio/aac':'aac'};
@@ -1571,10 +1607,12 @@ async function playId(id,startFrame){
   P.id=id; P.buf=b; P.end=b.length; P.pos=startFrame||0; P.stMode=false; if(P.filter) P.filter.clear&&P.filter.clear(); P.loopA=P.loopB=null; P.ended=false; P.playing=true;
   if(ED.id===id&&ED.loop&&ED.a!=null) setLoop();
   $('#tTitle').textContent=t.name; $('#tSub').textContent=`${b.numberOfChannels===1?'моно':'стерео'} · ${Math.round(b.sampleRate/100)/10} кГц · ${fmt(b.duration)}`;
-  seekPeaks=null; uiPlay(); renderPL(); document.title=t.name+' — Просто Звук';
+  seekPeaks=null; cancelFade(); applyTrG(); uiPlay(); renderPL(); marksUi(); document.title=t.name+' — Просто Звук';
+  if(!$('#lyrBox').hidden) lyrLoad(id);
+  if(S.level&&t.lufs==null) levelTrack(t).then(()=>{ savePL(); applyTrG(); renderPL() }).catch(()=>{});
 }
 function uiPlay(){ $('#bPlay').textContent=P.playing?'❚❚':'▶' }
-function togglePlay(){ if(!P.buf){ const id=[...selIds][0]||(PL[0]&&PL[0].id); if(id) playId(id); return } AC(); ctx.resume(); P.playing=!P.playing; if(P.playing&&P.ended){ P.ended=false; seekTo(0) } uiPlay(); renderPL() }
+function togglePlay(){ if(fading){ cancelFade(); if(P.playing) return } if(!P.buf){ const id=[...selIds][0]||(PL[0]&&PL[0].id); if(id) playId(id); return } AC(); ctx.resume(); P.playing=!P.playing; if(P.playing&&P.ended){ P.ended=false; seekTo(0) } uiPlay(); renderPL() }
 function stopPlay(){ P.playing=false; seekTo(0); uiPlay(); renderPL() }
 function nextIdx(dir){ if(!PL.length) return -1; const i=PL.findIndex(t=>t.id===P.id);
   if(S.shuffle&&PL.length>1){ let j; do{ j=Math.floor(Math.random()*PL.length) }while(j===i); return j }
@@ -1632,7 +1670,7 @@ function frame(){
   if(P.ended){ P.ended=false; if(S.repeat===2) seekTo(0); else next(1) }
   const sr=P.buf?P.buf.sampleRate:44100;
   $('#tNow').textContent=fmt(P.pos/sr); $('#tDur').textContent='/ '+fmt(P.buf?P.end/sr:0)+(P.tempo!==1?` · ${fmt((P.end-P.pos)/sr/P.tempo)} осталось`:'');
-  seekPeaks=drawWave($('#seekC'),P.buf,0,P.end||1,P.pos,null,null,seekPeaks);
+  seekPeaks=drawWave($('#seekC'),P.buf,0,P.end||1,P.pos,null,null,seekPeaks); drawMarks($('#seekC'),0,P.end||1,P.id); linkTick(); lyrTick();
   if(S.vizMode!=='pv') drawViz(); pvFrame(); edFrame(); cueFrame(); drawPeq(); mxFrame();
   requestAnimationFrame(frame) }
 requestAnimationFrame(frame);
@@ -1643,7 +1681,7 @@ async function openEditor(id){ const t=PL.find(x=>x.id===id); if(!t) return; if(
   ED.id=id; ED.orig=ED.buf; ED.v0=0; ED.v1=ED.buf.length; ED.a=ED.b=null; ED.undo=[]; ED.pk=null; ED.dirty=false; $('#edName').textContent=t.name; edInfo(); edBakeInfo(); edOrigUi() }
 function edInfo(){ const sr=ED.buf?ED.buf.sampleRate:44100; $('#edSel').textContent=ED.buf?(ED.a!=null?`выделено ${fmt(ED.a/sr)}–${fmt(ED.b/sr)} (${((ED.b-ED.a)/sr).toFixed(1)} с) · `:'')+'длина '+fmt(ED.buf.length/sr)+(ED.dirty?' · есть несохранённые правки':''):'' }
 function edBakeInfo(){ $('#edBakeInfo').textContent=(P.tempo!==1||P.semi!==0)?`сейчас: скорость ${Math.round(P.tempo*100)}%, тон ${P.semi>0?'+':''}${P.semi} пт`:'сначала выставьте скорость или тональность в плеере' }
-function edFrame(){ const cueMode=ED.out==='cue'; if(!$(cueMode?'#tab-cue':'#tab-ed').classList.contains('active')) return; const pos=cueMode?(CUE.id===ED.id&&CUE.buf?cueNow()*CUE.buf.sampleRate:null):(P.id===ED.id?P.pos:null); ED.pk=drawWave($('#waveC'),ED.buf,ED.v0,ED.v1,pos,ED.a,ED.b,ED.pk); if(ED.buf) drawRuler($('#waveC'),ED.v0,ED.v1,ED.buf.sampleRate) }
+function edFrame(){ const cueMode=ED.out==='cue'; if(!$(cueMode?'#tab-cue':'#tab-ed').classList.contains('active')) return; const pos=cueMode?(CUE.id===ED.id&&CUE.buf?cueNow()*CUE.buf.sampleRate:null):(P.id===ED.id?P.pos:null); ED.pk=drawWave($('#waveC'),ED.buf,ED.v0,ED.v1,pos,ED.a,ED.b,ED.pk); if(ED.buf){ drawRuler($('#waveC'),ED.v0,ED.v1,ED.buf.sampleRate); drawMarks($('#waveC'),ED.v0,ED.v1,ED.id) } }
 function edView(v0,v1){ const L=ED.buf.length, s=Math.max(64,Math.min(L,v1-v0)); v0=Math.max(0,Math.min(L-s,v0)); ED.v0=Math.round(v0); ED.v1=Math.round(v0+s); ED.pk=null }
 const wv=$('#wave'); let wdrag=null;
 const fx=e=>{ const r=wv.getBoundingClientRect(); return Math.round(ED.v0+(e.clientX-r.left)/r.width*(ED.v1-ED.v0)) };
@@ -1711,7 +1749,7 @@ async function saveAs(name,makeBlob){ const ext=(name.split('.').pop()||'').toLo
   download(blob,name); toast('Файл «'+name+'» сохранён в папку «Загрузки».',5000); return true }
 function download(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove() },2000) }
 const edTrack=()=>PL.find(t=>t.id===ED.id);
-async function storeEdited(t,b){ const blob=wavBlob(b); if(!t.edited&&!t.orig){ try{ const o=await IDB.get('f:'+t.id); if(o){ await IDB.set('o:'+t.id,o); t.orig=true } }catch(e){} } await IDB.set('f:'+t.id,blob); t.dur=b.duration; t.edited=true; savePL(); renderPL() }
+async function storeEdited(t,b){ const blob=wavBlob(b); if(!t.edited&&!t.orig){ try{ const o=await IDB.get('f:'+t.id); if(o){ await IDB.set('o:'+t.id,o); t.orig=true } }catch(e){} } await IDB.set('f:'+t.id,blob); t.dur=b.duration; t.edited=true; t.lufs=null; t.gain=null; savePL(); renderPL(); if(S.level) levelTrack(t).then(()=>{ savePL(); applyTrG(); renderPL() }).catch(()=>{}) }
 $('#edSave').onclick=async ()=>{ const t=edTrack(); if(!t) return; if(!ED.dirty) return toast('Изменений нет.'); try{ await storeEdited(t,ED.buf); ED.dirty=false; edInfo(); edOrigUi(); toast('Сохранено. Изменённая песня останется в плейлисте и после перезапуска.') }catch(e){ toast('Не хватило места в браузере: '+e.message) } };
 $('#edSaveCopy').onclick=async ()=>{ const t=edTrack(); if(!t) return; const nt={id:uid(),name:t.name+' (правка)',dur:ED.buf.duration}; try{ await storeEdited(nt,ED.buf) }catch(e){ return toast('Не хватило места: '+e.message) } const i=PL.indexOf(t); PL.splice(i+1,0,nt); keepBuf(nt.id,ED.buf); savePL(); renderPL(); ED.id=nt.id; ED.dirty=false; $('#edName').textContent=nt.name; edInfo(); toast('Сохранено как новая песня рядом с исходной.') };
 $('#edWav').onclick=()=>{ const t=edTrack(); if(!t) return toast('Откройте песню в редакторе.'); saveAs(t.name+'.wav',async ()=>wavBlob(ED.buf)) };
@@ -1860,7 +1898,7 @@ async function cueLoad(id,noPlay){ const t=PL.find(x=>x.id===id); if(!t) return;
 function cueStopSrc(){ if(cueSrc){ try{ cueSrc.onended=null; cueSrc.stop() }catch(e){} cueSrc=null } if(CUE.playing) CUE.pos=cueNow(); CUE.playing=false; cueUi() }
 function cuePlay(){ if(!CUE.buf) return; const c=cueAC(); c.resume(); cueStopSrc(); if(CUE.pos>=CUE.buf.duration-0.02) CUE.pos=0;
   const s=c.createBufferSource(); s.buffer=CUE.buf; if(CUE.la!=null&&CUE.lb>CUE.la){ s.loop=true; s.loopStart=CUE.la; s.loopEnd=CUE.lb; if(CUE.pos<CUE.la||CUE.pos>=CUE.lb) CUE.pos=CUE.la }
-  s.connect(cuePreG); if(CUE.until!=null&&CUE.until>CUE.pos) s.start(0,CUE.pos,CUE.until-CUE.pos); else s.start(0,CUE.pos); cueSrc=s; CUE.t0=c.currentTime; CUE.playing=true;
+  const tg=c.createGain(); tg.gain.value=trackGainLin(CUE.id); s.connect(tg); tg.connect(cuePreG); if(CUE.until!=null&&CUE.until>CUE.pos) s.start(0,CUE.pos,CUE.until-CUE.pos); else s.start(0,CUE.pos); cueSrc=s; CUE.t0=c.currentTime; CUE.playing=true;
   s.onended=()=>{ if(cueSrc!==s) return; cueSrc=null; if(CUE.playing){ CUE.playing=false; CUE.pos=CUE.until!=null?CUE.until:0; CUE.until=null } cueUi() }; cueUi() }
 function cueSeek(sec,play){ const was=CUE.playing; cueStopSrc(); CUE.until=null; CUE.pos=Math.max(0,Math.min(CUE.buf.duration,sec)); if(play||was) cuePlay() }
 function cueUi(){ const b=$('#eqCuePlay'); if(b) b.textContent=CUE.playing?'❚❚ Пауза':'▶ Слушать' }
@@ -2113,9 +2151,158 @@ $('#pvDel').onclick=()=>{ const k=PV.shape-PV_SHAPES.length; if(k<0) return; con
 pvLoadCustom().then(()=>{ if(typeof S.pvShape==='string'&&S.pvShape.startsWith('c:')){ const k=PV.custom.findIndex(s=>s.name===S.pvShape.slice(2)); PV.shape=k>=0?PV_SHAPES.length+k:0 } else PV.shape=+S.pvShape||0; pvUi(); if(S.vizMode==='pv'&&pvInit()){ PV.started=true; pvSet(PV.shape) } });
 
 $('#pvFileBtn').onclick=()=>$('#pvFile').click();
+// ---- ZIP без сжатия: один файл с шоу, видео и музыкой
+const ZIP={ T:null,
+  tab(){ if(this.T) return this.T; const t=new Uint32Array(256); for(let n=0;n<256;n++){ let x=n; for(let k=0;k<8;k++) x=x&1?0xEDB88320^(x>>>1):x>>>1; t[n]=x>>>0 } return this.T=t },
+  async crcBlob(b){ const t=this.tab(); let c=0xFFFFFFFF; const CH=8<<20; for(let p=0;p<b.size;p+=CH){ const u=new Uint8Array(await b.slice(p,p+CH).arrayBuffer()); for(let i=0;i<u.length;i++) c=t[(c^u[i])&255]^(c>>>8) } return (c^0xFFFFFFFF)>>>0 },
+  async make(entries,onp){ const enc=new TextEncoder(), parts=[], cen=[]; let off=0, total=entries.reduce((s,e)=>s+e.blob.size,0)||1, done=0;
+    for(const e of entries){ const nm=enc.encode(e.name), crc=await this.crcBlob(e.blob), sz=e.blob.size; if(sz>=0xFFFFFFFF||off>=0xFFFFFFFF) throw new Error('файл больше 4 ГБ');
+      const h=new DataView(new ArrayBuffer(30)); h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true); h.setUint16(10,0,true); h.setUint16(12,0x21,true); h.setUint32(14,crc,true); h.setUint32(18,sz,true); h.setUint32(22,sz,true); h.setUint16(26,nm.length,true); h.setUint16(28,0,true);
+      parts.push(h.buffer,nm,e.blob);
+      const c=new DataView(new ArrayBuffer(46)); c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(10,0,true); c.setUint16(12,0,true); c.setUint16(14,0x21,true); c.setUint32(16,crc,true); c.setUint32(20,sz,true); c.setUint32(24,sz,true); c.setUint16(28,nm.length,true); c.setUint32(42,off,true);
+      cen.push(c.buffer,nm); off+=30+nm.length+sz; done+=sz; onp&&onp(done/total) }
+    const cs=cen.reduce((s,x)=>s+(x.byteLength),0), end=new DataView(new ArrayBuffer(22)); end.setUint32(0,0x06054b50,true); end.setUint16(8,entries.length,true); end.setUint16(10,entries.length,true); end.setUint32(12,cs,true); end.setUint32(16,off,true);
+    return new Blob([...parts,...cen,end.buffer],{type:'application/zip'}) },
+  async read(file){ const tail=new Uint8Array(await file.slice(Math.max(0,file.size-65557)).arrayBuffer()), dv=new DataView(tail.buffer); let p=-1; for(let i=tail.length-22;i>=0;i--) if(dv.getUint32(i,true)===0x06054b50){ p=i; break } if(p<0) throw new Error('это не архив');
+    const n=dv.getUint16(p+10,true), cs=dv.getUint32(p+12,true), co=dv.getUint32(p+16,true), cd=new DataView(await file.slice(co,co+cs).arrayBuffer()), dec=new TextDecoder(), out=[]; let q=0;
+    for(let i=0;i<n;i++){ if(cd.getUint32(q,true)!==0x02014b50) break; const meth=cd.getUint16(q+10,true), sz=cd.getUint32(q+20,true), nl=cd.getUint16(q+28,true), el=cd.getUint16(q+30,true), cl=cd.getUint16(q+32,true), lo=cd.getUint32(q+42,true); const name=dec.decode(new Uint8Array(cd.buffer,q+46,nl)); q+=46+nl+el+cl;
+      if(name.endsWith('/')) continue; if(meth!==0) throw new Error('архив сжат — откройте файл, сохранённый самой программой');
+      const lh=new DataView(await file.slice(lo,lo+30).arrayBuffer()), d=lo+30+lh.getUint16(26,true)+lh.getUint16(28,true); out.push({name,blob:file.slice(d,d+sz)}) } return out } };
+
+// ---------- громкость песни (выравнивание) и плавное затухание ----------
+let fading=false, fadeT=0;
+const trackGainLin=id=>{ const t=PL.find(x=>x.id===id); return S.level&&t&&t.gain!=null?Math.pow(10,t.gain/20):1 };
+function applyTrG(){ if(trG&&ctx) trG.gain.setTargetAtTime(trackGainLin(P.id),ctx.currentTime,.03) }
+function cancelFade(){ if(!fading) return; clearTimeout(fadeT); fading=false; const t=ctx.currentTime; fadeG.gain.cancelScheduledValues(t); fadeG.gain.setValueAtTime(1,t); $('#bFade').classList.remove('on') }
+function fadeOut(sec){ if(!P.playing) return; AC(); if(fading&&sec>.2) return; clearTimeout(fadeT); fading=true; const t=ctx.currentTime; fadeG.gain.cancelScheduledValues(t); fadeG.gain.setValueAtTime(fadeG.gain.value,t); fadeG.gain.linearRampToValueAtTime(0,t+sec); $('#bFade').classList.add('on');
+  fadeT=setTimeout(()=>{ P.playing=false; uiPlay(); renderPL(); const n=ctx.currentTime; fadeG.gain.cancelScheduledValues(n); fadeG.gain.setValueAtTime(1,n); fading=false; $('#bFade').classList.remove('on') },sec*1000+80) }
+$('#bFade').onclick=e=>{ if(fading){ cancelFade(); toast('Затухание отменено.'); return } if(!P.playing) return toast('Сейчас ничего не играет.'); const sec=e.shiftKey?8:(S.fadeSec||4); fadeOut(sec); toast(`Песня плавно уходит за ${sec} с…`,sec*1000) };
+async function measureLufs(buf){ const sr=buf.sampleRate, ch=Math.min(2,buf.numberOfChannels), oc=new OfflineAudioContext(ch,buf.length,sr), src=oc.createBufferSource(); src.buffer=buf;
+  const hs=oc.createBiquadFilter(); hs.type='highshelf'; hs.frequency.value=1500; hs.gain.value=4; const hp=oc.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=38; hp.Q.value=.5; src.connect(hs); hs.connect(hp); hp.connect(oc.destination); src.start();
+  const r=await oc.startRendering(), B=Math.round(sr*.4), H=Math.round(sr*.1), L=[...Array(ch)].map((_,c)=>r.getChannelData(c)), zs=[];
+  for(let s=0;s+B<=r.length;s+=H){ let z=0; for(const d of L){ let a=0; for(let i=s;i<s+B;i+=2) a+=d[i]*d[i]; z+=a/(B/2) } zs.push(z) }
+  const lk=z=>-0.691+10*Math.log10(z||1e-12); let g=zs.filter(z=>lk(z)>-70); if(!g.length) return -70; const rel=lk(g.reduce((a,b)=>a+b,0)/g.length)-10; g=g.filter(z=>lk(z)>rel); return lk(g.reduce((a,b)=>a+b,0)/g.length) }
+async function levelTrack(t){ const b=await getBuf(t), lu=await measureLufs(b), pk=Math.max(1e-4,peakOf(b)); let g=(S.lufsTarget||-16)-lu; g=Math.max(-12,Math.min(9,g)); g=Math.min(g,20*Math.log10(.98/pk)); t.lufs=Math.round(lu*10)/10; t.gain=Math.round(g*10)/10 }
+$('#plLevel').onclick=async ()=>{ if(S.level){ if(!confirm('Выключить выравнивание громкости? Песни снова будут звучать как в исходных файлах.')) return; S.level=false; saveS(); applyTrG(); renderPL(); levelUi(); return toast('Выравнивание выключено.') }
+  const todo=PL.filter(t=>t.lufs==null&&!t.bad); let i=0; for(const t of todo){ i++; toast(`Измеряю громкость: ${i} из ${todo.length} — «${t.name}»`,60000); try{ await levelTrack(t) }catch(e){ } await new Promise(r=>setTimeout(r,0)) }
+  S.level=true; saveS(); savePL(); applyTrG(); renderPL(); levelUi(); toast('Готово: все песни звучат одинаково громко. Файлы не изменены — поправка применяется при игре.',6000) };
+function levelUi(){ const b=$('#plLevel'); b.classList.toggle('on',!!S.level); b.textContent=S.level?'🔊 Громкость выровнена':'🔊 Выровнять громкость' }
+levelUi();
+
+// ---------- метки в песне ----------
+const curTrack=()=>PL.find(x=>x.id===P.id);
+function marksUi(){ const t=curTrack(), box=$('#mkList'); if(!box) return; const ms=(t&&t.marks)||[];
+  box.innerHTML=ms.map((m,i)=>`<button class="mk" data-mk="${i}" title="Щелчок — перейти и играть; правая кнопка — переименовать или удалить${i<9?'; клавиша '+(i+1):''}">${i<9?`<b>${i+1}</b> `:''}${esc(m.n)} <span class="mono muted">${fmt(m.t)}</span></button>`).join('') }
+function mkGo(i){ const t=curTrack(), m=t&&t.marks&&t.marks[i]; if(!m||!P.buf) return; cancelFade(); seekTo(Math.round(m.t*P.buf.sampleRate)); if(!P.playing) togglePlay() }
+$('#mkAdd').onclick=()=>{ const t=curTrack(); if(!t||!P.buf) return toast('Сначала включите песню.'); t.marks=t.marks||[]; const tt=P.pos/P.buf.sampleRate; t.marks.push({t:Math.round(tt*100)/100,n:'Метка '+(t.marks.length+1)}); t.marks.sort((a,b)=>a.t-b.t); savePL(); marksUi(); toast('Метка на '+fmt(tt)+'. Правая кнопка по метке — переименовать или удалить.') };
+$('#mkList').addEventListener('click',e=>{ const b=e.target.closest('[data-mk]'); if(b) mkGo(+b.dataset.mk) });
+$('#mkList').addEventListener('contextmenu',e=>{ const b=e.target.closest('[data-mk]'); if(!b) return; e.preventDefault(); const t=curTrack(), i=+b.dataset.mk, m=t.marks[i]; const n=prompt('Название метки (оставьте пустым — метка удалится)',m.n); if(n===null) return; if(!n.trim()) t.marks.splice(i,1); else m.n=n.trim().slice(0,30); savePL(); marksUi() });
+function drawMarks(c,a,b,id){ const t=PL.find(x=>x.id===id); if(!t||!t.marks||!t.marks.length||!P.buf) return; const g=c.getContext('2d'), w=c.width, h=c.height, sr=(BUF.get(id)||P.buf).sampleRate, d=Math.min(2,devicePixelRatio||1);
+  g.font=`700 ${10*d}px system-ui,sans-serif`; t.marks.forEach((m,i)=>{ const x=(m.t*sr-a)/(b-a)*w; if(x<0||x>w) return; g.fillStyle='#ffd34d'; g.fillRect(x-d*.75,0,1.5*d,h); g.fillRect(x-d*.75,0,12*d,11*d); g.fillStyle='#111'; g.fillText(String(i+1),x+1.5*d,9*d) }) }
+
+// ---------- связь с «Просто Свет» ----------
+const LK={ch:null,id:null,name:null,was:false,lt:0,lp:-1,ok:false};
+try{ LK.ch=new BroadcastChannel('prosto-link') }catch(e){}
+function linkUiZ(){ const b=$('#bLink'); if(!b) return; b.classList.toggle('on',!!LK.id); b.textContent=LK.id?'💡 Свет ✓':'💡 В Свет'; b.title=LK.id?'Свет идёт за этой песней. Нажмите — отвязать.':'Отправить песню в «Просто Свет»: свет пойдёт синхронно с плеером' }
+async function linkSend(){ if(!LK.ch) return toast('Этот браузер не умеет связывать программы.'); if(LK.id){ LK.ch.postMessage({app:'zvuk',type:'unlink'}); LK.id=null; linkUiZ(); return toast('Связь со светом выключена.') }
+  const id=P.id||[...selIds][0], t=PL.find(x=>x.id===id); if(!t) return toast('Выберите или включите песню.'); const blob=await IDB.get('f:'+id); if(!blob) return toast('Файл песни не найден.');
+  const name=blob.name&&/\.[^.]+$/.test(blob.name)?blob.name:t.name+(blob.type==='audio/wav'?'.wav':'.mp3'); LK.id=id; LK.name=name; LK.ok=false; LK.was=false; LK.lp=-1;
+  LK.ch.postMessage({app:'zvuk',type:'song',name,file:blob}); linkUiZ(); toast('Отправляю песню в «Просто Свет»…');
+  setTimeout(()=>{ if(!LK.ok&&LK.id===id){ toast('«Просто Свет» не ответил. Откройте его на этом же компьютере (тоже как приложение или в том же браузере) и нажмите «💡 В Свет» ещё раз.',8000); LK.id=null; linkUiZ() } },2000) }
+$('#bLink').onclick=linkSend;
+if(LK.ch) LK.ch.onmessage=e=>{ const m=e.data||{}; if(m.app!=='svet') return; if(m.type==='ok'&&m.name===LK.name){ LK.ok=true; linkUiZ(); toast('💡 Свет подхватил песню — монтаж «'+m.montage+'». Включайте: свет пойдёт синхронно.',6000) } if(m.type==='unlinked'){ LK.id=null; linkUiZ(); toast('В «Просто Свет» связь выключили.') } };
+function linkTick(){ if(!LK.ch||!LK.id||!LK.ok) return; const active=P.id===LK.id&&P.buf, playing=!!(active&&P.playing), t=active?P.pos/P.buf.sampleRate:0, now=performance.now();
+  if(playing!==LK.was){ LK.ch.postMessage({app:'zvuk',type:playing?'play':'pause',pos:t,name:LK.name}); LK.was=playing; LK.lt=now; LK.lp=t; return }
+  if(playing&&now-LK.lt>500){ LK.ch.postMessage({app:'zvuk',type:'pos',pos:t,name:LK.name}); LK.lt=now; LK.lp=t }
+  else if(!playing&&active&&Math.abs(t-LK.lp)>0.05){ LK.ch.postMessage({app:'zvuk',type:'seek',pos:t,name:LK.name}); LK.lp=t } }
+
+// ---------- плейлист одним файлом (с песнями) ----------
+$('#plPack').onclick=()=>{ const sel=PL.filter(t=>selIds.has(t.id)), list=sel.length>1?sel:PL; if(!list.length) return toast('Плейлист пуст.');
+  saveAs((sel.length>1?'pesni':'pleylist')+'-'+new Date().toISOString().slice(0,10)+'.zip',async()=>{ const files=[], meta=[]; let i=0; toast('Собираю файл…',60000);
+    for(const t of list){ const b=await IDB.get('f:'+t.id); if(!b) continue; i++; const ext=(b.name&&(/\.([^.]+)$/.exec(b.name)||[])[1])||(b.type==='audio/wav'?'wav':'mp3'), fn=`songs/${String(i).padStart(3,'0')} ${t.name.replace(/[\\/:*?"<>|]/g,'_')}.${ext}`;
+      files.push({name:fn,blob:b}); let lyr=null; try{ lyr=await IDB.get('l:'+t.id) }catch(e){} meta.push({name:t.name,file:fn,dur:t.dur,edited:!!t.edited,gain:t.gain??null,lufs:t.lufs??null,marks:t.marks||[],lyr,orig:b.name||null}) }
+    files.unshift({name:'playlist.json',blob:new Blob([JSON.stringify({app:'prosto-zvuk',v:1,tracks:meta,presets:S.myPre||{}})],{type:'application/json'})});
+    return ZIP.make(files) }) };
+$('#plUnpack').onclick=()=>$('#packIn').click();
+$('#packIn').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(f) try{ await importPackZ(f) }catch(err){ toast('Файл не открылся: '+err.message,7000) } };
+async function importPackZ(f){ toast('Открываю…',30000); const ents=await ZIP.read(f), pj=ents.find(x=>x.name==='playlist.json'); if(!pj) throw new Error('в архиве нет playlist.json — это не файл «Просто Звук»');
+  const j=JSON.parse(await pj.blob.text()); let n=0;
+  for(const m of j.tracks||[]){ const en=ents.find(x=>x.name===m.file); if(!en) continue; const id=uid(), fn=m.orig||m.file.split('/').pop(); try{ await IDB.set('f:'+id,new File([en.blob],fn,{type:en.blob.type||''})); if(m.lyr) await IDB.set('l:'+id,m.lyr) }catch(err){ toast('Не хватило места: '+err.message); break }
+    PL.push({id,name:m.name,dur:m.dur||0,edited:!!m.edited,gain:m.gain??null,lufs:m.lufs??null,marks:m.marks||[]}); n++ }
+  if(j.presets) Object.assign(S.myPre,j.presets); saveS(); savePL(); renderPL(); toast('Добавлено песен: '+n+(n?' — вместе с метками, громкостью и текстами.':''),6000) }
+
+// ---------- текст песни ----------
+const LY={id:null,data:null,cur:-1,tried:new Set(),editing:false};
+function parseLrc(txt){ const out=[]; for(let line of String(txt).replace(/\r/g,'').split('\n')){ const ts=[]; line=line.replace(/\[(\d{1,3}):(\d{1,2}(?:[.:]\d{1,3})?)\]/g,(_,m,s)=>{ ts.push(+m*60+parseFloat(s.replace(':','.'))); return '' });
+    if(!ts.length&&/^\[[a-z]{2,8}:.*\]$/i.test(line.trim())) continue; const s=line.trim(); if(ts.length) ts.forEach(t=>out.push({t,s})); else out.push({t:null,s}) }
+  while(out.length&&!out[out.length-1].s&&out[out.length-1].t==null) out.pop(); if(out.some(x=>x.t!=null)) out.sort((a,b)=>(a.t??1e9)-(b.t??1e9)); return out }
+const t2l=t=>{ const m=Math.floor(t/60), s=t-m*60; return '['+String(m).padStart(2,'0')+':'+(s<10?'0':'')+s.toFixed(2)+']' };
+function dec1(u8,enc){ if(enc===3) return new TextDecoder('utf-8').decode(u8); if(enc===1){ if(u8[0]===0xFE&&u8[1]===0xFF) return new TextDecoder('utf-16be').decode(u8.subarray(2)); return new TextDecoder('utf-16le').decode(u8[0]===0xFF&&u8[1]===0xFE?u8.subarray(2):u8) } if(enc===2) return new TextDecoder('utf-16be').decode(u8);
+  let hi=0; for(const b of u8) if(b>=0xC0) hi++; return new TextDecoder(hi>u8.length*.2?'windows-1251':'iso-8859-1').decode(u8) }
+function zEnd(d,p,enc){ if(enc===1||enc===2){ for(let i=p;i+1<d.length;i+=2) if(d[i]===0&&d[i+1]===0) return i; return d.length } for(let i=p;i<d.length;i++) if(d[i]===0) return i; return d.length }
+function id3Uslt(d){ const enc=d[0]; let p=zEnd(d,4,enc); p+=(enc===1||enc===2)?2:1; return dec1(d.subarray(p),enc) }
+function id3Sylt(d){ const enc=d[0], fmt=d[4]; if(fmt!==2) return null; let p=zEnd(d,6,enc)+((enc===1||enc===2)?2:1); const out=[]; while(p<d.length-4){ const e=zEnd(d,p,enc), s=dec1(d.subarray(p,e),enc).replace(/^\n/,''); p=e+((enc===1||enc===2)?2:1); if(p+4>d.length) break; const t=((d[p]<<24)|(d[p+1]<<16)|(d[p+2]<<8)|d[p+3])>>>0; p+=4; out.push({t:t/1000,s:s.trim()}) } return out }
+async function tagLyrics(blob){ const h=new Uint8Array(await blob.slice(0,Math.min(blob.size,16<<20)).arrayBuffer());
+  if(h[0]===0x49&&h[1]===0x44&&h[2]===0x33){ const v=h[3], ss=(a)=>((h[a]&127)<<21)|((h[a+1]&127)<<14)|((h[a+2]&127)<<7)|(h[a+3]&127), sz=ss(6); let p=10; if(h[5]&0x40) p+=v===4?ss(10):(((h[10]<<24)|(h[11]<<16)|(h[12]<<8)|h[13])>>>0)+4;
+    const end=Math.min(h.length,10+sz); let us=null, sy=null; while(p+10<=end){ const id=String.fromCharCode(h[p],h[p+1],h[p+2],h[p+3]); if(!/^[A-Z0-9]{4}$/.test(id)) break; const fs=v===4?ss(p+4):(((h[p+4]<<24)|(h[p+5]<<16)|(h[p+6]<<8)|h[p+7])>>>0); const d=h.subarray(p+10,p+10+fs);
+      try{ if(id==='USLT'&&!us) us=id3Uslt(d); if(id==='SYLT'&&!sy) sy=id3Sylt(d) }catch(e){} p+=10+fs }
+    if(sy&&sy.length) return {src:'tag',lines:sy}; if(us&&us.trim()) return {src:'tag',lines:parseLrc(us)} }
+  if(h[0]===0x66&&h[1]===0x4C&&h[2]===0x61&&h[3]===0x43){ let p=4; while(p+4<=h.length){ const last=h[p]&128, type=h[p]&127, len=(h[p+1]<<16)|(h[p+2]<<8)|h[p+3];
+      if(type===4&&p+4+len<=h.length){ const dv=new DataView(h.buffer,h.byteOffset+p+4,len); let q=4+dv.getUint32(0,true); const n=dv.getUint32(q,true); q+=4; for(let i=0;i<n&&q+4<=len;i++){ const l=dv.getUint32(q,true); q+=4; const s=new TextDecoder().decode(new Uint8Array(dv.buffer,dv.byteOffset+q,l)); q+=l; const m=/^(UNSYNCEDLYRICS|LYRICS|UNSYNCED LYRICS)=([\s\S]*)$/i.exec(s); if(m&&m[2].trim()) return {src:'tag',lines:parseLrc(m[2])} } }
+      p+=4+len; if(last) break } }
+  for(let i=0;i+16<h.length;i++){ if(h[i]===0xA9&&h[i+1]===0x6C&&h[i+2]===0x79&&h[i+3]===0x72&&h[i+8]===0x64&&h[i+9]===0x61&&h[i+10]===0x74&&h[i+11]===0x61){ const dsz=((h[i+4]<<24)|(h[i+5]<<16)|(h[i+6]<<8)|h[i+7])>>>0; const s=new TextDecoder().decode(h.subarray(i+20,i+4+dsz)); if(s.trim()) return {src:'tag',lines:parseLrc(s)} } }
+  return null }
+async function lyrLoad(id){ LY.id=id; LY.data=null; LY.cur=-1; LY.editing=false; $('#lyrEdit').hidden=true; $('#lyrSave').hidden=$('#lyrCancel').hidden=true;
+  if(!id){ lyrRender(); return } try{ LY.data=await IDB.get('l:'+id) }catch(e){}
+  if(!LY.data&&!LY.tried.has(id)){ LY.tried.add(id); try{ const b=await IDB.get('f:'+id); const r=b&&await tagLyrics(b); if(r&&r.lines.length){ LY.data=r; await IDB.set('l:'+id,r); const t=PL.find(x=>x.id===id); if(t){ t.lyr=true; savePL() } } }catch(e){} }
+  if(LY.id===id) lyrRender() }
+function lyrRender(){ const box=$('#lyrLines'), t=PL.find(x=>x.id===LY.id); $('#lyrTitle').textContent=t?'Текст: '+t.name:'Текст песни';
+  const src={tag:'из тегов файла',lrc:'из файла .lrc',asr:'распознан программой — проверьте',user:'введён вручную'};
+  if(!LY.data||!LY.data.lines||!LY.data.lines.length){ box.innerHTML=`<div class="hint">${t?'В файле текста нет. Нажмите «🎤 Распознать» — программа попробует расслышать слова сама, или «📄 Из файла» — подгрузите .lrc / .txt, или «✎ Вписать».':'Включите песню.'}</div>`; $('#lyrSrc').textContent=''; return }
+  $('#lyrSrc').textContent=src[LY.data.src]||''; const timed=LY.data.lines.some(x=>x.t!=null);
+  box.innerHTML=LY.data.lines.map((x,i)=>`<div class="ly${timed&&x.t!=null?' tm':''}" data-ly="${i}">${x.s?esc(x.s):'&nbsp;'}</div>`).join(''); LY.cur=-1 }
+function lyrTick(){ if($('#lyrBox').hidden||!LY.data||LY.editing||P.id!==LY.id||!P.buf) return; const L=LY.data.lines; if(!L.some(x=>x.t!=null)) return; const t=P.pos/P.buf.sampleRate+.15; let k=-1; for(let i=0;i<L.length;i++){ if(L[i].t!=null&&L[i].t<=t) k=i }
+  if(k!==LY.cur){ const box=$('#lyrLines'); const o=box.querySelector('.ly.cur'); if(o) o.classList.remove('cur'); const n=box.querySelector(`[data-ly="${k}"]`); if(n){ n.classList.add('cur'); box.scrollTo({top:n.offsetTop-box.clientHeight/2+n.clientHeight/2,behavior:'smooth'}) } LY.cur=k } }
+$('#lyrLines').addEventListener('click',e=>{ const d=e.target.closest('.ly.tm'); if(!d||!LY.data||P.id!==LY.id) return; const x=LY.data.lines[+d.dataset.ly]; seekTo(Math.round(x.t*P.buf.sampleRate)); if(!P.playing) togglePlay() });
+$('#lyrBtn').onclick=()=>{ const b=$('#lyrBox'); b.hidden=!b.hidden; $('#lyrBtn').classList.toggle('on',!b.hidden); S.lyrOpen=!b.hidden; saveS(); if(!b.hidden) lyrLoad(P.id||[...selIds][0]||null) };
+$('#lyrEditBtn').onclick=()=>{ if(!LY.id) return toast('Включите песню.'); LY.editing=true; const ta=$('#lyrEdit'); ta.value=LY.data?LY.data.lines.map(x=>(x.t!=null?t2l(x.t):'')+x.s).join('\n'):''; ta.hidden=false; $('#lyrSave').hidden=$('#lyrCancel').hidden=false; $('#lyrLines').hidden=true; ta.focus() };
+$('#lyrCancel').onclick=()=>{ LY.editing=false; $('#lyrEdit').hidden=true; $('#lyrSave').hidden=$('#lyrCancel').hidden=true; $('#lyrLines').hidden=false };
+$('#lyrSave').onclick=async()=>{ const lines=parseLrc($('#lyrEdit').value); LY.data=lines.length?{src:LY.data&&LY.data.src==='asr'?'asr':'user',lines}:null; try{ if(LY.data) await IDB.set('l:'+LY.id,LY.data); else await IDB.del('l:'+LY.id) }catch(e){} $('#lyrCancel').click(); lyrRender(); toast('Текст сохранён. Чтобы строки подсвечивались под музыку, начните строку со времени: [01:23.50]') };
+$('#lyrFileBtn').onclick=()=>{ if(!LY.id) return toast('Включите песню.'); $('#lyrFile').click() };
+$('#lyrFile').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; const buf=new Uint8Array(await f.arrayBuffer()); let txt=new TextDecoder('utf-8').decode(buf); if(txt.includes('�')) txt=new TextDecoder('windows-1251').decode(buf);
+  const lines=parseLrc(txt); if(!lines.length) return toast('В файле нет текста.'); LY.data={src:/\.lrc$/i.test(f.name)?'lrc':'user',lines}; await IDB.set('l:'+LY.id,LY.data); lyrRender(); toast('Текст подгружен.') };
+$('#lyrDel').onclick=async()=>{ if(!LY.id||!LY.data) return; if(!confirm('Удалить текст этой песни?')) return; await IDB.del('l:'+LY.id); LY.data=null; lyrRender() };
+// распознавание речи прямо на компьютере (Whisper). Первый раз скачивает модель из интернета, дальше работает без него.
+const ASR_SRC=`let pipe=null,cur=null;
+self.onmessage=async e=>{ const {audio,model,lang}=e.data; try{
+  const T=await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1'); T.env.allowLocalModels=false;
+  if(!pipe||cur!==model){ pipe=await T.pipeline('automatic-speech-recognition',model,{dtype:'q8',device:'wasm',progress_callback:p=>{ if(p.status==='progress') self.postMessage({type:'dl',file:p.file,p:p.progress,loaded:p.loaded,total:p.total}) }}); cur=model }
+  self.postMessage({type:'run'});
+  const opt={task:'transcribe',chunk_length_s:30,stride_length_s:5,return_timestamps:true}; if(lang) opt.language=lang;
+  const out=await pipe(audio,opt); self.postMessage({type:'done',out});
+ }catch(err){ self.postMessage({type:'err',msg:String(err&&err.message||err)}) } };`;
+let asrW=null, asrBusy=false;
+$('#lyrAsr').onclick=async()=>{ if(asrBusy) return toast('Уже распознаю — подождите.'); if(!LY.id) return toast('Включите песню.'); if(!navigator.onLine&&!S.asrReady) return toast('Первый раз для распознавания нужен интернет — программа скачает модель.');
+  if(LY.data&&LY.data.lines.length&&!confirm('У песни уже есть текст. Заменить распознанным?')) return;
+  const id=LY.id, t=PL.find(x=>x.id===id), pr=$('#lyrProg'); asrBusy=true; pr.textContent='Готовлю звук…';
+  try{ const b=await getBuf(t), oc=new OfflineAudioContext(1,Math.ceil(b.duration*16000),16000), s=oc.createBufferSource(); s.buffer=b; s.connect(oc.destination); s.start(); const r=await oc.startRendering(), audio=r.getChannelData(0).slice();
+    if(!asrW) asrW=new Worker(URL.createObjectURL(new Blob([ASR_SRC],{type:'text/javascript'})),{type:'module'});
+    const res=await new Promise((ok,bad)=>{ asrW.onmessage=e=>{ const m=e.data; if(m.type==='dl') pr.textContent=`Скачиваю модель (только первый раз): ${Math.round(m.p||0)}%`; else if(m.type==='run') pr.textContent='Распознаю слова… для песни это 1–5 минут, программой можно пользоваться'; else if(m.type==='done') ok(m.out); else if(m.type==='err') bad(new Error(m.msg)) }; asrW.onerror=e=>bad(new Error(e.message||'ошибка')); asrW.postMessage({audio,model:$('#lyrModel').value,lang:$('#lyrLang').value},[audio.buffer]) });
+    const ch=(res.chunks||[]).map(c=>({t:c.timestamp&&c.timestamp[0]!=null?Math.round(c.timestamp[0]*100)/100:null,s:String(c.text||'').trim()})).filter(x=>x.s);
+    const lines=ch.length?ch:parseLrc(res.text||''); if(!lines.length) throw new Error('слов не расслышал — возможно, в песне нет голоса');
+    const data={src:'asr',lines}; await IDB.set('l:'+id,data); S.asrReady=true; saveS(); if(LY.id===id){ LY.data=data; lyrRender() } pr.textContent=''; toast('Текст распознан. Это автоматическая расшифровка — проверьте и поправьте кнопкой «✎ Вписать».',7000) }
+  catch(e){ pr.textContent=''; toast('Не получилось распознать: '+e.message+(/fetch|network|Failed/i.test(e.message)?' — нужен интернет для первой загрузки модели.':''),9000) }
+  asrBusy=false };
+
+if(S.lyrOpen){ $('#lyrBox').hidden=false; $('#lyrBtn').classList.add('on') }
+
 const edActive=()=>ED.out==='cue'?$('#tab-cue').classList.contains('active'):$('#tab-ed').classList.contains('active');
 const cueTabs=()=>$('#tab-cue').classList.contains('active')||$('#tab-eq').classList.contains('active')&&CUE.buf;
 document.addEventListener('keydown',e=>{ if(e.target.matches('input[type=text],input[type=number],select,textarea')) return;
+  if(e.key==='Escape'&&P.playing){ e.preventDefault(); fadeOut(.08); return }
+  if((e.key==='f'||e.key==='F'||e.key==='а'||e.key==='А')&&!e.ctrlKey&&!e.metaKey){ e.preventDefault(); $('#bFade').dispatchEvent(new MouseEvent('click',{shiftKey:e.shiftKey})); return }
+  if((e.code==='KeyM')&&!e.ctrlKey&&!e.metaKey&&!edActive()){ e.preventDefault(); $('#mkAdd').click(); return }
+  if(/^[1-9]$/.test(e.key)&&!e.ctrlKey&&!e.metaKey&&!e.altKey){ e.preventDefault(); mkGo(+e.key-1); return }
   if(e.code==='Space'&&cueTabs()){ e.preventDefault(); if(CUE.buf){ CUE.until=null; CUE.playing?cueStopSrc():cuePlay() } }
   else if(e.code==='Space'){ e.preventDefault(); togglePlay() }
   else if(e.key==='ArrowRight'&&P.buf){ e.preventDefault(); seekTo(P.pos+P.buf.sampleRate*5) }
