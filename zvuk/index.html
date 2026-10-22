@@ -40,7 +40,7 @@ header{display:flex;align-items:center;gap:14px;justify-content:space-between}
 .pvbar{position:absolute;top:6px;left:6px;right:6px;display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap;opacity:0;transition:opacity .2s;z-index:2}
 .viz:hover .pvbar,.pvbar:focus-within{opacity:1}
 .pvbar button,.pvbar select{min-height:26px;padding:2px 7px;font-size:12px;background:rgba(20,23,30,.85)}
-.pvbar select{max-width:118px}.pvbar button.on{background:var(--accent);color:#111;border-color:var(--accent)}.pvbar .pvonly{display:contents}
+.pvbar select{max-width:118px}.pvsens{display:flex;align-items:center;gap:3px;font-size:12px;background:rgba(20,23,30,.85);border:1px solid var(--line);border-radius:8px;padding:0 6px}.pvsens input{width:70px}.pvbar button.on{background:var(--accent);color:#111;border-color:var(--accent)}.pvbar .pvonly{display:contents}
 .viz:not(.pv) .pvonly{display:none}
 .viz.full{border-radius:0;border:0;height:100%}.viz.full .pvbar{top:14px;right:14px}
 .pvdlg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:50}
@@ -145,20 +145,20 @@ input.tin{width:86px;font-family:var(--f-mono)} input.nin{width:72px;font-family
 <body>
 <div class="app">
 <header>
-  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.5</span></div>
+  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.6</span></div>
   <div class="row">
     <button id="addBtn" title="Добавить песни">＋ Песни…</button>
     <button id="addDirBtn" title="Добавить папку с музыкой">＋ Папка…</button>
-    <input id="fileIn" type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac,.aac" multiple hidden>
+    <input id="fileIn" type="file" accept="audio/*,video/*,.mp3,.wav,.ogg,.m4a,.flac,.aac,.opus,.mp4,.m4v,.mov,.webm" multiple hidden>
   </div>
 </header>
 
 <section class="panel player">
   <div class="viz" id="vizBox"><canvas id="viz"></canvas><canvas id="pviz"></canvas>
-    <div class="pvbar"><button id="pvMode" title="Спектр или 3D-частицы">Частицы</button><span class="pvonly"><select id="pvShape" title="Фигура"></select><button id="pvNext" title="Следующая фигура">⟳</button><button id="pvAuto" title="Менять фигуры самим под музыку">Авто</button><button id="pvAdd" title="Своя фигура: код с сайта Particles или файл .ply / .obj">＋</button><button id="pvDel" title="Удалить свою фигуру">🗑</button></span><button id="pvFull" title="На весь экран (или двойной щелчок)">⛶</button></div>
+    <div class="pvbar"><button id="pvMode" title="Спектр или 3D-частицы">Частицы</button><span class="pvonly"><select id="pvShape" title="Фигура"></select><button id="pvNext" title="Следующая фигура">⟳</button><button id="pvAuto" title="Менять фигуры самим под музыку">Авто</button><button id="pvAdd" title="Своя фигура: код с сайта Particles или файл .ply / .obj">＋</button><button id="pvDel" title="Удалить свою фигуру">🗑</button><label class="pvsens" title="Чувствительность к музыке">⚡<input id="pvSens" type="range" min="0" max="3" step="0.1"></label></span><button id="pvFull" title="На весь экран (или двойной щелчок)">⛶</button></div>
   </div>
   <div class="now">
-    <div><div class="title" id="tTitle">Перетащите песни сюда</div><div class="sub" id="tSub">MP3, WAV, OGG, M4A, FLAC — можно сразу целой папкой</div></div>
+    <div><div class="title" id="tTitle">Перетащите песни сюда</div><div class="sub" id="tSub">MP3, WAV, M4A, FLAC, OGG или видео MP4 / MOV (берётся звук) — можно целой папкой</div></div>
     <div class="row" style="justify-content:space-between">
       <div class="clock"><span id="tNow">0:00</span><small id="tDur">/ 0:00</small></div>
       <div class="transport">
@@ -1455,7 +1455,7 @@ const PRE=(lc,ls,p2,p3,p4,hs)=>{ const b=PEQ0(); [lc,ls,p2,p3,p4,hs].forEach((v,
 const PRESETS={'Ровно':PRE(),'Голос':PRE({on:true,f:100},{g:-2},{f:300,g:-2,q:1.4},{f:2500,g:3,q:1},{f:5500,g:2,q:1.4},{f:10000,g:2}),'Больше баса':PRE(null,{f:90,g:6}),'Больше верха':PRE(null,null,null,null,null,{f:7000,g:6}),
   'Зал (сцена)':PRE({on:true,f:60},{g:1},{f:250,g:-2,q:1},{f:2500,g:1.5,q:1},null,{g:2}),'Убрать гул':PRE({on:true,f:120,q:.9},null,{f:250,g:-3,q:1.5}),'Рок':PRE(null,{g:4},{f:500,g:-2,q:1},{f:2500,g:2,q:1},null,{g:4}),
   'Поп':PRE(null,{g:2},{f:700,g:1.5,q:.8},{f:2500,g:2.5,q:1},null,{g:2}),'Танцевальная':PRE(null,{f:80,g:6},{f:400,g:-2,q:1},null,{f:6000,g:3,q:1},{g:3}),'Тихо ночью':PRE(null,{g:2},null,null,{f:4000,g:-3,q:1},{g:-3})};
-const S=Object.assign({vol:85,bal:0,peq:PEQ0(),eqOn:true,rta:true,preset:'Ровно',shuffle:false,repeat:0,devMain:'',devCue:'',cueVol:80,cueDupVol:50,myPre:{},cueEq:true,vizMode:'pv',pvAuto:true,pvGlow:60,pvShape:0},(()=>{try{return JSON.parse(localStorage.getItem(KEY+'-s')||'{}')}catch(e){return{}}})());
+const S=Object.assign({vol:85,bal:0,peq:PEQ0(),eqOn:true,rta:true,preset:'Ровно',shuffle:false,repeat:0,devMain:'',devCue:'',cueVol:80,cueDupVol:50,myPre:{},cueEq:true,vizMode:'pv',pvAuto:true,pvGlow:60,pvShape:0,pvSens:1.3},(()=>{try{return JSON.parse(localStorage.getItem(KEY+'-s')||'{}')}catch(e){return{}}})());
 if(!Array.isArray(S.peq)||S.peq.length!==6) S.peq=PEQ0();
 const saveS=()=>{try{localStorage.setItem(KEY+'-s',JSON.stringify(S))}catch(e){}};
 // ---------- хранение песен (IndexedDB: сами файлы) ----------
@@ -1517,13 +1517,13 @@ function applyBal(){ if(panN) panN.pan.value=S.bal/100 }
 async function decodeFile(blob){ const ab=await blob.arrayBuffer(); return await AC().decodeAudioData(ab) }
 async function getBuf(t){ if(BUF.has(t.id)) return BUF.get(t.id); const blob=await IDB.get('f:'+t.id); if(!blob) throw new Error('файл не найден'); const b=await decodeFile(blob); keepBuf(t.id,b); if(!t.dur){ t.dur=b.duration; savePL(); renderPL() } return b }
 function keepBuf(id,b){ BUF.set(id,b); const keep=new Set([P.id,ED.id,CUE.id,id,...MX.map(m=>m.id)]); for(const k of [...BUF.keys()]) if(BUF.size>6&&!keep.has(k)) BUF.delete(k) }
-const AUDIO_RE=/\.(mp3|wav|ogg|oga|m4a|aac|flac|opus|webm|wma)$/i;
+const AUDIO_RE=/\.(mp3|wav|ogg|oga|m4a|aac|flac|opus|webm|wma|mp4|m4v|mov|3gp)$/i;
 async function addFiles(files){
-  files=[...files].filter(f=>f&&(f.type.startsWith('audio/')||AUDIO_RE.test(f.name))); if(!files.length){ toast('Аудиофайлов не найдено.'); return }
+  files=[...files].filter(f=>f&&(f.type.startsWith('audio/')||f.type.startsWith('video/')||AUDIO_RE.test(f.name))); if(!files.length){ toast('Не нашлось ни песен, ни видео. Подходят MP3, WAV, M4A, FLAC, OGG, а из видео — MP4, MOV, M4V, WEBM (берётся звук).'); return }
   files.sort((a,b)=>(a.webkitRelativePath||a.name).localeCompare(b.webkitRelativePath||b.name,'ru',{numeric:true}));
   let n=0; for(const f of files){ const t={id:uid(),name:f.name.replace(/\.[^.]+$/,''),dur:0}; try{ await IDB.set('f:'+t.id,f) }catch(e){ toast('Не хватает места в браузере для «'+f.name+'».'); continue } PL.push(t); n++ }
   savePL(); renderPL(); toast('Добавлено песен: '+n);
-  for(const t of PL) if(!t.dur){ try{ const b=await decodeFile(await IDB.get('f:'+t.id)); t.dur=b.duration; if(P.id!==t.id&&ED.id!==t.id) {} else keepBuf(t.id,b); renderPL() }catch(e){ t.bad=true; renderPL() } }
+  for(const t of PL) if(!t.dur){ try{ const b=await decodeFile(await IDB.get('f:'+t.id)); t.dur=b.duration; if(P.id!==t.id&&ED.id!==t.id) {} else keepBuf(t.id,b); renderPL() }catch(e){ t.bad=true; renderPL(); toast('Не получилось прочитать звук из «'+t.name+'». Если это видео — возможно, в нём звук в редком формате; перегоните его в MP4 (звук AAC) или MP3.',7000) } }
   savePL();
 }
 async function collectDrop(dt){ const out=[], walk=async (en)=>{ if(!en) return; if(en.isFile) await new Promise(r=>en.file(f=>{out.push(f);r()},()=>r())); else if(en.isDirectory){ const rd=en.createReader(); let batch; do{ batch=await new Promise(r=>rd.readEntries(r,()=>r([]))); for(const e of batch) await walk(e) }while(batch.length) } };
@@ -1554,7 +1554,7 @@ $('#plDel').onclick=()=>delSel();
 async function delSel(){ if(!selIds.size) return; for(const id of selIds){ if(P.id===id) stopPlay(); IDB.del('f:'+id); BUF.delete(id) } PL=PL.filter(t=>!selIds.has(t.id)); selIds.clear(); savePL(); renderPL() }
 let clrArm=0; $('#plClear').onclick=()=>{ if(Date.now()-clrArm>3000){ clrArm=Date.now(); toast('Нажмите «Очистить» ещё раз, чтобы убрать все песни.'); return } selIds=new Set(PL.map(t=>t.id)); delSel() };
 $('#plEdit').onclick=()=>{ const id=[...selIds][0]||P.id; if(!id) return toast('Выберите песню в плейлисте.'); openEditor(id); openTab('ed') };
-$('#plDl').onclick=async ()=>{ if(!selIds.size) return toast('Выберите песни в плейлисте.'); const EXT={'audio/mpeg':'mp3','audio/mp3':'mp3','audio/wav':'wav','audio/x-wav':'wav','audio/wave':'wav','audio/ogg':'ogg','audio/flac':'flac','audio/x-flac':'flac','audio/mp4':'m4a','audio/x-m4a':'m4a','audio/aac':'aac'};
+$('#plDl').onclick=async ()=>{ if(!selIds.size) return toast('Выберите песни в плейлисте.'); const EXT={'video/mp4':'mp4','video/quicktime':'mov','video/webm':'webm','audio/mpeg':'mp3','audio/mp3':'mp3','audio/wav':'wav','audio/x-wav':'wav','audio/wave':'wav','audio/ogg':'ogg','audio/flac':'flac','audio/x-flac':'flac','audio/mp4':'m4a','audio/x-m4a':'m4a','audio/aac':'aac'};
   const list=PL.filter(t=>selIds.has(t.id));
   for(const t of list){ const b=await IDB.get('f:'+t.id); if(!b) continue; const m=b.name&&/\.([^.]+)$/.exec(b.name), ext=(m&&m[1])||EXT[b.type]||'wav', name=t.name+'.'+ext;
     if(list.length===1) await saveAs(name,async ()=>b); else { download(b,name); await new Promise(r=>setTimeout(r,500)) } }
@@ -2016,18 +2016,19 @@ const PV_SHAPES=[
 ];
 // ---- WebGL
 const PV_VS=`attribute vec3 a; attribute vec3 b; attribute vec3 ca; attribute vec3 cb; attribute float s;
-uniform float t, time, bass, high, kick, size, asp, yaw, pitch, scale; varying vec3 vc; varying float va;
+uniform float t, time, bass, high, kick, size, asp, yaw, pitch, scale, sens; varying vec3 vc; varying float va;
 void main(){ float m=smoothstep(0.,1.,clamp(t*1.7-s*.7,0.,1.)); vec3 p=mix(a,b,m); vc=mix(ca,cb,m);
-  float r=length(p)+1e-4; p+=p/r*(bass*.16*sin(time*3.+s*40.)+kick*.12); p+=vec3(sin(time*.7+s*90.),cos(time*.9+s*70.),sin(time*.8+s*50.))*.012*(1.+high*3.);
-  float cy=cos(yaw), sy=sin(yaw), cp=cos(pitch), sp=sin(pitch); p=vec3(cy*p.x+sy*p.z,p.y,-sy*p.x+cy*p.z); p=vec3(p.x,cp*p.y-sp*p.z,sp*p.y+cp*p.z); p*=scale*(1.+bass*.08+kick*.06);
+  float r=length(p)+1e-4; vec3 nd=normalize(vec3(sin(s*311.),cos(s*173.),sin(s*97.+1.)));
+  p+=p/r*(bass*.16*sens*sin(time*3.+s*40.)+kick*.16*sens)+nd*kick*kick*.22*sens*step(.55,fract(s*37.)); p+=vec3(sin(time*.7+s*90.),cos(time*.9+s*70.),sin(time*.8+s*50.))*.012*(1.+high*3.);
+  float cy=cos(yaw), sy=sin(yaw), cp=cos(pitch), sp=sin(pitch); p=vec3(cy*p.x+sy*p.z,p.y,-sy*p.x+cy*p.z); p=vec3(p.x,cp*p.y-sp*p.z,sp*p.y+cp*p.z); p*=scale*(1.+bass*.1*sens+kick*.09*sens);
   float z=p.z+3.2; gl_Position=vec4(p.x*2.3/asp/z, p.y*2.3/z, 0., 1.);
-  float tw=fract(sin(s*913.)*43758.); gl_PointSize=size*(3.2/z)*(1.+high*1.8*step(.82,tw)); va=.55+bass*.45+kick*.5; }`;
+  float tw=fract(sin(s*913.)*43758.); gl_PointSize=size*(3.2/z)*(1.+high*2.2*sens*step(.8,tw)+kick*.35*sens); va=.45+bass*.45*sens+kick*.7*sens; }`;
 const PV_FS=`precision mediump float; varying vec3 vc; varying float va; uniform float glow;
 void main(){ vec2 d=gl_PointCoord-.5; float r=dot(d,d)*4.; float f=exp(-r*2.2)*glow+exp(-r*10.)*.85; if(f<.01) discard; gl_FragColor=vec4(vc*f*va,1.); }`;
 function pvInit(){ if(PV.gl||PV.fail) return PV.gl; const c=$('#pviz'); const gl=c.getContext('webgl',{alpha:true,antialias:false,premultipliedAlpha:true,preserveDrawingBuffer:false}); if(!gl){ PV.fail=true; toast('Частицы не поддерживаются этим браузером/видеокартой.'); return null }
   const sh=(type,src)=>{ const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s); if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s };
   const p=gl.createProgram(); gl.attachShader(p,sh(gl.VERTEX_SHADER,PV_VS)); gl.attachShader(p,sh(gl.FRAGMENT_SHADER,PV_FS)); gl.linkProgram(p); gl.useProgram(p);
-  PV.gl=gl; PV.prog=p; PV.n=PV_N; PV.loc={}; for(const k of ['t','time','bass','high','kick','size','asp','yaw','pitch','scale','glow']) PV.loc[k]=gl.getUniformLocation(p,k);
+  PV.gl=gl; PV.prog=p; PV.n=PV_N; PV.loc={}; for(const k of ['t','time','bass','high','kick','size','asp','yaw','pitch','scale','glow','sens']) PV.loc[k]=gl.getUniformLocation(p,k);
   const mk=(name,dim,data)=>{ const b=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,b); gl.bufferData(gl.ARRAY_BUFFER,data,gl.DYNAMIC_DRAW); const l=gl.getAttribLocation(p,name); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l,dim,gl.FLOAT,false,0,0); return b };
   const seed=new Float32Array(PV.n); for(let i=0;i<PV.n;i++) seed[i]=rnd();
   const z=new Float32Array(PV.n*3); PV.bufA=mk('a',3,z); PV.bufB=mk('b',3,z); PV.bufCA=mk('ca',3,z); PV.bufCB=mk('cb',3,z); PV.bufS=mk('s',1,seed);
@@ -2048,17 +2049,18 @@ function pvSet(idx){ if(!pvInit()) return; const all=PV_SHAPES.concat(PV.custom)
   PV.cur=nx; PV.morph=0; PV.lastSwitch=performance.now(); PV.beats=0; const sel=$('#pvShape'); if(sel) sel.value=String(idx); S.pvShape=idx<PV_SHAPES.length?idx:'c:'+sh.name; saveS() }
 function pvAudio(){ let an=null; if(P.playing&&analyser) an=analyser; else if(typeof CUE!=='undefined'&&CUE.playing&&cueAn) an=cueAn; if(!an){ PV.bass*=.95; PV.mid*=.95; PV.high*=.95; PV.kick*=.9; return false }
   const d=new Uint8Array(an.frequencyBinCount); an.getByteFrequencyData(d); const hz=an.context.sampleRate/2/d.length, band=(a,b)=>{ let s=0,k=0; for(let i=Math.floor(a/hz);i<=Math.min(d.length-1,Math.floor(b/hz));i++){ s+=d[i]; k++ } return k?s/k/255:0 };
-  const b=band(30,140), m=band(300,2500), h=band(5000,14000); const flux=Math.max(0,b-(PV.prevB||0)); PV.prevB=b; PV.avgF=(PV.avgF||.01)+(flux-(PV.avgF||.01))*.05;
+  const raw=band(30,140), m0=band(300,2500), h0=band(5000,14000); PV.pkB=Math.max((PV.pkB||.5)*.997,raw,.15); PV.pkH=Math.max((PV.pkH||.3)*.997,h0,.08); PV.pkM=Math.max((PV.pkM||.4)*.997,m0,.1);
+  const b=Math.min(1,raw/PV.pkB), m=Math.min(1,m0/PV.pkM), h=Math.min(1,h0/PV.pkH); const flux=Math.max(0,b-(PV.prevB||0)); PV.prevB=b; PV.avgF=(PV.avgF||.01)+(flux-(PV.avgF||.01))*.05;
   PV.bass+=(b-PV.bass)*.35; PV.mid+=(m-PV.mid)*.2; PV.high+=(h-PV.high)*.3; PV.avgB+=(b-PV.avgB)*.02;
-  const now=performance.now(); if(flux>Math.max(.025,PV.avgF*2.2)&&now-PV.lastKick>230){ PV.kick=1; PV.lastKick=now; PV.beats++ } PV.kick*=.88; return true }
+  const now=performance.now(); if(flux>Math.max(.03,PV.avgF*(2.6-.45*(S.pvSens??1.3)))&&now-PV.lastKick>200){ PV.kick=1; PV.lastKick=now; PV.beats++ } PV.kick*=.88; return true }
 function pvFrame(){ if(S.vizMode!=='pv') return; const gl=pvInit(); if(!gl) return; const tt=$('#tTitle').textContent; if(PV_SHAPES[PV.shape]&&PV_SHAPES[PV.shape].name==='Название песни'&&tt!==PV.lastTitle&&PV.morph>=1){ PV.lastTitle=tt; pvSet(PV.shape) } const c=$('#pviz'), r=c.getBoundingClientRect(), d=Math.min(2,devicePixelRatio||1), w=Math.max(1,r.width*d|0), h=Math.max(1,r.height*d|0); if(c.width!==w||c.height!==h){ c.width=w; c.height=h } if(!r.width) return;
   const live=pvAudio(), now=performance.now(), dt=Math.min(.05,(now-(PV.t0||now))/1000); PV.t0=now;
   if(PV.morph<1){ PV.morph=Math.min(1,PV.morph+dt/1.6) }
   if(S.pvAuto&&live&&PV.morph>=1&&(PV.beats>=32||now-PV.lastSwitch>24000)&&PV.kick>.9){ let k=PV.shape+1; const all=PV_SHAPES.length+PV.custom.length; if(k>=all) k=0; pvSet(k) }
-  const isTxt=PV_SHAPES[PV.shape]&&PV_SHAPES[PV.shape].name==='Название песни'; if(isTxt){ PV.yaw=Math.sin(now/2600)*.35; PV.pitch=Math.sin(now/3700)*.12 } else { PV.yaw+=dt*(.18+PV.mid*.9); PV.pitch=.35+Math.sin(now/7000)*.18 }
+  const isTxt=PV_SHAPES[PV.shape]&&PV_SHAPES[PV.shape].name==='Название песни'; if(isTxt){ PV.yaw=Math.sin(now/2600)*.35; PV.pitch=Math.sin(now/3700)*.12 } else { PV.yaw+=dt*(.18+PV.mid*.9*(S.pvSens??1.3)+PV.kick*2.2*(S.pvSens??1.3)); PV.pitch=.35+Math.sin(now/7000)*.18 }
   gl.viewport(0,0,w,h); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT); const L=PV.loc, fs=document.fullscreenElement===$('#vizBox');
   gl.uniform1f(L.t,PV.morph); gl.uniform1f(L.time,now/1000); gl.uniform1f(L.bass,PV.bass); gl.uniform1f(L.high,PV.high); gl.uniform1f(L.kick,PV.kick);
-  gl.uniform1f(L.size,(fs?3.6:2.8)*d*Math.sqrt(Math.min(w,h)/(200*d))); gl.uniform1f(L.asp,w/h); gl.uniform1f(L.yaw,PV.yaw); gl.uniform1f(L.pitch,PV.pitch); gl.uniform1f(L.scale,1); gl.uniform1f(L.glow,(S.pvGlow||60)/100*.55);
+  gl.uniform1f(L.size,(fs?3.6:2.8)*d*Math.sqrt(Math.min(w,h)/(200*d))); gl.uniform1f(L.asp,w/h); gl.uniform1f(L.yaw,PV.yaw); gl.uniform1f(L.pitch,PV.pitch); gl.uniform1f(L.scale,1); gl.uniform1f(L.sens,S.pvSens??1.3); gl.uniform1f(L.glow,(S.pvGlow||60)/100*.55);
   gl.drawArrays(gl.POINTS,0,PV.n) }
 // ---- свои фигуры: код из Particles (кнопка COPY) или файл OBJ / PLY
 function pvNorm(pts){ let cx=0,cy=0,cz=0; const m=pts.length/3; for(let i=0;i<m;i++){ cx+=pts[i*3]; cy+=pts[i*3+1]; cz+=pts[i*3+2] } cx/=m; cy/=m; cz/=m; let R=1e-6; for(let i=0;i<m;i++){ pts[i*3]-=cx; pts[i*3+1]-=cy; pts[i*3+2]-=cz; R=Math.max(R,Math.hypot(pts[i*3],pts[i*3+1],pts[i*3+2])) } for(let i=0;i<pts.length;i++) pts[i]/=R*.95; return pts }
@@ -2086,6 +2088,7 @@ function pvAddCustom(name,sh){ name=(name||'Своя фигура').slice(0,40);
 function pvUi(){ const sel=$('#pvShape'); if(!sel) return; sel.innerHTML=PV_SHAPES.map((s,i)=>`<option value="${i}">${s.name}</option>`).join('')+(PV.custom.length?'<optgroup label="Свои">'+PV.custom.map((s,i)=>`<option value="${PV_SHAPES.length+i}">${esc(s.name)}</option>`).join('')+'</optgroup>':''); sel.value=String(PV.shape);
   $('#vizBox').classList.toggle('pv',S.vizMode==='pv'); $('#pvMode').textContent=S.vizMode==='pv'?'Спектр':'Частицы'; $('#pvAuto').classList.toggle('on',!!S.pvAuto); $('#pvDel').hidden=PV.shape<PV_SHAPES.length }
 $('#pvMode').onclick=()=>{ S.vizMode=S.vizMode==='pv'?'spec':'pv'; saveS(); pvUi(); if(S.vizMode==='pv'&&pvInit()&&PV.morph>=1&&!PV.started){ PV.started=true; pvSet(PV.shape) } };
+$('#pvSens').value=S.pvSens??1.3; $('#pvSens').oninput=e=>{ S.pvSens=+e.target.value; saveS() };
 $('#pvShape').onchange=e=>{ pvSet(+e.target.value); pvUi() };
 $('#pvNext').onclick=()=>{ pvSet(PV.shape+1); pvUi() };
 $('#pvAuto').onclick=()=>{ S.pvAuto=!S.pvAuto; saveS(); pvUi(); toast(S.pvAuto?'Фигуры будут меняться сами — на сильной доле, примерно раз в 20 секунд.':'Фигура меняется только вручную.') };
