@@ -323,7 +323,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.21</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.22</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -369,6 +369,12 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
       <h3>Open DMX (FTDI)</h3>
       <p>Простой кабель или коробочка без своего процессора: «Open DMX USB», «Eurolite USB-DMX512» (не PRO), китайские USB-DMX на чипе FTDI.</p>
       <button class="primary" data-connect="open">Подключить Open DMX</button>
+    </div>
+    <div class="card" data-out="udmx">
+      <span class="tag">USB → DMX</span>
+      <h3>uDMX</h3>
+      <p>Маленький адаптер, в «Информации о системе» Mac называется <b>uDMX</b>. Его нет в списке портов — он подключается отдельной кнопкой.</p>
+      <button class="primary" data-connect="udmx">Подключить uDMX</button>
     </div>
     <div class="card" data-out="ws">
       <span class="tag">Сеть</span>
@@ -1083,12 +1089,13 @@ function back(pb){
 }
 
 // ---------- выход ----------
-const out={kind:'demo',port:null,writer:null,ws:null,busy:false,frames:0};
+const out={kind:'demo',port:null,writer:null,ws:null,usb:null,busy:false,frames:0};
+try{ navigator.usb&&navigator.usb.addEventListener('disconnect',e=>{ if(out.usb&&e.device===out.usb){ out.usb=null; out.kind='demo'; setChip('bad','uDMX отключился'); toast('uDMX выдернут или потерял связь.') } }) }catch(e){}
 function setChip(cls,txt){const c=$('#outChip'); c.className='chip '+cls; $('#outTxt').textContent=txt;
   document.querySelectorAll('.card[data-out]').forEach(el=>el.classList.toggle('active',el.dataset.out===out.kind))}
 async function disconnect(){
-  try{out.writer&&out.writer.releaseLock()}catch(e){} try{out.port&&await out.port.close()}catch(e){} try{out.ws&&out.ws.close()}catch(e){}
-  out.port=out.writer=out.ws=null; out.kind='demo';
+  try{out.writer&&out.writer.releaseLock()}catch(e){} try{out.port&&await out.port.close()}catch(e){} try{out.ws&&out.ws.close()}catch(e){} try{out.usb&&await out.usb.close()}catch(e){}
+  out.port=out.writer=out.ws=out.usb=null; out.kind='demo';
 }
 async function connect(kind){
   await disconnect();
@@ -1101,6 +1108,14 @@ async function connect(kind){
       ws.onerror=()=>{setChip('bad','Мост не отвечает');toast('Мост не отвечает. Запустите artnet_bridge.py и проверьте адрес.')};
       ws.onclose=()=>{if(out.ws===ws){out.ws=null;out.kind='demo';setChip('bad','Мост отключился')}};
     }catch(e){setChip('bad','Мост недоступен');toast('Не удалось подключиться к мосту: '+e.message)}
+    return;
+  }
+  if(kind==='udmx'){
+    if(!('usb' in navigator)){showSerialWarn();setChip('bad','USB недоступен здесь');return}
+    try{ const dev=await navigator.usb.requestDevice({filters:[{vendorId:0x16C0,productId:0x05DC},{productName:'uDMX'}]});
+      await dev.open(); if(dev.configuration===null) await dev.selectConfiguration(1); try{ await dev.claimInterface(0) }catch(e){}
+      out.usb=dev; out.kind='udmx'; setChip('ok','Подключено: uDMX'); toast('uDMX подключён. Поднимите яркость — приборы должны отреагировать.');
+    }catch(e){ if(e.name==='NotFoundError'){setChip('warn','Демо: без оборудования');toast('Адаптер не выбран.')} else {setChip('bad','Ошибка подключения');toast('Не удалось открыть uDMX: '+e.message+'. Закройте другие программы света и выньте-вставьте адаптер.')} out.kind='demo' }
     return;
   }
   if(!('serial' in navigator)){showSerialWarn();setChip('bad','USB недоступен здесь');return}
@@ -1127,6 +1142,9 @@ async function send(){
     }else if(out.kind==='open'&&out.writer){
       await out.port.setSignals({break:true}); await sleep(1); await out.port.setSignals({break:false});
       await out.writer.write(dmx.slice(0,513)); out.lastOk=performance.now();
+    }else if(out.kind==='udmx'&&out.usb){
+      const r=await out.usb.controlTransferOut({requestType:'vendor',recipient:'device',request:2,value:512,index:0},dmx.slice(1,513));
+      if(r.status==='ok') out.lastOk=performance.now();
     }else if(out.kind==='ws'&&out.ws&&out.ws.readyState===1){ const b=new Uint8Array(1024); b.set(dmx.subarray(1,513),0); b.set(dmx2.subarray(1,513),512); out.ws.send(b); out.lastOk=performance.now(); }
   }catch(e){ await disconnect(); setChip('bad','Адаптер отключился'); toast('Связь с адаптером потеряна: '+e.message); }
   out.busy=false;
@@ -2671,7 +2689,7 @@ function readyChecks(){
     else if(b) add('light','bad','Мост перестал отвечать','Посмотрите окно моста: не закрыто ли оно, нет ли ошибок.');
     else if(now-(out.wsT||now)>3000) add('light','warn','Мост подключён, но не сообщает о сети','Старая версия моста. Замените artnet_bridge.py новым — тогда будет видно, уходит ли сигнал.');
     else add('light','warn','Мост подключается…','');
-  } else { if(now-(out.lastOk||0)<1500) add('light','ok','Свет: сигнал идёт',out.kind==='pro'?'USB-адаптер (Enttec Pro)':'USB-кабель (Open DMX)');
+  } else { if(now-(out.lastOk||0)<1500) add('light','ok','Свет: сигнал идёт',out.kind==='pro'?'USB-адаптер (Enttec Pro)':out.kind==='udmx'?'USB-адаптер uDMX':'USB-кабель (Open DMX)');
     else add('light','bad','USB-адаптер не отвечает','Проверьте кабель и подключитесь заново.','Подключить',()=>openTab('connect')) }
   // 3–6. экран
   if(!r||recFilesCache.id!==r.id||recFilesCache.n!==(r.type==='edit'?edCount(r):r.events.length)){ recFilesCache={id:r&&r.id,n:r?(r.type==='edit'?edCount(r):r.events.length):-1,files:recFiles(r)} }

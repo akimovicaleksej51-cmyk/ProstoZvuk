@@ -37,6 +37,7 @@ header{display:flex;align-items:center;gap:10px;justify-content:space-between}
 .mi .nm{font-size:11px;padding:3px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mi .du{position:absolute;right:4px;top:40px;font-size:10px;background:#000a;border-radius:4px;padding:0 4px;font-family:var(--f-mono)}
 .mi.used{border-color:#4a3a28}
+.mi.bsel{outline:2px solid var(--accent2);outline-offset:-1px}
 .drop{border:2px dashed var(--line);border-radius:10px;padding:12px;text-align:center;color:var(--muted);font-size:12px}
 .drop.over,.binlist.over{border-color:var(--accent);background:#ff8a2a14}
 .stage{display:flex;flex-direction:column;gap:6px;align-items:stretch;min-height:0;overflow:hidden}
@@ -98,7 +99,7 @@ button.kfb.on{background:#ffd34d;border-color:#ffd34d;color:#111}
 <body>
 <div class="app">
 <header>
-  <div class="row"><div class="brand"><span class="dot"></span>Просто Видео <span class="muted mono" style="font-size:11px;font-weight:400">в.1.4</span></div>
+  <div class="row"><div class="brand"><span class="dot"></span>Просто Видео <span class="muted mono" style="font-size:11px;font-weight:400">в.1.5</span></div>
     <input id="prjName" type="text" title="Название проекта"></div>
   <div class="row">
     <button id="bProjects">📁 Проекты</button>
@@ -111,7 +112,7 @@ button.kfb.on{background:#ffd34d;border-color:#ffd34d;color:#111}
 
 <div class="main">
   <section class="panel bin">
-    <div class="row" style="justify-content:space-between"><b>Файлы</b><span class="row" style="gap:4px"><button id="bFromZvuk" title="Взять песню из плейлиста «Просто Звук»">🎵 Из Звука</button><button id="bAdd">＋ Добавить</button></span><input id="fileIn" type="file" multiple accept="video/*,audio/*,image/*" hidden></div>
+    <div class="row" style="justify-content:space-between"><b>Файлы</b><span class="row" style="gap:4px"><button id="bOver" title="Положить выбранный файл поверх основного видео в месте курсора">▣ Поверх</button><button id="bFromZvuk" title="Взять песню из плейлиста «Просто Звук»">🎵 Из Звука</button><button id="bAdd">＋ Добавить</button></span><input id="fileIn" type="file" multiple accept="video/*,audio/*,image/*" hidden></div>
     <div class="drop" id="binDrop">Перетащите сюда видео, фото и музыку. Потом — на дорожки внизу или двойной щелчок.</div>
     <div class="binlist" id="binList"></div>
   </section>
@@ -2085,7 +2086,7 @@ try{ navigator.storage&&navigator.storage.persist&&navigator.storage.persist() }
 
 // ---------- проект ----------
 const ASPECTS={'16:9':[1920,1080],'9:16':[1080,1920],'1:1':[1080,1080],'4:3':[1440,1080]};
-const TRACKS=[{id:'t2',kind:'text',name:'Субтитры',h:30},{id:'t1',kind:'text',name:'Текст',h:34},{id:'v2',kind:'video',name:'Видео 2',h:50},{id:'v1',kind:'video',name:'Видео 1',h:60},{id:'a1',kind:'audio',name:'Музыка',h:44},{id:'a2',kind:'audio',name:'Звук 2',h:40}];
+const TRACKS=[{id:'t2',kind:'text',name:'Субтитры',h:30},{id:'t1',kind:'text',name:'Текст',h:34},{id:'v3',kind:'video',name:'Поверх 2',h:44},{id:'v2',kind:'video',name:'Поверх 1',h:50},{id:'v1',kind:'video',name:'Видео 1',h:60},{id:'a1',kind:'audio',name:'Музыка',h:44},{id:'a2',kind:'audio',name:'Звук 2',h:40}];
 const TR=Object.fromEntries(TRACKS.map(t=>[t.id,t]));
 let PRJ=null, SEL=null, MAG=true;
 const MED=new Map(); // id -> {file,url,img,meta}
@@ -2132,7 +2133,7 @@ async function addMedia(files){ files=[...files].filter(Boolean); let n=0; const
     PRJ.media.push(m); out.push(m); n++; renderBin() }
   if(n){ save(); toast('Добавлено файлов: '+n) } return out }
 async function loadPrjMedia(){ for(const m of PRJ.media){ if(MED.has(m.id)) continue; try{ const f=await IDB.get('f:'+m.id); if(!f){ m.missing=true; continue } const url=URL.createObjectURL(f); const r={file:f,url,img:null}; if(m.kind==='image'){ r.img=await new Promise(res=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>res(null); im.src=url }) } MED.set(m.id,r); m.missing=false }catch(e){ m.missing=true } } }
-function renderBin(){ const used=new Set(PRJ.clips.map(c=>c.media)); $('#binList').innerHTML=PRJ.media.map(m=>`<div class="mi${used.has(m.id)?' used':''}" draggable="true" data-m="${m.id}" title="${esc(m.name)} — перетащите на дорожку или дважды щёлкните"><div class="th" style="${m.strip?`background-image:url(${m.strip});background-size:auto 100%;background-position:${m.kind==='video'?'-'+(m.tw*Math.floor((m.n||1)/2))+'px 0':'center'}`:''}">${m.kind==='audio'?'🎵':m.missing?'⚠':''}</div><div class="nm">${esc(m.name)}</div>${m.kind!=='image'?`<span class="du">${fmtS(m.dur)}</span>`:''}</div>`).join('')||'<div class="hint" style="grid-column:1/3">Пока пусто.</div>' }
+function renderBin(){ const used=new Set(PRJ.clips.map(c=>c.media)); $('#binList').innerHTML=PRJ.media.map(m=>`<div class="mi${used.has(m.id)?' used':''}${m.id===window.BSEL?' bsel':''}" draggable="true" data-m="${m.id}" title="${esc(m.name)} — перетащите на дорожку или дважды щёлкните"><div class="th" style="${m.strip?`background-image:url(${m.strip});background-size:auto 100%;background-position:${m.kind==='video'?'-'+(m.tw*Math.floor((m.n||1)/2))+'px 0':'center'}`:''}">${m.kind==='audio'?'🎵':m.missing?'⚠':''}</div><div class="nm">${esc(m.name)}</div>${m.kind!=='image'?`<span class="du">${fmtS(m.dur)}</span>`:''}</div>`).join('')||'<div class="hint" style="grid-column:1/3">Пока пусто.</div>' }
 
 // ---------- клипы ----------
 function clipFromMedia(m,track,start){ const c={id:uid(),track,start,media:m.id,in:0,dur:m.kind==='image'?4:m.dur,speed:1,vol:100,mute:false,fadeIn:0,fadeOut:0,fit:'cover',scale:100,x:0,y:0,rot:0,opacity:100,trans:null,kb:m.kind==='image'};
@@ -2141,12 +2142,18 @@ const trackFor=m=>m.kind==='audio'?'a1':'v1';
 const canGo=(m,tid)=>TR[tid].kind==='video'?m.kind!=='audio':TR[tid].kind==='audio'?m.kind!=='image':false;
 function maxDur(c){ const m=M(c.media); if(!m||m.kind==='image') return 3600; return Math.max(.05,(m.dur-c.in)/c.speed) }
 function packMain(){ if(!MAG) return; let t=0; for(const c of onTrack('v1')){ c.start=t; t=endOf(c) } }
+const OVR=['v2','v3'];
+const freeOn=(tid,a,b,ign)=>!PRJ.clips.some(x=>x!==ign&&x.track===tid&&a<endOf(x)-1e-3&&b>x.start+1e-3);
+// поставить клип туда, где он отпущен, не двигая чужие клипы: если место занято — на свободный слой поверх или в ближайший свободный промежуток
+function placeFree(c){ if(c.track==='v1'&&MAG){ packMain(); return } if(freeOn(c.track,c.start,endOf(c),c)) return;
+  if(OVR.includes(c.track)) for(const t of OVR) if(freeOn(t,c.start,endOf(c),c)){ c.track=t; return }
+  const L=onTrack(c.track).filter(x=>x!==c), cand=[0,...L.map(endOf),...L.map(x=>x.start-c.dur)].filter(s=>s>=0&&freeOn(c.track,s,s+c.dur,c)); if(cand.length){ c.start=cand.reduce((a,b)=>Math.abs(b-c.start)<Math.abs(a-c.start)?b:a) } else c.start=Math.max(0,...L.map(endOf)) }
 function resolve(tid){ if(tid==='v1'&&MAG){ packMain(); return } let e=-1; for(const c of onTrack(tid)){ if(c.start<e-1e-6) c.start=e; e=endOf(c) } }
 function insertClip(c){ PRJ.clips.push(c); if(c.track==='v1'&&MAG){ const L=onTrack('v1').filter(x=>x!==c); let at=L.length; for(let i=0;i<L.length;i++) if(c.start<L[i].start+L[i].dur/2){ at=i; break } L.splice(at,0,c); let t=0; for(const x of L){ x.start=t; t=endOf(x) } } else { const later=onTrack(c.track).filter(x=>x!==c&&x.start>=c.start-1e-6); for(const x of later) if(x.start<endOf(c)) { const sh=endOf(c)-x.start; for(const y of later) y.start+=sh; break } resolve(c.track) } }
 function splitAt(c,t){ if(t<=c.start+.03||t>=endOf(c)-.03) return null; const d=t-c.start, b=JSON.parse(JSON.stringify(c)); b.id=uid(); b.start=t; b.dur=c.dur-d; b.trans=null; b.fadeIn=0; if(c.media) b.in=c.in+d*c.speed; c.dur=d; c.fadeOut=0; PRJ.clips.push(b); return b }
 
 // ---------- эффекты: цвет, фильтры, хромакей, маски (WebGL) ----------
-const FX0=()=>({preset:'',pi:100,exp:0,con:0,sat:0,temp:0,tint:0,hi:0,sh:0,vig:0,grain:0,blur:0,key:false,kcol:'#00ff00',ksim:.38,ksoft:.12,kspill:.6,mask:'',mx:50,my:50,mw:60,mh:60,mf:8,minv:false,rad:0,bw:0,bcol:'#ffffff',shadow:false});
+const FX0=()=>({preset:'',pi:100,exp:0,con:0,sat:0,temp:0,tint:0,hi:0,sh:0,vig:0,grain:0,blur:0,key:false,kcol:'#00ff00',ksim:.38,ksoft:.12,kspill:.85,kcb:.1,kcw:.9,kch:1,mask:'',mx:50,my:50,mw:60,mh:60,mf:8,minv:false,rad:0,bw:0,bcol:'#ffffff',shadow:false});
 // готовые фильтры: добавки к ручным настройкам
 const PRESETS={'':['Без фильтра',{}],warm:['Тёплый',{temp:.6,sat:.1,con:.05}],cool:['Холодный',{temp:-.6,tint:.05,con:.05}],cine:['Кино',{con:.18,sat:-.12,stS:[0,.35,.5],stH:[.6,.35,0],vig:.35}],
   bw:['Чёрно-белый',{mono:1,con:.15}],noir:['Нуар',{mono:1,con:.55,exp:-.15,vig:.55}],sepia:['Ретро',{sepia:.85,con:.05,fade:.25,vig:.3,grain:.25}],vivid:['Яркий',{sat:.45,con:.15}],
@@ -2154,10 +2161,14 @@ const PRESETS={'':['Без фильтра',{}],warm:['Тёплый',{temp:.6,sat
 const FXK=['exp','con','sat','temp','tint','hi','sh','vig','grain'];
 const needFx=c=>{ const f=c.fx; if(!f) return false; if(f.preset||f.key||f.mask||f.rad>0||f.bg) return true; for(const k of FXK) if(f[k]) return true; return false };
 const GLX={c:null,gl:null,p:null,tex:null,loc:{}};
-const FS=`precision mediump float; varying vec2 v; uniform sampler2D tex; uniform float ex,co,sa,te,ti,hi,sh,vi,gr,tm,mo,se,fa,kon,ksim,ksoft,kspill; uniform vec3 kc,sts,sth;
+const FS=`precision mediump float; varying vec2 v; uniform sampler2D tex; uniform float ex,co,sa,te,ti,hi,sh,vi,gr,tm,mo,se,fa,kon,ksim,ksoft,kspill,kcb,kcw,kch; uniform vec3 kc,sts,sth; uniform vec2 tx;
 vec2 cbcr(vec3 c){ return vec2(-.168736*c.r-.331264*c.g+.5*c.b,.5*c.r-.418688*c.g-.081312*c.b); }
+float ka(vec2 p){ vec3 q=texture2D(tex,p).rgb; float d=distance(cbcr(q),cbcr(kc)); return smoothstep(ksim*.5,ksim*.5+ksoft*.5+.001,d); }
 void main(){ vec4 s=texture2D(tex,v); vec3 c=s.rgb; float a=s.a; vec3 W=vec3(.2126,.7152,.0722);
- if(kon>.5){ float d=distance(cbcr(c),cbcr(kc)); float m=smoothstep(ksim*.5,ksim*.5+ksoft*.5+.001,d); a*=m; float l0=dot(c,W); c=mix(c,vec3(l0),(1.-smoothstep(ksim*.5,ksim*.5+ksoft+.15,d))*kspill); }
+ if(kon>.5){ float m=ka(v); if(kch>0.){ vec2 o=tx*kch; m=min(m,ka(v+vec2(o.x,0.))); m=min(m,ka(v-vec2(o.x,0.))); m=min(m,ka(v+vec2(0.,o.y))); m=min(m,ka(v-vec2(0.,o.y)));
+   m=min(m,ka(v+o*.7)); m=min(m,ka(v-o*.7)); m=min(m,ka(v+vec2(o.x,-o.y)*.7)); m=min(m,ka(v+vec2(-o.x,o.y)*.7)); }
+   m=clamp((m-kcb)/max(.02,kcw-kcb),0.,1.); a*=m;
+   vec3 kd=kc-vec3(dot(kc,W)); float kl=length(kd); if(kl>.01){ kd/=kl; float sp=dot(c-vec3(dot(c,W)),kd); if(sp>0.){ float l0=dot(c,W); c-=kd*sp*kspill; c+=vec3(l0-dot(c,W))*.5; } } }
  c*=pow(2.,ex); float l=dot(c,W); c+=vec3(sh*(1.-smoothstep(0.,.55,l))*.35+hi*smoothstep(.45,1.,l)*.35);
  c=(c-.5)*(1.+co)+.5; c*=vec3(1.+te*.13,1.+ti*.08,1.-te*.13); l=dot(c,W); c=mix(vec3(l),c,1.+sa);
  c+=sts*(1.-l)*.18+sth*l*.18; l=dot(c,W); c=mix(c,vec3(l),mo); c=mix(c,vec3(l)*vec3(1.08,.86,.62),se); c=mix(c,c*.82+.12,fa);
@@ -2169,7 +2180,7 @@ function glInit(){ if(GLX.gl) return GLX.gl; const c=document.createElement('can
   const p=gl.createProgram(); gl.attachShader(p,sh(gl.VERTEX_SHADER,'attribute vec2 a; varying vec2 v; void main(){ v=a*.5+.5; gl_Position=vec4(a,0.,1.); }')); gl.attachShader(p,sh(gl.FRAGMENT_SHADER,FS)); gl.linkProgram(p); gl.useProgram(p);
   const b=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,b); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW); const la=gl.getAttribLocation(p,'a'); gl.enableVertexAttribArray(la); gl.vertexAttribPointer(la,2,gl.FLOAT,false,0,0);
   const tx=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,tx); for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D,k,v);
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true); for(const k of ['ex','co','sa','te','ti','hi','sh','vi','gr','tm','mo','se','fa','kon','ksim','ksoft','kspill','kc','sts','sth']) GLX.loc[k]=gl.getUniformLocation(p,k);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true); for(const k of ['ex','co','sa','te','ti','hi','sh','vi','gr','tm','mo','se','fa','kon','ksim','ksoft','kspill','kc','sts','sth','kcb','kcw','kch','tx']) GLX.loc[k]=gl.getUniformLocation(p,k);
   GLX.c=c; GLX.gl=gl; GLX.p=p; return gl }
 const hex3=h=>{ h=(h||'#000').replace('#',''); return [parseInt(h.slice(0,2),16)/255,parseInt(h.slice(2,4),16)/255,parseInt(h.slice(4,6),16)/255] };
 const TMP=new Map();
@@ -2179,7 +2190,7 @@ function fxProcess(c,src,sw,sh,t){ const f=c.fx, gl=glInit(); const s=Math.min(1
     try{ gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src) }catch(e){ g.clearRect(0,0,w,h); g.drawImage(src,0,0,w,h); return out }
     const val=k=>(f[k]||0)+(P[k]||0)*pi; gl.uniform1f(L.ex,val('exp')); gl.uniform1f(L.co,val('con')); gl.uniform1f(L.sa,val('sat')); gl.uniform1f(L.te,val('temp')); gl.uniform1f(L.ti,val('tint')); gl.uniform1f(L.hi,val('hi')); gl.uniform1f(L.sh,val('sh'));
     gl.uniform1f(L.vi,clamp(val('vig'),0,1)); gl.uniform1f(L.gr,clamp(val('grain'),0,1)); gl.uniform1f(L.tm,(t*7.13)%10); gl.uniform1f(L.mo,(P.mono||0)*pi); gl.uniform1f(L.se,(P.sepia||0)*pi); gl.uniform1f(L.fa,(P.fade||0)*pi);
-    gl.uniform3fv(L.sts,(P.stS||[0,0,0]).map(x=>x*pi)); gl.uniform3fv(L.sth,(P.stH||[0,0,0]).map(x=>x*pi)); gl.uniform1f(L.kon,f.key?1:0); gl.uniform3fv(L.kc,hex3(f.kcol)); gl.uniform1f(L.ksim,f.ksim); gl.uniform1f(L.ksoft,f.ksoft); gl.uniform1f(L.kspill,f.kspill);
+    gl.uniform3fv(L.sts,(P.stS||[0,0,0]).map(x=>x*pi)); gl.uniform3fv(L.sth,(P.stH||[0,0,0]).map(x=>x*pi)); gl.uniform1f(L.kon,f.key?1:0); gl.uniform3fv(L.kc,hex3(f.kcol)); gl.uniform1f(L.ksim,f.ksim); gl.uniform1f(L.ksoft,f.ksoft); gl.uniform1f(L.kspill,f.kspill); gl.uniform1f(L.kcb,f.kcb??.1); gl.uniform1f(L.kcw,f.kcw??.9); gl.uniform1f(L.kch,f.kch??1); gl.uniform2f(L.tx,1/w,1/h);
     gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLE_STRIP,0,4); g.globalCompositeOperation='copy'; g.drawImage(GLX.c,0,0); g.globalCompositeOperation='source-over' }
   else { g.clearRect(0,0,w,h); g.drawImage(src,0,0,w,h) }
   if(f.bg&&typeof applyBg==='function'){ const r=applyBg(c,out,t); if(r!==out){ g.globalCompositeOperation='copy'; g.drawImage(r,0,0); g.globalCompositeOperation='source-over' } }
@@ -2200,6 +2211,18 @@ const kfTimes=c=>{ const s=new Set(); for(const k of ANIM) for(const x of (c.kf&
 const kfAt=(c,k,lt)=>{ const a=c.kf&&c.kf[k]; return a?a.findIndex(x=>Math.abs(x.t-lt)<.5/PRJ.fps):-1 };
 function kfSet(c,k,lt,v){ c.kf=c.kf||{}; const a=c.kf[k]=c.kf[k]||[]; const i=kfAt(c,k,lt); if(i>=0) a[i].v=v; else { a.push({t:lt,v}); a.sort((x,y)=>x.t-y.t) } }
 
+// ---------- хромакей одним нажатием: сам находит цвет фона и подбирает силу так, чтобы фон ушёл полностью ----------
+function cbcrJ(r,g,b){ return [-.168736*r-.331264*g+.5*b,.5*r-.418688*g-.081312*b] }
+function autoKey(c,src){ const m=M(c.media); const W=96,H=54, cv=document.createElement('canvas'); cv.width=W; cv.height=H; const g=cv.getContext('2d',{willReadFrequently:true}); try{ g.drawImage(src,0,0,W,H) }catch(e){ return false }
+  const d=g.getImageData(0,0,W,H).data, px=(x,y)=>{ const i=(y*W+x)*4; return [d[i]/255,d[i+1]/255,d[i+2]/255] }, B=[]; const bw=Math.round(W*.07), bh=Math.round(H*.1);
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++) if(x<bw||x>=W-bw||y<bh||y>=H-bh) B.push(px(x,y));
+  // самый частый насыщенный цвет по краям кадра
+  const bins=new Map(); for(const p of B){ const mx=Math.max(...p), mn=Math.min(...p); if(mx-mn<.15) continue; const k=p.map(v=>Math.round(v*5)).join(','); const e=bins.get(k)||{n:0,s:[0,0,0]}; e.n++; e.s=e.s.map((v,i)=>v+p[i]); bins.set(k,e) }
+  let best=null; for(const e of bins.values()) if(!best||e.n>best.n) best=e; if(!best||best.n<B.length*.25) return false;
+  const kc=best.s.map(v=>v/best.n), kk=cbcrJ(...kc), dist=p=>{ const q=cbcrJ(...p); return Math.hypot(q[0]-kk[0],q[1]-kk[1]) };
+  const bd=B.map(dist).sort((a,b)=>a-b), q98=bd[Math.floor(bd.length*.97)]; const sim=Math.min(.9,Math.max(.12,q98*2+.06));
+  c.fx=c.fx||FX0(); Object.assign(c.fx,{key:true,kcol:'#'+kc.map(v=>Math.round(v*255).toString(16).padStart(2,'0')).join(''),ksim:+sim.toFixed(2),ksoft:.1,kspill:.85,kcb:.12,kcw:.88,kch:1}); return true }
+
 // ---------- что видно в момент t ----------
 const TRANS=[['','Без перехода'],['fade','Плавно'],['black','Через чёрное'],['white','Через белое'],['wipeL','Шторка слева'],['wipeR','Шторка справа'],['slideL','Сдвиг влево'],['slideU','Сдвиг вверх'],['zoom','Увеличение'],['blur','Размытие']];
 function prevOf(c){ const L=onTrack(c.track), i=L.indexOf(c); const p=i>0?L[i-1]:null; return p&&Math.abs(endOf(p)-c.start)<.06?p:null }
@@ -2208,7 +2231,7 @@ const extOf=c=>{ const n=nextOf(c); return n&&n.trans&&n.trans.type?n.trans.dur:
 function srcT(c,t){ const m=M(c.media); const s=c.in+(t-c.start)*c.speed; return m&&m.kind!=='image'?clamp(s,0,Math.max(0,m.dur-.04)):0 }
 // по каждой видео-дорожке: что рисовать
 function layersAt(t){ const out=[];
-  for(const tid of ['v1','v2']){ const L=onTrack(tid); const B=L.find(c=>t>=c.start&&t<endOf(c));
+  for(const tid of ['v1','v2','v3']){ const L=onTrack(tid); const B=L.find(c=>t>=c.start&&t<endOf(c));
     if(B&&B.trans&&B.trans.type&&t<B.start+B.trans.dur){ const A=prevOf(B); if(A){ out.push({tr:B.trans.type,p:(t-B.start)/B.trans.dur,A,B}); continue } }
     if(B) out.push({c:B}) }
   return out }
@@ -2258,7 +2281,7 @@ function elFor(c){ let e=EL.get(c.id); const r=MED.get(c.media); if(!r) return n
   if(EL.size>18){ const t=nowT(); const far=[...EL.entries()].map(([id,el])=>{ const cc=PRJ.clips.find(x=>x.id===id); return {id,el,d:cc?Math.min(Math.abs(cc.start-t),Math.abs(endOf(cc)-t)):1e9} }).sort((a,b)=>b.d-a.d); for(const f of far.slice(0,EL.size-14)){ f.el.pause(); f.el.removeAttribute('src'); f.el.load(); f.el.remove(); EL.delete(f.id) } }
   return e }
 function srcFor(c){ const m=M(c.media); if(!m) return null; if(m.kind==='image'){ const r=MED.get(c.media); return r&&r.img } const e=EL.get(c.id); return e&&e.readyState>=2?e:null }
-function volAt(c,t){ if(c.mute) return 0; const m=M(c.media); if(!m||(m.kind==='video'&&m.hasAudio===false)) return 0; let v=c.vol/100*(c.track==='a1'?duckAt(t):1); const life=t-c.start, rest=endOf(c)-t, ext=extOf(c), fi=Math.max(c.fadeIn||0,c.trans&&c.trans.type?c.trans.dur:0);
+function volAt(c,t){ if(c.mute) return 0; const m=M(c.media); if(!m||(m.kind==='video'&&m.hasAudio===false)) return 0; let v=c.vol/100*(c.track==='a1'?duckAt(t):1)*(c.track==='v1'?underAt(t):1); const life=t-c.start, rest=endOf(c)-t, ext=extOf(c), fi=Math.max(c.fadeIn||0,c.trans&&c.trans.type?c.trans.dur:0);
   if(fi>0&&life<fi) v*=clamp(life/fi,0,1); if(rest<0&&ext>0) v*=clamp(1+rest/ext,0,1); else if(c.fadeOut>0&&rest<c.fadeOut) v*=clamp(rest/c.fadeOut,0,1); return v }
 function syncMedia(t,playing){ for(const c of PRJ.clips){ const m=M(c.media); if(!m||m.kind==='image') continue; const ext=extOf(c), on=t>=c.start-(playing?.6:0)&&t<endOf(c)+ext; let e=EL.get(c.id);
     if(!on){ if(e&&!e.paused) e.pause(); continue } e=elFor(c); if(!e) continue; const live=t>=c.start, s=srcT(c,Math.max(t,c.start));
@@ -2274,6 +2297,9 @@ function play(){ if(PB.playing) return; const D=prjDur(); if(!D) return toast('�
 function pause(){ if(!PB.playing) return; PB.t=nowT(); PB.playing=false; for(const e of EL.values()) e.pause(); $('#bPlay').textContent='▶'; requestDraw(); if(selClip()) renderInsp() }
 function seek(t){ t=clamp(t,0,Math.max(prjDur(),0)); if(PB.playing){ PB.t0=t; PB.p0=performance.now(); for(const e of EL.values()) e.pause() } PB.t=t; if(!PB.playing) requestDraw(); else paint(t); if(!PB.playing&&typeof inspSoon==='function'&&selClip()&&selClip().kf) inspSoon() }
 function uiTime(t){ $('#clock').textContent=fmtT(t)+' / '+fmtT(prjDur()); const ph=$('#ph'); if(ph) ph.style.left=(t*Z)+'px'; const L=$('#lanes'); if(PB.playing){ const x=t*Z; if(x>L.scrollLeft+L.clientWidth-40||x<L.scrollLeft) L.scrollLeft=x-60 } }
+
+// звук основного видео глушится, пока идёт клип поверх с галочкой «заглушить основное»
+function underAt(t){ let k=1; for(const c of PRJ.clips){ if(!c.muteUnder||!OVR.includes(c.track)) continue; const a=c.start, b=endOf(c), F=.25; if(t>=a&&t<=b) return 0; if(t<a&&a-t<F) k=Math.min(k,(a-t)/F); if(t>b&&t-b<F) k=Math.min(k,(t-b)/F) } return k }
 
 // ---------- лента ----------
 let Z=60; // пикселей на секунду
@@ -2308,7 +2334,7 @@ $('#lanesIn').addEventListener('pointermove',e=>{ if(!DR) return; const dx=(e.cl
   else if(DR.mode==='l'){ const mx=c.media&&M(c.media).kind!=='image'?DR.in0/c.speed:DR.s0; let s=clamp(snapT(DR.s0+dx,c.id),DR.s0-mx,DR.s0+DR.d0-.1); s=Math.max(0,s); const d=DR.s0-s; c.start=s; c.dur=DR.d0+d; if(c.media) c.in=Math.max(0,DR.in0-d*c.speed) }
   else { let en=snapT(DR.s0+DR.d0+dx,c.id); c.dur=clamp(en-c.start,.1,c.media?(M(c.media).kind==='image'?3600:(M(c.media).dur-c.in)/c.speed):3600) }
   const el=$(`.clip[data-c="${c.id}"]`); if(el){ el.style.left=c.start*Z+'px'; el.style.width=Math.max(4,c.dur*Z)+'px'; if(el.parentElement.dataset.lane!==c.track) $(`.lane[data-lane="${c.track}"]`).appendChild(el) } requestDraw() });
-$('#lanesIn').addEventListener('pointerup',e=>{ if(!DR) return; const d=DR; DR=null; if(!d.moved){ renderTL(); return } if(d.mode==='m') { if(d.c.track==='v1'&&MAG&&d.tr0==='v1'){ const c=d.c; const L=onTrack('v1').filter(x=>x!==c); let at=L.length; for(let i=0;i<L.length;i++) if(c.start<L[i].start+L[i].dur/2){ at=i; break } L.splice(at,0,c); let t=0; for(const x of L){ x.start=t; t=endOf(x) } } else { if(d.tr0!==d.c.track) resolve(d.tr0); resolve(d.c.track) } } else resolve(d.c.track); lastSnap=d.before; commit() });
+$('#lanesIn').addEventListener('pointerup',e=>{ if(!DR) return; const d=DR; DR=null; if(!d.moved){ renderTL(); return } if(d.mode==='m') { if(d.c.track==='v1'&&MAG&&d.tr0==='v1'){ const c=d.c; const L=onTrack('v1').filter(x=>x!==c); let at=L.length; for(let i=0;i<L.length;i++) if(c.start<L[i].start+L[i].dur/2){ at=i; break } L.splice(at,0,c); let t=0; for(const x of L){ x.start=t; t=endOf(x) } } else { if(d.tr0==='v1'&&MAG) packMain(); placeFree(d.c) } } else { if(d.c.track==='v1'&&MAG) packMain(); else if(!freeOn(d.c.track,d.c.start,endOf(d.c),d.c)) resolve(d.c.track) } lastSnap=d.before; commit() });
 // из медиатеки на дорожку
 $('#binList').addEventListener('dragstart',e=>{ const mi=e.target.closest('.mi'); if(mi) e.dataTransfer.setData('text/x-media',mi.dataset.m) });
 $('#binList').addEventListener('dblclick',e=>{ const mi=e.target.closest('.mi'); if(!mi) return; const m=M(mi.dataset.m); const tid=trackFor(m); const c=clipFromMedia(m,tid,tid==='v1'?prjDur():Math.max(0,...onTrack(tid).map(endOf),0)); insertClip(c); SEL=c.id; commit() });
@@ -2316,7 +2342,7 @@ $('#lanes').addEventListener('dragover',e=>{ if(![...e.dataTransfer.types].inclu
 $('#lanes').addEventListener('dragleave',e=>{ if(!$('#lanes').contains(e.relatedTarget)) $$('.lane.over').forEach(x=>x.classList.remove('over')) });
 $('#lanes').addEventListener('drop',async e=>{ e.preventDefault(); $$('.lane.over').forEach(x=>x.classList.remove('over')); const ln=e.target.closest('.lane'); const t=snapT(tAt(e),null,12); let ms=[];
   const id=e.dataTransfer.getData('text/x-media'); if(id) ms=[M(id)]; else if(e.dataTransfer.files.length){ e.stopPropagation(); ms=await addMedia(e.dataTransfer.files) }
-  let at=t; for(const m of ms){ if(!m) continue; let tid=ln?ln.dataset.lane:trackFor(m); if(!canGo(m,tid)) tid=trackFor(m); const c=clipFromMedia(m,tid,at); insertClip(c); at=endOf(c); SEL=c.id } if(ms.length) commit() });
+  let at=t; for(const m of ms){ if(!m) continue; let tid=ln?ln.dataset.lane:trackFor(m); if(!canGo(m,tid)) tid=trackFor(m); const c=clipFromMedia(m,tid,at); if(tid==='v1'&&MAG) insertClip(c); else { PRJ.clips.push(c); placeFree(c) } at=endOf(c); SEL=c.id } if(ms.length) commit() });
 // панель инструментов
 function selClip(){ return PRJ.clips.find(c=>c.id===SEL)||null }
 $('#bSplit').onclick=()=>{ const t=nowT(); let L=selClip()?[selClip()]:PRJ.clips.filter(c=>t>c.start&&t<endOf(c)); L=L.filter(c=>t>c.start+.03&&t<endOf(c)-.03); if(!L.length) return toast('Поставьте курсор на клип, который нужно разрезать.'); for(const c of L){ const b=splitAt(c,t); if(b&&c.id===SEL) SEL=b.id } commit() };
@@ -2356,13 +2382,13 @@ function renderInsp(){ const c=selClip(), box=$('#insp');
     <div class="row" style="gap:4px"><button id="kfPrev" title="К предыдущему ключевому кадру">◀ ◆</button><button id="kfNext" title="К следующему ключевому кадру">◆ ▶</button><button id="kfClear" title="Убрать всю анимацию клипа">Без анимации</button></div>
     <div class="hint">Анимация: поставьте курсор, нажмите ◇ у свойства, сдвиньте курсор и измените значение — программа плавно проведёт между ключами.</div>
     ${m.kind==='image'?`<label class="f"><span>Движение</span><label class="row hint"><input type="checkbox" data-k="kb" ${c.kb?'checked':''}> медленное приближение</label><span></span></label>`:''}
-    ${c.track==='v2'?'<div class="hint">«Видео 2» лежит поверх «Видео 1»: уменьшите масштаб и сдвиньте — получится картинка в картинке.</div>':''}</div>`;
+    ${OVR.includes(c.track)?`<label class="f"><span></span><label class="row hint"><input type="checkbox" data-k="muteUnder" ${c.muteUnder?'checked':''}> заглушить звук основного видео, пока идёт этот клип</label><span></span></label><div class="hint">Клип поверх закрывает основное видео. Уменьшите масштаб и сдвиньте — получится картинка в картинке.</div>`:''}</div>`;
   if(m&&c.track[0]==='v'){ const F=c.fx||FX0(), sl=(l,k,mi,ma,st)=>fNum(l,'fx.'+k,F[k],mi,ma,st);
     h+=`<div class="sec"><b>Цвет и фильтр</b><label class="f"><span>Фильтр</span><select data-k="fx.preset">${Object.entries(PRESETS).map(([k,[n]])=>`<option value="${k}" ${F.preset===k?'selected':''}>${n}</option>`).join('')}</select><span></span></label>
       ${F.preset?sl('Сила фильтра, %','pi',0,100,1):''}${sl('Яркость','exp',-2,2,.05)}${sl('Контраст','con',-1,1,.02)}${sl('Насыщенность','sat',-1,1,.02)}${sl('Тепло','temp',-1,1,.02)}${sl('Оттенок','tint',-1,1,.02)}${sl('Света','hi',-1,1,.02)}${sl('Тени','sh',-1,1,.02)}${sl('Виньетка','vig',0,1,.02)}${sl('Зерно','grain',0,1,.02)}${sl('Размытие','blur',0,1,.02)}
       <div class="row" style="gap:4px"><button id="fxReset">Сбросить цвет</button><button id="fxAll" title="Те же цвет и фильтр — всем видео и фото">Цвет всем клипам</button></div></div>
     <div class="sec"><b>Хромакей — убрать зелёный фон</b><label class="f"><span></span><label class="row hint"><input type="checkbox" data-k="fx.key" ${F.key?'checked':''}> включить</label><span></span></label>
-      ${F.key?`<label class="f"><span>Цвет фона</span><input type="color" data-k="fx.kcol" value="${F.kcol}"><button id="kPick" title="Щёлкнуть по фону на картинке">🎯</button></label>${sl('Сила','ksim',.05,1,.01)}${sl('Мягкость края','ksoft',0,.6,.01)}${sl('Убрать отсвет','kspill',0,1,.02)}<div class="hint">Положите это видео на «Видео 2», а фон — на «Видео 1».</div>`:''}</div>
+      <button id="kAuto" class="primary" title="Сам найдёт цвет фона и уберёт его без следов">✨ Убрать фон одним нажатием</button>${F.key?`<label class="f"><span>Цвет фона</span><input type="color" data-k="fx.kcol" value="${F.kcol}"><button id="kPick" title="Щёлкнуть по фону на картинке">🎯</button></label>${sl('Сила','ksim',.05,1,.01)}${sl('Мягкость края','ksoft',0,.6,.01)}${sl('Очистить фон','kcb',0,.6,.01)}${sl('Сохранить объект','kcw',.4,1,.01)}${sl('Сжать край, px','kch',0,4,.1)}${sl('Убрать отсвет','kspill',0,1,.02)}<div class="hint">Если по краям осталась зелёная каёмка — «Сжать край» и «Убрать отсвет». Если на фоне остались пятна — «Очистить фон». Если пропали части человека — «Сохранить объект» ниже. Само видео положите на «Поверх 1», а новый фон — на «Видео 1».</div>`:''}</div>
     <div class="sec"><b>Фон без зелёного экрана</b><label class="f"><span>Фон</span><select data-k="fx.bg">${[['','оставить'],['remove','убрать (прозрачный)'],['blur','размыть'],['color','заливка цветом']].map(([v,n])=>`<option value="${v}" ${(F.bg||'')===v?'selected':''}>${n}</option>`).join('')}</select><span></span></label>${F.bg==='color'?`<label class="f"><span>Цвет фона</span><input type="color" data-k="fx.bgCol" value="${F.bgCol||'#101820'}"><span></span></label>`:''}${F.bg==='blur'?sl('Сила размытия','bgBlur',.3,3,.1):''}${F.bg?'<div class="hint">Программа сама находит людей в кадре. Лучше всего — один-два человека крупно. Первый раз нужен интернет.</div>':''}</div>
     <div class="sec"><b>Маска</b><label class="f"><span>Форма</span><select data-k="fx.mask">${[['','нет'],['circle','круг / овал'],['rect','прямоугольник'],['round','скруглённая'],['band','полоса']].map(([v,n])=>`<option value="${v}" ${F.mask===v?'selected':''}>${n}</option>`).join('')}</select><span></span></label>
       ${F.mask?sl('Центр X, %','mx',0,100,.5)+sl('Центр Y, %','my',0,100,.5)+(F.mask!=='band'?sl('Ширина, %','mw',2,150,.5):'')+sl('Высота, %','mh',2,150,.5)+sl('Мягкий край','mf',0,60,1)+`<label class="f"><span></span><label class="row hint"><input type="checkbox" data-k="fx.minv" ${F.minv?'checked':''}> наоборот (вырезать)</label><span></span></label>`:''}</div>
@@ -2384,6 +2410,7 @@ function renderInsp(){ const c=selClip(), box=$('#insp');
   const kp=$('#kfPrev'); if(kp){ kp.onclick=()=>kn(-1); $('#kfNext').onclick=()=>kn(1); $('#kfClear').onclick=()=>{ const c=selClip(); if(!c.kf) return; for(const k of ANIM) if(c.kf[k]&&c.kf[k].length){ c[k]=pAt(c,k,nowT()) } delete c.kf; commit() } }
   const fr=$('#fxReset'); if(fr){ fr.onclick=()=>{ const c=selClip(), F=c.fx||FX0(), z=FX0(); for(const k of ['preset','pi',...FXK,'blur']) F[k]=z[k]; c.fx=F; commit() };
     $('#fxAll').onclick=()=>{ const c=selClip(), F=c.fx||FX0(); let n=0; for(const x of PRJ.clips) if(x!==c&&x.media&&x.track[0]==='v'){ x.fx=x.fx||FX0(); for(const k of ['preset','pi',...FXK,'blur']) x.fx[k]=F[k]; n++ } commit(); toast('Цвет перенесён на клипов: '+n) } }
+  const ka=$('#kAuto'); if(ka) ka.onclick=()=>{ const c=selClip(); const t=clamp(nowT(),c.start,endOf(c)-.01); const src=M(c.media).kind==='image'?MED.get(c.media).img:EL.get(c.id); if(!src||(src.readyState!==undefined&&src.readyState<2)){ seek(t); return toast('Поставьте курсор на этот клип и нажмите ещё раз.') } if(autoKey(c,src)){ commit(); toast('Фон убран. Если остались следы — подвиньте «Очистить фон» или «Сжать край».',6000) } else toast('Не нашёл однотонный фон по краям кадра. Выберите цвет фона пипеткой 🎯.',6000) };
   const kpk=$('#kPick'); if(kpk) kpk.onclick=()=>{ PICK=selClip().id; toast('Щёлкните по фону на картинке вверху.',5000) };
   $('#iSplit').onclick=()=>$('#bSplit').click(); $('#iDel').onclick=()=>$('#bDel').click() }
 
@@ -2404,7 +2431,8 @@ async function mixAudio(D){ const clips=PRJ.clips.filter(c=>{ const m=M(c.media)
   let duckN=null; if(PRJ.duck&&PRJ.duck.on){ if(!DUCK.segs) DUCK.segs=await voiceSegs(); if(DUCK.segs.length){ duckN=oc.createGain(); duckN.connect(oc.destination); const g=Math.pow(10,(PRJ.duck.db||-12)/20); duckN.gain.setValueAtTime(1,0); for(const [a,b] of DUCK.segs){ duckN.gain.setValueAtTime(1,Math.max(0,a-.15)); duckN.gain.linearRampToValueAtTime(g,Math.max(0,a)); duckN.gain.setValueAtTime(g,b); duckN.gain.linearRampToValueAtTime(1,b+.45) } } }
   for(const c of clips){ const b=await audioBuf(c.media); if(!b) continue; any=true; const ext=extOf(c), len=c.dur+ext, s=oc.createBufferSource(); s.buffer=b; s.playbackRate.value=c.speed; const g=oc.createGain(), v=c.vol/100, fi=Math.max(c.fadeIn||0,c.trans&&c.trans.type?c.trans.dur:0), fo=ext>0?ext:(c.fadeOut||0);
     g.gain.setValueAtTime(fi>0?0:v,c.start); if(fi>0) g.gain.linearRampToValueAtTime(v,c.start+Math.min(fi,len/2)); if(fo>0){ g.gain.setValueAtTime(v,Math.max(c.start+fi,c.start+len-fo)); g.gain.linearRampToValueAtTime(0,c.start+len) }
-    s.connect(g); g.connect(c.track==='a1'&&duckN?duckN:oc.destination); s.start(c.start,c.in,len*c.speed) }
+    let last=g; if(c.track==='v1'){ const U=PRJ.clips.filter(x=>x.muteUnder&&OVR.includes(x.track)&&x.start<c.start+len&&endOf(x)>c.start); if(U.length){ const mg=oc.createGain(); mg.gain.setValueAtTime(1,0); for(const u of U.sort((a,b)=>a.start-b.start)){ mg.gain.setValueAtTime(1,Math.max(0,u.start-.25)); mg.gain.linearRampToValueAtTime(0,u.start); mg.gain.setValueAtTime(0,endOf(u)); mg.gain.linearRampToValueAtTime(1,endOf(u)+.25) } g.connect(mg); last=mg } }
+    s.connect(g); last.connect(c.track==='a1'&&duckN?duckN:oc.destination); s.start(c.start,c.in,len*c.speed) }
   if(!any) return null; return oc.startRendering() }
 function exportDlg(){ const D=prjDur(); if(!D) return toast('Сначала соберите видео на ленте.'); const box=$('#mbox');
   box.innerHTML=`<h2>Сохранить видео</h2><div class="hint">Длина ${fmtS(D)} · формат ${PRJ.aspect}</div>
@@ -2668,6 +2696,9 @@ $('#bProjects').onclick=async()=>{ const L=(await IDB.get('plist'))||[], box=$('
 $('#modal').onclick=e=>{ if(e.target.id==='modal'&&!$('#exGo')) $('#modal').hidden=true };
 // файлы
 $('#bAdd').onclick=()=>$('#fileIn').click();
+window.BSEL=null; $('#binList').addEventListener('click',e=>{ const mi=e.target.closest('.mi'); if(!mi) return; window.BSEL=mi.dataset.m; $$('.mi.bsel').forEach(x=>x.classList.remove('bsel')); mi.classList.add('bsel') });
+$('#bOver').onclick=()=>{ const m=window.BSEL&&M(window.BSEL); if(!m) return toast('Щёлкните по файлу слева (например, по рекламному ролику), поставьте курсор на нужный момент и нажмите «▣ Поверх».',7000); const t=nowT();
+  let c; if(m.kind==='audio'){ c=clipFromMedia(m,'a2',t) } else { const tid=OVR.find(x=>freeOn(x,t,t+(m.kind==='image'?4:m.dur)))||'v2'; c=clipFromMedia(m,tid,t); c.muteUnder=m.kind==='video' } PRJ.clips.push(c); placeFree(c); SEL=c.id; commit(); toast(`«${m.name}» поверх с ${fmtS(c.start)}. Звук основного видео на это время приглушён — можно выключить справа.`,6000) };
 $('#fileIn').onchange=async e=>{ await addMedia(e.target.files); e.target.value='' };
 for(const el of [$('#binDrop'),$('#binList')]){ el.addEventListener('dragover',e=>{ if([...e.dataTransfer.types].includes('Files')){ e.preventDefault(); el.classList.add('over') } }); el.addEventListener('dragleave',()=>el.classList.remove('over')); el.addEventListener('drop',async e=>{ el.classList.remove('over'); if(!e.dataTransfer.files.length) return; e.preventDefault(); e.stopPropagation(); await addMedia(e.dataTransfer.files) }) }
 document.addEventListener('dragover',e=>{ if([...e.dataTransfer.types].includes('Files')) e.preventDefault() });
