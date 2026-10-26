@@ -323,7 +323,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.24</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.25</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -866,7 +866,7 @@ const ATTR = {
   white:{n:'Белый',g:'col',def:0}, amber:{n:'Янтарный',g:'col',def:0}, uv:{n:'УФ',g:'col',def:0},
   cwheel:{n:'Колесо цвета',g:'col',def:0,dmx:true},
   pan:{n:'Pan',g:'pos',def:.5}, tilt:{n:'Tilt',g:'pos',def:.5}, speed:{n:'Скорость моторов',g:'pos',def:0,dmx:true},
-  shutter:{n:'Затвор / строб',g:'beam',def:1,dmx:true}, gobo:{n:'Гобо',g:'beam',def:0,dmx:true},
+  shutter:{n:'Затвор / строб',g:'beam',def:1,dmx:true}, strobe:{n:'Строб (0 = без строба)',g:'beam',def:0,dmx:true}, gobo:{n:'Гобо',g:'beam',def:0,dmx:true},
   prism:{n:'Призма',g:'beam',def:0,dmx:true}, focus:{n:'Фокус',g:'beam',def:.5,dmx:true},
   zoom:{n:'Зум',g:'beam',def:.5,dmx:true}, iris:{n:'Ирис',g:'beam',def:0,dmx:true},
   panf:{n:'Pan точно (16 бит)',fine:true}, tiltf:{n:'Tilt точно (16 бит)',fine:true},
@@ -940,6 +940,17 @@ if(!show) show=sampleShow();
 // LM0740D (51 кан.): каналы 24–51 раньше повторяли общий цвет. У аналога на этих местах кольцо и его эффекты —
 // при смене цвета прибор начинал моргать. Теперь они всегда 0, цветом управляют только каналы 8–11.
 // откат правки в.20.10е: каналы 24–51 у LM0740D снова повторяют цвет (без них Wash у вас не светит)
+// головы зала (Wash LM0740D, Beam 150): канал 7 — строб, 0 = свет без строба. Раньше там по умолчанию стояло 255 (максимальный строб).
+// Wash: цветные каналы гасятся вместе с яркостью, чтобы прибор слушался блэкаута, даже если его диммер не на 6-м канале.
+function fixHeads(s){ if(s.headV===1) return; s.headV=1; const ids=new Set(), keys=new Set();
+  for(const k in s.profiles){ const p=s.profiles[k]; if(!p||!Array.isArray(p.ch)||!/LM0740|Beam LED 150/i.test(p.name||'')) continue; keys.add(k);
+    p.ch.forEach((c,i)=>{ if(c.a==='shutter') p.ch[i]={a:'strobe'} }); if(/LM0740/i.test(p.name)) p.vdim=true }
+  for(const f of s.fixtures) if(keys.has(f.type)) ids.add(f.id); if(!ids.size) return;
+  const walk=o=>{ if(!o||typeof o!=='object') return; if(Array.isArray(o)){ o.forEach(walk); return }
+    for(const k in o){ const v=o[k]; if(ids.has(k)&&v&&typeof v==='object'&&!Array.isArray(v)&&'shutter' in v){ if(v.shutter<.02) v.dim=0; delete v.shutter } else walk(v) } };
+  for(const k in s) if(k!=='profiles'&&k!=='fixtures') walk(s[k]) }
+function fixHeadVals(o){ const ids=new Set(show.fixtures.filter(f=>prof(f).ch.some(c=>c.a==='strobe')).map(f=>f.id)); let n=0; if(!ids.size) return 0;
+  const walk=o=>{ if(!o||typeof o!=='object') return; if(Array.isArray(o)){ o.forEach(walk); return } for(const k in o){ const v=o[k]; if(ids.has(k)&&v&&typeof v==='object'&&!Array.isArray(v)&&'shutter' in v){ if(v.shutter<.02) v.dim=0; delete v.shutter; n++ } else walk(v) } }; walk(o); return n }
 function fixWashProfiles(s){ if(s.washV===2) return; s.washV=2;
   for(const k in s.profiles){ const p=s.profiles[k]; if(!p||!Array.isArray(p.ch)||!/LM0740/i.test(p.name||'')) continue;
     const cols=['red','green','blue','white']; let n=0;
@@ -955,6 +966,7 @@ function fixShow(s){
   s.playbacks=s.playbacks||[];
   fixMedia(s);
   fixWashProfiles(s);
+  fixHeads(s);
   fixBeamAddr(s);
   for(let i=0;i<PB_COUNT;i++) if(!s.playbacks[i]) s.playbacks[i]=emptyPb(i);
   return s;
@@ -1056,7 +1068,7 @@ function compute(now){
     const v=vals[f.id], p=prof(f);
     v.dim=(blackout||f.off)?0:clamp(v.dim)*gm; v.pan=clamp(v.pan??.5); v.tilt=clamp(v.tilt??.5);
     finalVals[f.id]=v;
-    const hasDim=p.ch.some(c=>c.a==='dim'), k=hasDim?1:v.dim;
+    const hasDim=p.ch.some(c=>c.a==='dim'), k=(!hasDim||p.vdim||v.dim<=0)?v.dim:1;
     const has=a=>p.ch.some(c=>c.a===a);
     p.ch.forEach((c,i)=>{
       const ad=f.addr+i; if(ad<1||ad>512) return;
@@ -2005,7 +2017,7 @@ function saveTLS(){clearTimeout(tlSaveT);tlSaveT=setTimeout(()=>{IDB.set('timeli
   try{localStorage.setItem(KEY+'-tl',JSON.stringify({list:TLS,cur:curTL}))}catch(e){toast('Не хватает места для записей. Сохраните шоу в файл: «Шоу…» → «Сохранить в файл».')}})},200)}
 function legacyTL(t){return {id:uid(),name:'Спектакль (старая запись)',created:Date.now(),dur:t.dur||0,audioName:t.audioName||null,events:t.events||[]}}
 function mergeTimelines(list){ for(const t of list){ if(!t||!t.events) continue; if(!t.id) t.id=uid(); if(TLS.some(x=>x.id===t.id)) continue; TLS.push(t) } if(!curTL&&TLS.length) curTL=TLS[TLS.length-1].id; saveTLS(); renderTLList(); uiPlay() }
-(async()=>{ try{ const v=await IDB.get('timelines'); if(v&&v.list){TLS=v.list;curTL=v.cur} }catch(e){ try{const v=JSON.parse(localStorage.getItem(KEY+'-tl')||'null'); if(v){TLS=v.list;curTL=v.cur}}catch(e){} }
+(async()=>{ try{ const v=await IDB.get('timelines'); if(v&&v.list){TLS=v.list;curTL=v.cur; try{ if(fixHeadVals(TLS)) saveTLS() }catch(e){} } }catch(e){ try{const v=JSON.parse(localStorage.getItem(KEY+'-tl')||'null'); if(v){TLS=v.list;curTL=v.cur}}catch(e){} }
   if(show.timeline&&show.timeline.events){ TLS.push(legacyTL(show.timeline)); delete show.timeline; save(); curTL=TLS[TLS.length-1].id; saveTLS() }
   if(curTL&&!TLS.some(t=>t.id===curTL)) curTL=TLS.length?TLS[TLS.length-1].id:null;
   renderTLList(); uiPlay();
@@ -3458,7 +3470,7 @@ function v3UpdateFix() {
   for (const id in V3.fix) {
     const o = V3.fix[id], v = finalVals[id] || {}, p = d.fx[id]; if (!p) continue;
     let I = clamp(v.dim || 0);
-    if ('shutter' in v && prof(o.f).ch.some(c => c.a === 'shutter') && v.shutter < 0.02) I = 0;
+    if ('shutter' in v && prof(o.f).ch.some(c => c.a === 'shutter' && (c.d ?? 255) > 0) && v.shutter < 0.02) I = 0;
     const col = v3Color(v, o.kind), ang = v3Angle(o, v) * Math.PI / 180;
     if (o.yoke) { // голова: pan/tilt; моторы догоняют плавно, с инерцией, как у настоящей головы
       const tp = ((v.pan ?? .5) - .5) * (p.panR || 540) * (p.panInv ? -1 : 1) * Math.PI / 180, tt = (((v.tilt ?? .5) - .5) * (p.tiltR || 270) * (p.tiltInv ? -1 : 1) + (p.tilt0 || 0)) * Math.PI / 180;
@@ -3653,7 +3665,14 @@ function v3Click(e) {
   const m = new T.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
   const rc = new T.Raycaster(); rc.setFromCamera(m, V3.cam);
   const hits = rc.intersectObjects(V3.pick ? [V3.room] : [V3.rig, V3.room], true).filter(h => (h.object.type === 'Mesh' || h.object.isInstancedMesh) && !(V3.pick && h.object.isInstancedMesh));
-  if (!hits.length) return;
+  // запасной выбор: ближайший к щелчку прибор на экране (головы под потолком мелкие, по ним трудно попасть)
+  const near = () => { let best = null, bd = 1e9; const w = new T.Vector3();
+    for (const id in V3.fix) { const o = V3.fix[id], b = o.bodyMeshes && o.bodyMeshes[0]; if (!b) continue; b.getWorldPosition(w); const s = w.project(V3.cam); if (s.z > 1 || Math.abs(s.x) > 1.05 || Math.abs(s.y) > 1.05) continue;
+      const dx = (s.x - m.x) * r.width / 2, dy = (s.y - m.y) * r.height / 2, dd = Math.hypot(dx, dy); if (dd < bd) { bd = dd; best = id; } }
+    return bd < 40 ? best : null; };
+  const selectId = id => { if (e.shiftKey || e.ctrlKey || e.metaKey) { if (sel.has(id)) sel.delete(id); else sel.add(id); V3.sel = sel.has(id) ? id : [...sel].pop() || null; }
+    else { sel.clear(); sel.add(id); V3.sel = id; } V3.pick = null; selChanged(); };
+  if (!hits.length) { if (!V3.pick) { const id = near(); if (id) selectId(id); } return; }
   const h = hits[0];
   if (V3.pick && V3.sel) { // режим «навести» или «поставить»
     const p = v3Data().fx[V3.sel], pt = h.point;
@@ -3669,10 +3688,8 @@ function v3Click(e) {
   // прибор важнее штанги или занавеса прямо перед ним: ищем ближайший прибор в пределах метра от первого попадания
   const fidOf = ob => { while (ob && !ob.userData.fid && ob.parent) ob = ob.parent; return ob && ob.userData.fid ? ob : null; };
   let o = null; for (const x of hits) { if (x.distance - h.distance > 1.2) break; const q = fidOf(x.object); if (q) { o = q; break; } }
-  if (o) { const id = o.userData.fid;
-    if (e.shiftKey || e.ctrlKey || e.metaKey) { if (sel.has(id)) sel.delete(id); else sel.add(id); V3.sel = sel.has(id) ? id : [...sel].pop() || null; }
-    else { sel.clear(); sel.add(id); V3.sel = id; }
-    V3.pick = null; selChanged(); return; }
+  if (o) { selectId(o.userData.fid); return; }
+  { const id = near(); if (id) { selectId(id); return; } }
   if (h.object.isInstancedMesh && h.object.userData.seats && h.instanceId != null) { v3Sit(V3.seats[h.instanceId]); return; }
 }
 function v3Select(id) { V3.sel = id; V3.pick = null; sel.clear(); if (id) sel.add(id); selChanged(); }
