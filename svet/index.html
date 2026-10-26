@@ -323,7 +323,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.22</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.23</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -1114,7 +1114,7 @@ async function connect(kind){
     if(!('usb' in navigator)){showSerialWarn();setChip('bad','USB недоступен здесь');return}
     try{ const dev=await navigator.usb.requestDevice({filters:[{vendorId:0x16C0,productId:0x05DC},{productName:'uDMX'}]});
       await dev.open(); if(dev.configuration===null) await dev.selectConfiguration(1); try{ await dev.claimInterface(0) }catch(e){}
-      out.usb=dev; out.kind='udmx'; setChip('ok','Подключено: uDMX'); toast('uDMX подключён. Поднимите яркость — приборы должны отреагировать.');
+      out.usb=dev; out.kind='udmx'; out.uPrev=null; out.uErr=0; setChip('ok','Подключено: uDMX'); toast('uDMX подключён. Поднимите яркость — приборы должны отреагировать.');
     }catch(e){ if(e.name==='NotFoundError'){setChip('warn','Демо: без оборудования');toast('Адаптер не выбран.')} else {setChip('bad','Ошибка подключения');toast('Не удалось открыть uDMX: '+e.message+'. Закройте другие программы света и выньте-вставьте адаптер.')} out.kind='demo' }
     return;
   }
@@ -1143,10 +1143,15 @@ async function send(){
       await out.port.setSignals({break:true}); await sleep(1); await out.port.setSignals({break:false});
       await out.writer.write(dmx.slice(0,513)); out.lastOk=performance.now();
     }else if(out.kind==='udmx'&&out.usb){
-      const r=await out.usb.controlTransferOut({requestType:'vendor',recipient:'device',request:2,value:512,index:0},dmx.slice(1,513));
-      if(r.status==='ok') out.lastOk=performance.now();
+      // кусками по 64 канала; меняющиеся куски — сразу, остальные — раз в полсекунды. Ошибка не рвёт связь сразу.
+      const now=performance.now(), prev=out.uPrev||(out.uPrev=new Uint8Array(513).fill(1)), full=now-(out.uFull||0)>500; if(full) out.uFull=now;
+      for(let st=1;st<513;st+=64){ const ch=dmx.slice(st,st+64); let same=!full; if(same) for(let i=0;i<64;i++) if(ch[i]!==prev[st+i]){same=false;break} if(same) continue;
+        try{ const r=await out.usb.controlTransferOut({requestType:'vendor',recipient:'device',request:2,value:64,index:st-1},ch);
+          if(r.status==='ok'){ prev.set(ch,st); out.lastOk=performance.now(); out.uErr=0 } else { out.uErr=(out.uErr||0)+1; out.uLast='статус '+r.status } }
+        catch(e){ out.uErr=(out.uErr||0)+1; out.uLast=e.message; if(out.uErr>40){ throw e } setChip('warn','uDMX: сбой связи — '+e.message); break } }
+      if(!out.uErr&&out.uWasErr){ setChip('ok','Подключено: uDMX'); } out.uWasErr=!!out.uErr;
     }else if(out.kind==='ws'&&out.ws&&out.ws.readyState===1){ const b=new Uint8Array(1024); b.set(dmx.subarray(1,513),0); b.set(dmx2.subarray(1,513),512); out.ws.send(b); out.lastOk=performance.now(); }
-  }catch(e){ await disconnect(); setChip('bad','Адаптер отключился'); toast('Связь с адаптером потеряна: '+e.message); }
+  }catch(e){ await disconnect(); setChip('bad','Адаптер отключился: '+e.message); toast('Связь с адаптером потеряна: '+e.message,15000); }
   out.busy=false;
 }
 function showSerialWarn(){
@@ -1162,7 +1167,7 @@ try{
 }catch(e){setInterval(tick,25)}
 
 // ---------- интерфейс: общее ----------
-function toast(t){const el=$('#toast'); el.textContent=t; el.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>el.hidden=true,3500)}
+function toast(t,ms){const el=$('#toast'); el.textContent=t; el.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>el.hidden=true,ms||3500)}
 document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
 function openTab(t){
   document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));
