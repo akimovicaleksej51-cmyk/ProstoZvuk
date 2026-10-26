@@ -98,7 +98,7 @@ button.kfb.on{background:#ffd34d;border-color:#ffd34d;color:#111}
 <body>
 <div class="app">
 <header>
-  <div class="row"><div class="brand"><span class="dot"></span>Просто Видео <span class="muted mono" style="font-size:11px;font-weight:400">в.1.3</span></div>
+  <div class="row"><div class="brand"><span class="dot"></span>Просто Видео <span class="muted mono" style="font-size:11px;font-weight:400">в.1.4</span></div>
     <input id="prjName" type="text" title="Название проекта"></div>
   <div class="row">
     <button id="bProjects">📁 Проекты</button>
@@ -140,6 +140,7 @@ button.kfb.on{background:#ffd34d;border-color:#ffd34d;color:#111}
   <button id="bSubs" title="Субтитры из речи">💬 Субтитры</button><button id="bSubStyle" title="Стиль выбранной подписи — всем субтитрам">Стиль всем</button>
   <button id="bDuck" title="Музыка сама становится тише, когда в клипах говорят или поют">🔉 Тише под голос</button>
   <button id="bBeats" title="Найти доли в музыке и поставить метки">🎵 Доли</button><button id="bCutMarks" title="Разрезать выбранный клип по меткам">✂ По меткам</button><button id="bMarkClr" title="Убрать все метки (M — поставить метку)">⌫ Метки</button>
+  <button id="bStill" title="Вырезать места, где в кадре ничего не происходит">✂ Без движения</button>
   <button id="bAuto" class="primary" title="Автомонтаж: из пачки видео по образцу">✨ Автомонтаж</button>
   <button id="bMagnet" class="on" title="Основная дорожка без пропусков: клипы сами встают встык">🧲 Встык</button>
   <span class="sp"></span>
@@ -2621,6 +2622,31 @@ $('#bAuto').onclick=()=>{ const vids=PRJ.media.filter(m=>m.kind!=='audio'), auds
     catch(e){ UNDO.pop(); $('#amTxt').textContent='Не получилось: '+e.message }
     busy=false; $('#amGo').disabled=$('#amAgain').disabled=false; $('#amClose').textContent='Закрыть' };
   $('#amGo').onclick=()=>{ seed=1; run() }; $('#amAgain').onclick=()=>{ seed=2+Math.floor(Math.random()*1e6); run() } };
+
+// ---------- вырезать моменты без движения ----------
+function stillPlan(c,an,o){ const fps=an.fps, d=an.diff, n=d.length, a0=c.in, a1=c.in+c.dur*c.speed; const srt=[...d.slice(1)].sort((x,y)=>x-y), p10=srt[Math.floor(srt.length*.1)]||0;
+  const thr=Math.max(.4,p10*1.2+.15)*Math.pow(1.35,o.sens-5), A=an.aud||[], aSrt=[...A].sort((x,y)=>x-y), aThr=A.length?Math.max(.02,(aSrt[Math.floor(A.length*.5)]||0)*1.6):1e9;
+  const live=new Uint8Array(n); for(let i=1;i<n;i++) live[i]=(d[i]>thr||(o.sound&&A[i]>aThr))?1:0; live[0]=live[1]||0;
+  // небольшие запасы вокруг движения, чтобы не резать впритык
+  const m=Math.round(o.margin*fps), keep=new Uint8Array(n); for(let i=0;i<n;i++) if(live[i]) for(let j=Math.max(0,i-m);j<=Math.min(n-1,i+m);j++) keep[j]=1;
+  const cuts=[]; let s=-1; for(let i=0;i<=n;i++){ const t=i/fps; const still=i<n&&!keep[i]&&t>=a0&&t<a1; if(still&&s<0) s=t; if(!still&&s>=0){ const e=Math.min(a1,t); if(e-s>=o.min) cuts.push([s,e]); s=-1 } }
+  const kept=[]; let p=a0; for(const [x,y] of cuts){ if(x-p>.15) kept.push([p,x]); p=y } if(a1-p>.15) kept.push([p,a1]); return {cuts,kept,removed:cuts.reduce((q,[x,y])=>q+y-x,0)/c.speed} }
+$('#bStill').onclick=async()=>{ let list=selClip()?[selClip()]:onTrack('v1'); list=list.filter(c=>c.media&&M(c.media)&&M(c.media).kind==='video'); if(!list.length) return toast('Выберите видео-клип (или положите видео на «Видео 1»).');
+  const box=$('#mbox'); box.innerHTML=`<h2>✂ Убрать моменты без движения</h2><div class="hint">${list.length===1?'Клип «'+esc(M(list[0].media).name)+'»':'Все видео на «Видео 1» ('+list.length+')'}: программа найдёт места, где в кадре ничего не происходит, и вырежет их. Остальное встанет встык.</div>
+    ${fNum('Чувствительность','sens',5,1,10,1)}<div class="hint">Больше — режет смелее (даже когда движение слабое), меньше — оставляет больше.</div>
+    ${fNum('Пауза от, с','min',1.5,.3,10,.1)}${fNum('Запас, с','margin',.3,0,2,.05)}
+    <label class="row hint"><input type="checkbox" id="stSnd" checked> не резать, где громко звучит голос или звук</label>
+    <div class="bar"><i id="stBar"></i></div><div class="hint" id="stTxt">Смотрю видео…</div>
+    <div class="row"><button class="primary" id="stGo" disabled>Вырезать</button><button id="stClose">Закрыть</button></div>`;
+  $('#modal').hidden=false; let stop=false; $('#stClose').onclick=()=>{ stop=true; $('#modal').hidden=true };
+  const O={sens:5,min:1.5,margin:.3,sound:true}; const ANs=[];
+  for(let i=0;i<list.length;i++){ const m=M(list[i].media); const an=await analyze(m,4,p=>{ $('#stBar').style.width=((i+p)/list.length*100).toFixed(0)+'%' },()=>stop); if(stop) return; ANs.push(an) } $('#stBar').style.width='100%';
+  const upd=()=>{ let n=0, sec=0; list.forEach((c,i)=>{ const r=stillPlan(c,ANs[i],O); n+=r.cuts.length; sec+=r.removed }); $('#stTxt').textContent=n?`Найдено мест без движения: ${n}, всего ${sec.toFixed(1)} с. Ролик станет короче на это время.`:'Мест без движения не нашлось — попробуйте увеличить чувствительность или уменьшить «Пауза от».'; $('#stGo').disabled=!n };
+  box.querySelectorAll('[data-k]').forEach(inp=>inp.addEventListener('input',()=>{ const v=parseFloat(inp.value); if(isNaN(v)) return; O[inp.dataset.k]=v; box.querySelectorAll(`[data-k="${inp.dataset.k}"]`).forEach(o=>{ if(o!==inp) o.value=v }); upd() }));
+  $('#stSnd').onchange=e=>{ O.sound=e.target.checked; upd() }; upd();
+  $('#stGo').onclick=()=>{ let total=0; list.forEach((c,i)=>{ const r=stillPlan(c,ANs[i],O); if(!r.cuts.length) return; total+=r.cuts.length; const parts=r.kept.map((k,j)=>{ const x=JSON.parse(JSON.stringify(c)); x.id=j?uid():c.id; x.in=k[0]; x.dur=(k[1]-k[0])/c.speed; if(j) x.trans=null; if(j<r.kept.length-1) x.fadeOut=0; if(j) x.fadeIn=0; return x });
+      PRJ.clips=PRJ.clips.filter(x=>x!==c); let at=c.start; for(const x of parts){ x.start=at; at+=x.dur; PRJ.clips.push(x) } if(c.track!=='v1'||!MAG){ const sh=c.dur-(at-c.start); for(const x of PRJ.clips) if(x.track===c.track&&x.start>=c.start+c.dur-1e-6&&!parts.includes(x)) x.start-=sh } resolve(c.track) });
+    commit(); $('#modal').hidden=true; toast(`Вырезано мест без движения: ${total}. Не понравилось — Ctrl+Z.`,6000) } };
 
 // ---------- проекты ----------
 async function openPrj(p){ pause(); for(const e of EL.values()){ e.pause(); e.removeAttribute('src'); e.load(); e.remove() } EL.clear(); ABUF.clear();
