@@ -323,7 +323,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.25</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.26</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -951,6 +951,10 @@ function fixHeads(s){ if(s.headV===1) return; s.headV=1; const ids=new Set(), ke
   for(const k in s) if(k!=='profiles'&&k!=='fixtures') walk(s[k]) }
 function fixHeadVals(o){ const ids=new Set(show.fixtures.filter(f=>prof(f).ch.some(c=>c.a==='strobe')).map(f=>f.id)); let n=0; if(!ids.size) return 0;
   const walk=o=>{ if(!o||typeof o!=='object') return; if(Array.isArray(o)){ o.forEach(walk); return } for(const k in o){ const v=o[k]; if(ids.has(k)&&v&&typeof v==='object'&&!Array.isArray(v)&&'shutter' in v){ if(v.shutter<.02) v.dim=0; delete v.shutter; n++ } else walk(v) } }; walk(o); return n }
+// в.26: на живых вошах LM0740D канал 6 меняет размер луча (зум), а не яркость. Яркость даём цветами (vdim).
+function fixWash6(s){ if(s.washV6===1) return; s.washV6=1;
+  for(const k in s.profiles){ const p=s.profiles[k]; if(!p||!Array.isArray(p.ch)||!/LM0740/i.test(p.name||'')) continue;
+    if(p.ch[5]&&p.ch[5].a==='dim') p.ch[5]={a:'zoom'}; if(p.ch[11]&&p.ch[11].a==='zoom') p.ch[11]={a:'raw',l:'Канал 12 (уточнить — держать 0)'}; p.vdim=true } }
 function fixWashProfiles(s){ if(s.washV===2) return; s.washV=2;
   for(const k in s.profiles){ const p=s.profiles[k]; if(!p||!Array.isArray(p.ch)||!/LM0740/i.test(p.name||'')) continue;
     const cols=['red','green','blue','white']; let n=0;
@@ -967,6 +971,7 @@ function fixShow(s){
   fixMedia(s);
   fixWashProfiles(s);
   fixHeads(s);
+  fixWash6(s);
   fixBeamAddr(s);
   for(let i=0;i<PB_COUNT;i++) if(!s.playbacks[i]) s.playbacks[i]=emptyPb(i);
   return s;
