@@ -323,7 +323,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.23</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.24</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -1114,7 +1114,7 @@ async function connect(kind){
     if(!('usb' in navigator)){showSerialWarn();setChip('bad','USB недоступен здесь');return}
     try{ const dev=await navigator.usb.requestDevice({filters:[{vendorId:0x16C0,productId:0x05DC},{productName:'uDMX'}]});
       await dev.open(); if(dev.configuration===null) await dev.selectConfiguration(1); try{ await dev.claimInterface(0) }catch(e){}
-      out.usb=dev; out.kind='udmx'; out.uPrev=null; out.uErr=0; setChip('ok','Подключено: uDMX'); toast('uDMX подключён. Поднимите яркость — приборы должны отреагировать.');
+      out.usb=dev; out.kind='udmx'; out.uPrev=null; out.uStep=0; out.uOk=out.uBad=0; setChip('ok','Подключено: uDMX'); toast('uDMX подключён. Поднимите яркость — приборы должны отреагировать.');
     }catch(e){ if(e.name==='NotFoundError'){setChip('warn','Демо: без оборудования');toast('Адаптер не выбран.')} else {setChip('bad','Ошибка подключения');toast('Не удалось открыть uDMX: '+e.message+'. Закройте другие программы света и выньте-вставьте адаптер.')} out.kind='demo' }
     return;
   }
@@ -1133,6 +1133,25 @@ async function connect(kind){
   }
 }
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+// uDMX: дешёвые адаптеры с программным USB часто сбоят на длинных посылках. Программа сама подбирает способ:
+// 64 канала за раз → 8 каналов → по одному каналу (без блока данных, самый надёжный). Сбои просто повторяются.
+const UDMX_STEPS=[64,8,1];
+async function udmxSend(){ const U=out, now=performance.now(); if(U.uStep==null) U.uStep=0; const N=UDMX_STEPS[U.uStep];
+  const prev=U.uPrev||(U.uPrev=new Int16Array(513).fill(-1)); let ok=0, bad=0, sent=0; const budget=N===1?48:N===8?40:8;
+  // сначала изменившиеся каналы, потом по кругу обновляем остальные
+  const todo=[]; for(let c=1;c<=512;c++) if(dmx[c]!==prev[c]) todo.push(c);
+  U.uRot=U.uRot||1; for(let k=0;k<(N===1?16:64)&&todo.length<budget*N;k++){ const c=U.uRot; if(!todo.includes(c)) todo.push(c); U.uRot=U.uRot%512+1 }
+  const starts=[]; for(const c of todo){ const st=N===1?c:Math.floor((c-1)/N)*N+1; if(!starts.includes(st)) starts.push(st); if(starts.length>=budget) break }
+  for(const st of starts){ sent++;
+    try{ let r; if(N===1) r=await U.usb.controlTransferOut({requestType:'vendor',recipient:'device',request:1,value:dmx[st],index:st-1});
+      else { const ch=dmx.slice(st,Math.min(513,st+N)); r=await U.usb.controlTransferOut({requestType:'vendor',recipient:'device',request:2,value:ch.length,index:st-1},ch) }
+      if(r.status==='ok'){ ok++; for(let i=st;i<Math.min(513,st+N);i++) prev[i]=dmx[i] } else bad++ }
+    catch(e){ bad++; U.uLast=e.message; if(!U.usb||!U.usb.opened) throw e } }
+  U.uOk=(U.uOk||0)+ok; U.uBad=(U.uBad||0)+bad; if(ok) U.lastOk=performance.now();
+  if(U.uOk+U.uBad>=60){ const rate=U.uBad/(U.uOk+U.uBad);
+    if(rate>.15&&U.uStep<UDMX_STEPS.length-1){ U.uStep++; U.uPrev=null; toast('uDMX сбоит — перехожу на более надёжный способ ('+UDMX_STEPS[U.uStep]+' кан. за раз).',6000) }
+    const pct=Math.round((1-rate)*100); setChip(rate<.05?'ok':rate<.5?'warn':'bad','uDMX: доходит '+pct+'% · по '+UDMX_STEPS[U.uStep]+' кан.'+(rate>=.05&&U.uLast?' · '+U.uLast.replace("Failed to execute 'controlTransferOut' on 'USBDevice': ",''):''));
+    U.uOk=U.uBad=0 } }
 async function send(){
   if(out.busy||out.kind==='demo') return; out.busy=true;
   try{
@@ -1142,14 +1161,7 @@ async function send(){
     }else if(out.kind==='open'&&out.writer){
       await out.port.setSignals({break:true}); await sleep(1); await out.port.setSignals({break:false});
       await out.writer.write(dmx.slice(0,513)); out.lastOk=performance.now();
-    }else if(out.kind==='udmx'&&out.usb){
-      // кусками по 64 канала; меняющиеся куски — сразу, остальные — раз в полсекунды. Ошибка не рвёт связь сразу.
-      const now=performance.now(), prev=out.uPrev||(out.uPrev=new Uint8Array(513).fill(1)), full=now-(out.uFull||0)>500; if(full) out.uFull=now;
-      for(let st=1;st<513;st+=64){ const ch=dmx.slice(st,st+64); let same=!full; if(same) for(let i=0;i<64;i++) if(ch[i]!==prev[st+i]){same=false;break} if(same) continue;
-        try{ const r=await out.usb.controlTransferOut({requestType:'vendor',recipient:'device',request:2,value:64,index:st-1},ch);
-          if(r.status==='ok'){ prev.set(ch,st); out.lastOk=performance.now(); out.uErr=0 } else { out.uErr=(out.uErr||0)+1; out.uLast='статус '+r.status } }
-        catch(e){ out.uErr=(out.uErr||0)+1; out.uLast=e.message; if(out.uErr>40){ throw e } setChip('warn','uDMX: сбой связи — '+e.message); break } }
-      if(!out.uErr&&out.uWasErr){ setChip('ok','Подключено: uDMX'); } out.uWasErr=!!out.uErr;
+    }else if(out.kind==='udmx'&&out.usb){ await udmxSend(); 
     }else if(out.kind==='ws'&&out.ws&&out.ws.readyState===1){ const b=new Uint8Array(1024); b.set(dmx.subarray(1,513),0); b.set(dmx2.subarray(1,513),512); out.ws.send(b); out.lastOk=performance.now(); }
   }catch(e){ await disconnect(); setChip('bad','Адаптер отключился: '+e.message); toast('Связь с адаптером потеряна: '+e.message,15000); }
   out.busy=false;
