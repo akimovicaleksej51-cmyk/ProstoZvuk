@@ -156,7 +156,7 @@ input.tin{width:86px;font-family:var(--f-mono)} input.nin{width:72px;font-family
 <body>
 <div class="app">
 <header>
-  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.8</span></div>
+  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.9</span></div>
   <div class="row">
     <button id="addBtn" title="Добавить песни">＋ Песни…</button>
     <button id="addDirBtn" title="Добавить папку с музыкой">＋ Папка…</button>
@@ -2210,7 +2210,11 @@ async function linkSend(){ if(!LK.ch) return toast('Этот браузер не
   LK.ch.postMessage({app:'zvuk',type:'song',name,file:blob}); linkUiZ(); toast('Отправляю песню в «Просто Свет»…');
   setTimeout(()=>{ if(!LK.ok&&LK.id===id){ toast('«Просто Свет» не ответил. Откройте его на этом же компьютере (тоже как приложение или в том же браузере) и нажмите «💡 В Свет» ещё раз.',8000); LK.id=null; linkUiZ() } },2000) }
 $('#bLink').onclick=linkSend;
-if(LK.ch) LK.ch.onmessage=e=>{ const m=e.data||{}; if(m.app!=='svet') return; if(m.type==='ok'&&m.name===LK.name){ LK.ok=true; linkUiZ(); toast('💡 Свет подхватил песню — монтаж «'+m.montage+'». Включайте: свет пойдёт синхронно.',6000) } if(m.type==='unlinked'){ LK.id=null; linkUiZ(); toast('В «Просто Свет» связь выключили.') } };
+if(LK.ch) LK.ch.onmessage=async e=>{ const m=e.data||{};
+  if(m.app==='video'){ if(m.type==='songs?') LK.ch.postMessage({app:'zvuk',type:'songs',list:PL.filter(t=>!t.bad).map(t=>({id:t.id,name:t.name,dur:t.dur||0}))});
+    else if(m.type==='song?'){ const t=PL.find(x=>x.id===m.id); const b=t&&await IDB.get('f:'+t.id); if(b){ const nm=b.name&&/\.[^.]+$/.test(b.name)?b.name:t.name+(b.type==='audio/wav'?'.wav':'.mp3'); LK.ch.postMessage({app:'zvuk',type:'songFile',id:t.id,name:nm,file:b}) } }
+    return }
+  if(m.app!=='svet') return; if(m.type==='ok'&&m.name===LK.name){ LK.ok=true; linkUiZ(); toast('💡 Свет подхватил песню — монтаж «'+m.montage+'». Включайте: свет пойдёт синхронно.',6000) } if(m.type==='unlinked'){ LK.id=null; linkUiZ(); toast('В «Просто Свет» связь выключили.') } };
 function linkTick(){ if(!LK.ch||!LK.id||!LK.ok) return; const active=P.id===LK.id&&P.buf, playing=!!(active&&P.playing), t=active?P.pos/P.buf.sampleRate:0, now=performance.now();
   if(playing!==LK.was){ LK.ch.postMessage({app:'zvuk',type:playing?'play':'pause',pos:t,name:LK.name}); LK.was=playing; LK.lt=now; LK.lp=t; return }
   if(playing&&now-LK.lt>500){ LK.ch.postMessage({app:'zvuk',type:'pos',pos:t,name:LK.name}); LK.lt=now; LK.lp=t }
