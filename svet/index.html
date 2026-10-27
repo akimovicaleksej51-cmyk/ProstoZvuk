@@ -328,7 +328,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.28</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.29</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -1001,6 +1001,7 @@ function attrsOf(f){ // [{k,a,label}]
 function defaults(f){const v={}; for(const x of attrsOf(f)) v[x.k]=x.d!=null?x.d/255:ATTR[x.a].def; return v}
 
 // ---------- состояние работы ----------
+const GSUB={};          // группа -> уровень с фейдера пульта
 let prog={};          // id -> {k:v}
 let progFx=[];        // эффекты в программере
 const sel=new Set();
@@ -1074,6 +1075,8 @@ function compute(now){
       }
     });
   }
+  // фейдер «яркость группы» (с X-Touch): поднимает яркость всех приборов группы, кто выше — тот и светит
+  for(const g of show.groups||[]){ const l=GSUB[g.id]; if(!(l>0)) continue; for(const id of g.ids){ const v=vals[id]; if(v) v.dim=Math.max(v.dim||0,l) } }
   if(standby) for(const f of show.fixtures){ const v=vals[f.id], p=prof(f); if(p.ch.some(c=>c.a==='pan')){ v.dim=0 } else { v.dim=.55; v.red=1; v.green=.82; v.blue=.55; v.white=1; v.amber=.6; v.uv=0 } }
   // вывод
   dmx.fill(0); dmx2.fill(0);
@@ -1674,14 +1677,20 @@ const XTC_BY = {}; for (const c of XTC_CTL) XTC_BY[c.id] = c;
 function xtcDefaults() { const m = {};
   for (let i = 1; i <= 8; i++) { m['f' + i] = 'pb:' + (i - 1); m['b' + i] = 'go:' + (i - 1); m['b' + (8 + i)] = 'back:' + (i - 1); m['b' + (16 + i)] = 'flash:' + (i - 1); m['b' + (24 + i)] = 'off:' + (i - 1); }
   m.f9 = 'gm'; m.b33 = 'bo';
+  xtcGroupFaders(m);
   Object.assign(m, { e1: 'a:dim', e2: 'a:hue', e3: 'a:sat', e4: 'a:white', e5: 'a:pan', e6: 'a:tilt', e7: 'a:zoom', e8: 'a:amber', e9: 'pb:8', e10: 'pb:9' });
   Object.assign(m, { b34: 'standby', b35: 'clear', b36: 'selall', b37: 'selnone', b38: 'alloff', b39: 'go:0' });
   return m; }
-function xtcCfg() { if (!show.xtc || typeof show.xtc !== 'object') show.xtc = { on: true, fn: xtcDefaults(), lbl: {} }; show.xtc.fn = show.xtc.fn || xtcDefaults(); show.xtc.lbl = show.xtc.lbl || {}; return show.xtc; }
+function xtcGroupFaders(m) { const gs = (show.groups || []).slice(0, 4); let k = 1;
+  for (const g of gs) { m['f' + k] = 'grp:' + g.id; k++; }
+  for (let i = k; i <= 8; i++) m['f' + i] = 'pb:' + (i - k); }
+function xtcCfg() { if (!show.xtc || typeof show.xtc !== 'object') show.xtc = { on: true, fn: xtcDefaults(), lbl: {} }; show.xtc.fn = show.xtc.fn || xtcDefaults(); show.xtc.lbl = show.xtc.lbl || {};
+  if (show.xtc.v !== 2) { show.xtc.v = 2; const f = show.xtc.fn; let same = true; for (let i = 1; i <= 8; i++) if (f['f' + i] !== 'pb:' + (i - 1)) same = false; if (same) xtcGroupFaders(f); }
+  return show.xtc; }
 const pbNm = i => (show.playbacks[i] && show.playbacks[i].name) || ('Фейдер ' + (i + 1));
 function xtcFnList(kind) {
   const L = [{ id: '', t: '— ничего —' }];
-  if (kind === 'fader' || kind === 'enc') { L.push({ id: 'gm', t: 'Мастер' }); for (let i = 0; i < PB_COUNT; i++) L.push({ id: 'pb:' + i, t: 'Уровень: ' + pbNm(i) }); }
+  if (kind === 'fader' || kind === 'enc') { L.push({ id: 'gm', t: 'Мастер' }); for (const g of show.groups || []) L.push({ id: 'grp:' + g.id, t: 'Яркость группы: ' + g.name }); for (let i = 0; i < PB_COUNT; i++) L.push({ id: 'pb:' + i, t: 'Уровень: ' + pbNm(i) }); }
   if (kind === 'enc') for (const [k, t] of [['dim', 'Яркость выбранных'], ['hue', 'Цвет (оттенок) выбранных'], ['sat', 'Насыщенность выбранных'], ['red', 'Красный'], ['green', 'Зелёный'], ['blue', 'Синий'], ['white', 'Белый'], ['amber', 'Янтарный'], ['pan', 'Поворот (Pan)'], ['tilt', 'Наклон (Tilt)'], ['zoom', 'Зум (размер луча)'], ['strobe', 'Строб']]) L.push({ id: 'a:' + k, t });
   if (kind === 'btn') { L.push({ id: 'bo', t: 'Блэкаут' }, { id: 'standby', t: 'Дежурный свет' }, { id: 'clear', t: 'Очистить программер' }, { id: 'selall', t: 'Выбрать все приборы' }, { id: 'selnone', t: 'Снять выбор' }, { id: 'alloff', t: 'Погасить все сцены' });
     for (let i = 0; i < PB_COUNT; i++) L.push({ id: 'go:' + i, t: 'GO: ' + pbNm(i) }, { id: 'back:' + i, t: 'Назад: ' + pbNm(i) }, { id: 'flash:' + i, t: 'Вспышка: ' + pbNm(i) }, { id: 'off:' + i, t: 'Погасить: ' + pbNm(i) }); }
@@ -1689,6 +1698,7 @@ function xtcFnList(kind) {
 function xtcFnName(id, kind) { const f = xtcFnList(kind).find(x => x.id === id); return f ? f.t : '—'; }
 // подпись кнопки: своя, если задана, иначе короткая по функции
 function xtcShort(id) { if (!id) return ''; const [f, i] = id.split(':'), n = i != null ? pbNm(+i) : '';
+  if (f === 'grp') { const g = (show.groups || []).find(x => x.id === i); return g ? g.name : 'группа'; }
   return ({ gm: 'Мастер', bo: 'Блэкаут', standby: 'Дежурный', clear: 'Очистить', selall: 'Все', selnone: 'Снять выбор', alloff: 'Всё погасить', pb: n, go: 'GO ' + n, back: '◀ ' + n, flash: 'Вспышка ' + n, off: 'Погасить ' + n,
     a: ({ dim: 'Яркость', hue: 'Цвет', sat: 'Насыщ.', red: 'Красный', green: 'Зелёный', blue: 'Синий', white: 'Белый', amber: 'Янтарный', pan: 'Pan', tilt: 'Tilt', zoom: 'Зум', strobe: 'Строб' })[i] })[f] || id; }
 const xtcLabel = c => (xtcCfg().lbl[c] || '').trim() || xtcShort(xtcCfg().fn[c]);
@@ -1697,6 +1707,7 @@ const XHS = { hue: 0, sat: 0 };
 function xtcRun(fn, val, ctl) {
   const [f, ix] = fn.split(':'), pb = (ix != null && /^\d+$/.test(ix)) ? show.playbacks[+ix] : null, r = pb ? rt(pb) : null, press = val > .5;
   if (f === 'pb' && r) { const was = r.level; r.level = val; if (was === 0 && val > 0) { r.ts = performance.now(); if (r.cur < 0) { r.cur = 0; r.prev = null; r.fd = 0 } } lastPb = pb; return; }
+  if (f === 'grp') { GSUB[ix] = val; return; }
   if (f === 'gm') { gm = val; $('#gm').value = Math.round(val * 100); $('#gmv').textContent = Math.round(val * 100) + '%'; return; }
   if (f === 'a') { if (!sel.size) { xtcHint(ctl, 'сначала выберите приборы на «Пульте»'); return; }
     if (ix === 'hue' || ix === 'sat') { XHS[ix] = val; const c = hsv(XHS.hue), s = XHS.sat; setProg('red', 1 - s * (1 - c[0])); setProg('green', 1 - s * (1 - c[1])); setProg('blue', 1 - s * (1 - c[2])); }
@@ -1742,7 +1753,7 @@ function xtcLeds(force) { const cfg = show.xtc; if (!cfg || !cfg.on || !midiAcc)
 let xtcLvl = {};
 function xtcSync(force) { const cfg = show.xtc; if (!cfg || !cfg.on || !midiAcc) return; xtcLeds(force);
   for (const id in cfg.fn) { const c = XTC_BY[id]; if (!c || c.t !== 'fader') continue; const fn = cfg.fn[id], [f, ix] = fn.split(':');
-    const v = f === 'gm' ? gm : f === 'pb' && show.playbacks[+ix] ? rt(show.playbacks[+ix]).level : null; if (v == null) continue;
+    const v = f === 'gm' ? gm : f === 'grp' ? (GSUB[ix] || 0) : f === 'pb' && show.playbacks[+ix] ? rt(show.playbacks[+ix]).level : null; if (v == null) continue;
     const q = Math.round(clamp(v) * 127); if (force || xtcLvl[id] !== q) { xtcLvl[id] = q; if (performance.now() - (xtcTouch[id] || 0) > 400) { xtcSent[id] = performance.now(); xtcSend([0xB0, c.cc, q]); } } } }
 const xtcTouch = {};
 setInterval(() => { try { xtcSync(false) } catch (e) {} }, 120);
