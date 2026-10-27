@@ -328,7 +328,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.32</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.34</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -944,7 +944,10 @@ function sampleShow(){
 }
 const KEY='svet-prosto-show';
 let show=null;
-try{const t=localStorage.getItem(KEY); if(t) show=fixShow(JSON.parse(t));}catch(e){}
+let showLoadErr=null; try{const t=localStorage.getItem(KEY); if(t){ try{ show=fixShow(JSON.parse(t)) }catch(e){ showLoadErr=e; try{localStorage.setItem(KEY+'-broken-'+Date.now(),t)}catch(_){} } }}catch(e){}
+let showFromSample=!(function(){try{return localStorage.getItem(KEY)}catch(e){return null}})()||!!showLoadErr;
+setTimeout(async()=>{ if(!showFromSample) return; try{ const j=await IDB.get('show-last'); if(j){ loadShow(fixShow(JSON.parse(j))); showLoadErr=null; toast('Ваше шоу восстановлено из памяти программы.',6000) } }catch(e){} },900);
+setTimeout(()=>{ if(showLoadErr) toast('Ваше шоу не открылось ('+showLoadErr.message+'). Оно сохранено отдельно. Верните его: «Шоу…» → «Резервные копии». И пришлите мне фото этого сообщения.',20000) },1500);
 if(!show) show=sampleShow();
 // LM0740D (51 кан.): каналы 24–51 раньше повторяли общий цвет. У аналога на этих местах кольцо и его эффекты —
 // при смене цвета прибор начинал моргать. Теперь они всегда 0, цветом управляют только каналы 8–11.
@@ -965,12 +968,15 @@ function fixWash6(s){ if(s.washV6===1) return; s.washV6=1;
   for(const k in s.profiles){ const p=s.profiles[k]; if(!p||!Array.isArray(p.ch)||!/LM0740/i.test(p.name||'')) continue;
     if(p.ch[5]&&p.ch[5].a==='dim') p.ch[5]={a:'zoom'}; if(p.ch[11]&&p.ch[11].a==='zoom') p.ch[11]={a:'raw',l:'Канал 12 (уточнить — держать 0)'}; p.vdim=true } }
 // в.32: настоящая таблица каналов Betopper LM0740D, режим 51 канал (из официального файла Betopper)
-const LM0740D_51=(()=>{ const R=l=>({a:'raw',l}); const ch=[{a:'pan'},{a:'panf'},{a:'tilt'},{a:'tiltf'},{a:'speed'},{a:'zoom'},{a:'raw',l:'Вращение зума',d:127},{a:'dim'},{a:'strobe'},
+const LM0740D_51=(()=>{ const R=l=>({a:'raw',l}); const ch=[{a:'pan'},{a:'panf'},{a:'tilt'},{a:'tiltf'},{a:'speed'},{a:'zoom'},{a:'raw',l:'Вращение зума',d:127},{a:'dim'},{a:'shutter',d:255},
   {a:'red'},{a:'green'},{a:'blue'},{a:'white'},R('Тёплый белый (CTO)'),R('Цветовые макросы (0 = выкл)'),R('Статичные эффекты (0 = выкл)'),R('Динамичные эффекты (0 = выкл)'),R('Скорость эффектов'),
   R('Фон: красный'),R('Фон: зелёный'),R('Фон: синий'),R('Фон: белый'),R('Сброс (не трогать)')];
   for(let k=1;k<=7;k++) ch.push(R('Сегмент '+k+': красный'),R('Сегмент '+k+': зелёный'),R('Сегмент '+k+': синий'),R('Сегмент '+k+': белый'));
   return {name:'Betopper LM0740D — 51 кан. (официальная таблица Betopper)',ch} })();
-function fixWashReal(s){ if(s.washV7===1) return; s.washV7=1;
+function fixWashReal(s){
+  // в.34: 9-й канал воша — затвор: 255 = свет горит ровно, середина = строб, 0 = закрыт (так вели себя живые приборы)
+  if(s.washV7===1&&s.washV8!==1){ s.washV8=1; for(const k in s.profiles){ const p=s.profiles[k]; if(p&&/официальная таблица Betopper/.test(p.name||'')&&p.ch[8]&&p.ch[8].a==='strobe') p.ch[8]={a:'shutter',d:255} } }
+  if(s.washV7===1) return; s.washV7=1; s.washV8=1;
   for(const k in s.profiles){ const p=s.profiles[k]; if(!p||!Array.isArray(p.ch)||!/LM0740/i.test(p.name||'')||p.ch.length!==51) continue;
     s.profiles[k]=JSON.parse(JSON.stringify(LM0740D_51)) } }
 function fixWashProfiles(s){ if(s.washV===2) return; s.washV=2;
@@ -997,7 +1003,7 @@ function fixShow(s){
 }
 let saveT=0;
 let saveWarned=false;
-function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(show))}catch(e){ if(!saveWarned){saveWarned=true;toast('Шоу не помещается в память браузера. Сохраните его в файл: «Шоу…» → «Сохранить в файл».')} }},300)}
+function save(){clearTimeout(saveT);saveT=setTimeout(()=>{ const j=JSON.stringify(show); try{ IDB.set('show-last',j).catch(()=>{}) }catch(e){} try{localStorage.setItem(KEY,j)}catch(e){ /* большое шоу — оно сохранено в базе программы (IndexedDB) */ } },300)}
 
 const prof=f=>LIB[f.type]||show.profiles[f.type]||{name:'?',ch:[C('dim')]};
 const fixById=id=>show.fixtures.find(f=>f.id===id);
@@ -1763,6 +1769,7 @@ function xtcMotor(c, val) { const v = Math.round(clamp(val) * 16383);
 function xtcFader(fn, val) { const cfg = show.xtc; if (!cfg || !cfg.on) return; for (const id in cfg.fn) { if (cfg.fn[id] !== fn) continue; const c = XTC_BY[id]; if (!c || c.t !== 'fader') continue; xtcSent[id] = performance.now(); xtcMotor(c, val); } }
 // подсветка кнопок: горит — сцена включена / дежурный включён; мигает — блэкаут
 function xtcLeds(force) { const cfg = show.xtc; if (!cfg || !cfg.on || !midiAcc) return;
+  if (xtcMode === 'mc') { if (!xtcLeds.off) { xtcLeds.off = true; for (let n = 0; n < 128; n++) xtcSend([0x90, n, 0]); } return; }
   for (const c of XTC_CTL) { if (c.led == null) continue; const fn = cfg.fn[c.id] || '', [f, ix] = fn.split(':'), pb = ix != null && /^\d+$/.test(ix) ? show.playbacks[+ix] : null, r = pb ? rt(pb) : null;
     let s = 0; if (r && (f === 'go' || f === 'off')) s = r.level > 0 ? 1 : 0; else if (r && f === 'flash') s = r.flash ? 1 : 0;
     else if (f === 'bo') s = blackout ? 2 : 0; else if (f === 'standby') s = standby ? 1 : 0;
