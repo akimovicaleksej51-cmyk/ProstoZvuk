@@ -328,7 +328,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.30</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.32</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -964,6 +964,15 @@ function fixHeadVals(o){ const ids=new Set(show.fixtures.filter(f=>prof(f).ch.so
 function fixWash6(s){ if(s.washV6===1) return; s.washV6=1;
   for(const k in s.profiles){ const p=s.profiles[k]; if(!p||!Array.isArray(p.ch)||!/LM0740/i.test(p.name||'')) continue;
     if(p.ch[5]&&p.ch[5].a==='dim') p.ch[5]={a:'zoom'}; if(p.ch[11]&&p.ch[11].a==='zoom') p.ch[11]={a:'raw',l:'Канал 12 (уточнить — держать 0)'}; p.vdim=true } }
+// в.32: настоящая таблица каналов Betopper LM0740D, режим 51 канал (из официального файла Betopper)
+const LM0740D_51=(()=>{ const R=l=>({a:'raw',l}); const ch=[{a:'pan'},{a:'panf'},{a:'tilt'},{a:'tiltf'},{a:'speed'},{a:'zoom'},{a:'raw',l:'Вращение зума',d:127},{a:'dim'},{a:'strobe'},
+  {a:'red'},{a:'green'},{a:'blue'},{a:'white'},R('Тёплый белый (CTO)'),R('Цветовые макросы (0 = выкл)'),R('Статичные эффекты (0 = выкл)'),R('Динамичные эффекты (0 = выкл)'),R('Скорость эффектов'),
+  R('Фон: красный'),R('Фон: зелёный'),R('Фон: синий'),R('Фон: белый'),R('Сброс (не трогать)')];
+  for(let k=1;k<=7;k++) ch.push(R('Сегмент '+k+': красный'),R('Сегмент '+k+': зелёный'),R('Сегмент '+k+': синий'),R('Сегмент '+k+': белый'));
+  return {name:'Betopper LM0740D — 51 кан. (официальная таблица Betopper)',ch} })();
+function fixWashReal(s){ if(s.washV7===1) return; s.washV7=1;
+  for(const k in s.profiles){ const p=s.profiles[k]; if(!p||!Array.isArray(p.ch)||!/LM0740/i.test(p.name||'')||p.ch.length!==51) continue;
+    s.profiles[k]=JSON.parse(JSON.stringify(LM0740D_51)) } }
 function fixWashProfiles(s){ if(s.washV===2) return; s.washV=2;
   for(const k in s.profiles){ const p=s.profiles[k]; if(!p||!Array.isArray(p.ch)||!/LM0740/i.test(p.name||'')) continue;
     const cols=['red','green','blue','white']; let n=0;
@@ -981,6 +990,7 @@ function fixShow(s){
   fixWashProfiles(s);
   fixHeads(s);
   fixWash6(s);
+  fixWashReal(s);
   fixBeamAddr(s);
   for(let i=0;i<PB_COUNT;i++) if(!s.playbacks[i]) s.playbacks[i]=emptyPb(i);
   return s;
@@ -1735,6 +1745,7 @@ function xtcMsg(e) {
   else if (type === 0x90 || type === 0x80) { c = XTC_CTL.find(x => x.t === 'btn' && x.note === num); val = type === 0x90 && v > 0 ? 1 : 0; }
   if (type === 0xE0) { const ch = d[0] & 15; if (ch > 8) return true; c = XTC_BY['f' + (ch + 1)]; val = ((v << 7) | num) / 16383; xtcMode = 'mc'; }
   if (type === 0xB0 && num >= 28 && num <= 36) { c = XTC_BY['f' + (num - 27)]; val = v / 127; }
+  if ((type === 0x90 || type === 0x80) && num >= 104 && num <= 112 && !c) { xtcMode = 'mc'; xtcTouch['f' + (num - 103)] = type === 0x90 && v > 0 ? 1e15 : performance.now(); return true; } // касание фейдера в режиме MC
   if (type === 0xB0 && num >= 111 && num <= 119) { xtcTouch['f' + (num - 110)] = v > 0 ? 1e15 : performance.now(); return true; }
   if (type === 0xB0 && num >= 101 && num <= 109) { xtcTouch['f' + (num - 100)] = v > 0 ? 1e15 : performance.now(); return true; } // касание фейдера
   if (!c) { const now = performance.now(); if (now - (xtcMsg.t || 0) > 1500) { xtcMsg.t = now; toast('Пульт прислал неизвестный сигнал: ' + Array.from(d).join(' ') + '. Сфотографируйте это сообщение.', 4000); } return true; }
