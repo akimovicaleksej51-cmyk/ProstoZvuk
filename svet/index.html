@@ -328,7 +328,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.27</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.28</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -1123,33 +1123,37 @@ async function disconnect(){
   try{out.writer&&out.writer.releaseLock()}catch(e){} try{out.port&&await out.port.close()}catch(e){} try{out.ws&&out.ws.close()}catch(e){} try{out.usb&&await out.usb.close()}catch(e){}
   out.port=out.writer=out.ws=out.usb=null; out.kind='demo';
 }
-async function connect(kind){
+const LASTOUT=KEY+'-lastout'; const setLast=k=>{try{localStorage.setItem(LASTOUT,k)}catch(e){}};
+// при запуске программа сама подключается к тому, что работало в прошлый раз (мост, USB-адаптер), без нажатий
+let autoTry=0;
+async function autoConnect(){ let k=null; try{k=localStorage.getItem(LASTOUT)}catch(e){} if(!k||k==='demo'||out.kind!=='demo') return; autoTry++; await connect(k,true) }
+async function connect(kind,auto){
   await disconnect();
-  if(kind==='demo'){setChip('warn','Демо: без оборудования');toast('Демо-режим. Свет виден только на экране.');return}
+  if(kind==='demo'){ if(!auto) setLast('demo'); setChip('warn','Демо: без оборудования');toast('Демо-режим. Свет виден только на экране.');return}
   if(kind==='ws'){
     try{const ws=new WebSocket($('#wsUrl').value.trim()); ws.binaryType='arraybuffer';
       out.bridge=null;
       ws.onmessage=e=>{ if(typeof e.data!=='string') return; try{ const j=JSON.parse(e.data); if(j&&j.bridge) out.bridge=Object.assign(j,{t:performance.now()}) }catch(_){} };
-      ws.onopen=()=>{out.ws=ws;out.kind='ws';out.wsT=performance.now();setChip('ok','Подключено: Art-Net мост');toast('Мост подключён. Сигнал идёт в сеть.')};
-      ws.onerror=()=>{setChip('bad','Мост не отвечает');toast('Мост не отвечает. Запустите artnet_bridge.py и проверьте адрес.')};
+      ws.onopen=()=>{out.ws=ws;out.kind='ws';out.wsT=performance.now();setLast('ws');autoTry=0;setChip('ok','Подключено: Art-Net мост');toast(auto?'Свет подключён сам: мост работает.':'Мост подключён. Сигнал идёт в сеть.')};
+      ws.onerror=()=>{ if(auto&&autoTry<40){ setChip('warn','Жду мост… (запускается)'); setTimeout(autoConnect,3000); return } setChip('bad','Мост не отвечает');toast('Мост не отвечает. Запустите artnet_bridge.py и проверьте адрес.')};
       ws.onclose=()=>{if(out.ws===ws){out.ws=null;out.kind='demo';setChip('bad','Мост отключился')}};
     }catch(e){setChip('bad','Мост недоступен');toast('Не удалось подключиться к мосту: '+e.message)}
     return;
   }
   if(kind==='udmx'){
     if(!('usb' in navigator)){showSerialWarn();setChip('bad','USB недоступен здесь');return}
-    try{ const dev=await navigator.usb.requestDevice({filters:[{vendorId:0x16C0,productId:0x05DC},{productName:'uDMX'}]});
+    try{ const dev=auto?(await navigator.usb.getDevices()).find(d=>d.vendorId===0x16C0||/udmx/i.test(d.productName||'')):await navigator.usb.requestDevice({filters:[{vendorId:0x16C0,productId:0x05DC},{productName:'uDMX'}]}); if(!dev){ setChip('warn','Демо: адаптер не вставлен'); return }
       await dev.open(); if(dev.configuration===null) await dev.selectConfiguration(1); try{ await dev.claimInterface(0) }catch(e){}
-      out.usb=dev; out.kind='udmx'; out.uPrev=null; out.uStep=0; out.uOk=out.uBad=0; setChip('ok','Подключено: uDMX'); toast('uDMX подключён. Поднимите яркость — приборы должны отреагировать.');
+      out.usb=dev; out.kind='udmx'; setLast('udmx'); out.uPrev=null; out.uStep=0; out.uOk=out.uBad=0; setChip('ok','Подключено: uDMX'); toast('uDMX подключён. Поднимите яркость — приборы должны отреагировать.');
     }catch(e){ if(e.name==='NotFoundError'){setChip('warn','Демо: без оборудования');toast('Адаптер не выбран.')} else {setChip('bad','Ошибка подключения');toast('Не удалось открыть uDMX: '+e.message+'. Закройте другие программы света и выньте-вставьте адаптер.')} out.kind='demo' }
     return;
   }
   if(!('serial' in navigator)){showSerialWarn();setChip('bad','USB недоступен здесь');return}
   try{
-    const port=await navigator.serial.requestPort();
+    const port=auto?(await navigator.serial.getPorts())[0]:await navigator.serial.requestPort(); if(!port){ setChip('warn','Демо: адаптер не вставлен'); return }
     if(kind==='pro') await port.open({baudRate:57600});
     else await port.open({baudRate:250000,dataBits:8,stopBits:2,parity:'none'});
-    out.port=port; out.writer=port.writable.getWriter(); out.kind=kind;
+    out.port=port; out.writer=port.writable.getWriter(); out.kind=kind; setLast(kind);
     setChip('ok',kind==='pro'?'Подключено: USB Pro':'Подключено: Open DMX');
     toast('Адаптер подключён. Поднимите яркость — приборы должны отреагировать.');
   }catch(e){
@@ -1222,6 +1226,7 @@ $('#gm').oninput=e=>{gm=e.target.value/100;$('#gmv').textContent=e.target.value+
 $('#bo').onclick=()=>{blackout=!blackout;$('#bo').classList.toggle('on',blackout);$('#bo').textContent=blackout?'Блэкаут ВКЛ':'Блэкаут'};
 $('#helpBtn').onclick=()=>{document.body.classList.toggle('nohelp');$('#helpBtn').classList.toggle('on');try{localStorage.setItem(KEY+'-help',document.body.classList.contains('nohelp')?'0':'1')}catch(e){}};
 document.querySelectorAll('[data-connect]').forEach(b=>b.onclick=()=>connect(b.dataset.connect));
+setTimeout(()=>{try{autoConnect()}catch(e){}},700);
 if(!('serial' in navigator)) showSerialWarn();
 
 // confirm без диалогов: второй клик в течение 3 секунд
