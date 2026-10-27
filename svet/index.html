@@ -328,7 +328,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.29</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.30</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -1733,9 +1733,12 @@ function xtcMsg(e) {
   let c = null, val = 0;
   if (type === 0xB0) { c = XTC_CTL.find(x => x.cc === num && x.t !== 'btn'); val = v / 127; }
   else if (type === 0x90 || type === 0x80) { c = XTC_CTL.find(x => x.t === 'btn' && x.note === num); val = type === 0x90 && v > 0 ? 1 : 0; }
+  if (type === 0xE0) { const ch = d[0] & 15; if (ch > 8) return true; c = XTC_BY['f' + (ch + 1)]; val = ((v << 7) | num) / 16383; xtcMode = 'mc'; }
+  if (type === 0xB0 && num >= 28 && num <= 36) { c = XTC_BY['f' + (num - 27)]; val = v / 127; }
+  if (type === 0xB0 && num >= 111 && num <= 119) { xtcTouch['f' + (num - 110)] = v > 0 ? 1e15 : performance.now(); return true; }
   if (type === 0xB0 && num >= 101 && num <= 109) { xtcTouch['f' + (num - 100)] = v > 0 ? 1e15 : performance.now(); return true; } // касание фейдера
-  if (!c) return true; // слой B и прочее — пропускаем
-  if (c.t === 'fader') xtcLvl[c.id] = v;
+  if (!c) { const now = performance.now(); if (now - (xtcMsg.t || 0) > 1500) { xtcMsg.t = now; toast('Пульт прислал неизвестный сигнал: ' + Array.from(d).join(' ') + '. Сфотографируйте это сообщение.', 4000); } return true; }
+  if (c.t === 'fader') xtcLvl[c.id] = Math.round(val * 127);
   if (xtcLearn) { xtcLearn(c.id); return true; }
   const fn = cfg.fn[c.id]; if (c.t !== 'btn' || val > 0) xtcHint(c.id); if (!fn) return true;
   if (c.t === 'fader' && performance.now() - (xtcSent[c.id] || 0) < 250) return true; // это наш же мотор
@@ -1743,7 +1746,10 @@ function xtcMsg(e) {
 }
 let xtcLearn = null; const xtcSent = {}, xtcLed = {};
 function xtcSend(msg) { if (!midiAcc) return; midiAcc.outputs.forEach(o => { if (isXtc(o)) try { o.send(msg) } catch (e) {} }); }
-function xtcFader(fn, val) { const cfg = show.xtc; if (!cfg || !cfg.on) return; for (const id in cfg.fn) { if (cfg.fn[id] !== fn) continue; const c = XTC_BY[id]; if (!c || c.t !== 'fader') continue; xtcSent[id] = performance.now(); xtcSend([0xB0, c.cc, Math.round(clamp(val) * 127)]); } }
+let xtcMode = 'std';
+function xtcMotor(c, val) { const v = Math.round(clamp(val) * 16383);
+  if (xtcMode === 'mc') xtcSend([0xE0 | (c.cc - 1), v & 127, v >> 7]); else xtcSend([0xB0, c.cc, Math.round(clamp(val) * 127)]); }
+function xtcFader(fn, val) { const cfg = show.xtc; if (!cfg || !cfg.on) return; for (const id in cfg.fn) { if (cfg.fn[id] !== fn) continue; const c = XTC_BY[id]; if (!c || c.t !== 'fader') continue; xtcSent[id] = performance.now(); xtcMotor(c, val); } }
 // подсветка кнопок: горит — сцена включена / дежурный включён; мигает — блэкаут
 function xtcLeds(force) { const cfg = show.xtc; if (!cfg || !cfg.on || !midiAcc) return;
   for (const c of XTC_CTL) { if (c.led == null) continue; const fn = cfg.fn[c.id] || '', [f, ix] = fn.split(':'), pb = ix != null && /^\d+$/.test(ix) ? show.playbacks[+ix] : null, r = pb ? rt(pb) : null;
@@ -1754,7 +1760,7 @@ let xtcLvl = {};
 function xtcSync(force) { const cfg = show.xtc; if (!cfg || !cfg.on || !midiAcc) return; xtcLeds(force);
   for (const id in cfg.fn) { const c = XTC_BY[id]; if (!c || c.t !== 'fader') continue; const fn = cfg.fn[id], [f, ix] = fn.split(':');
     const v = f === 'gm' ? gm : f === 'grp' ? (GSUB[ix] || 0) : f === 'pb' && show.playbacks[+ix] ? rt(show.playbacks[+ix]).level : null; if (v == null) continue;
-    const q = Math.round(clamp(v) * 127); if (force || xtcLvl[id] !== q) { xtcLvl[id] = q; if (performance.now() - (xtcTouch[id] || 0) > 400) { xtcSent[id] = performance.now(); xtcSend([0xB0, c.cc, q]); } } } }
+    const q = Math.round(clamp(v) * 127); if (force || xtcLvl[id] !== q) { xtcLvl[id] = q; if (performance.now() - (xtcTouch[id] || 0) > 400) { xtcSent[id] = performance.now(); xtcMotor(c, q / 127); } } } }
 const xtcTouch = {};
 setInterval(() => { try { xtcSync(false) } catch (e) {} }, 120);
 
