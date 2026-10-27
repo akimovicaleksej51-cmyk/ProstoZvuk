@@ -59,6 +59,11 @@ section.tab{display:none} section.tab.active{display:block}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;min-width:0}
 .panel h2{font-family:var(--f-display);font-size:14px;font-weight:500;letter-spacing:.04em;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .panel h3{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:4px 0 6px}
+.xtc{display:flex;gap:10px;flex-wrap:wrap;background:#141416;border:1px solid var(--line);border-radius:12px;padding:10px}
+.xtc .xl{display:flex;flex-direction:column;gap:6px;flex:1 1 520px;min-width:0}.xtc .xs{display:flex;flex-direction:column;gap:10px;width:190px}
+.xtc .xr{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:5px}.xtc .xr2{display:grid;grid-template-columns:repeat(2,1fr);gap:5px}
+.xk{font-size:11px;line-height:1.15;padding:5px 3px;min-height:34px;border-radius:7px;overflow:hidden;text-overflow:ellipsis;word-break:break-word}
+.xk.enc{border-radius:999px;min-height:40px}.xk.fd{min-height:92px;background:var(--panel2)}.xk.main{border-color:var(--accent)}.xk.on{outline:2px solid var(--accent);outline-offset:1px}
 .how{border-left:3px solid var(--accent);background:var(--panel2);border-radius:0 8px 8px 0;padding:10px 12px;font-size:14px;margin-bottom:12px}
 .how ol{margin:4px 0 0;padding-left:20px}
 .how.hidden{display:none}
@@ -323,7 +328,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.26</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.27</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -407,6 +412,10 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
       <button id="midiReset">Сбросить назначения</button>
     </div>
     <div class="tblwrap" style="margin-top:10px"><table id="midiTbl"></table></div>
+    <h3 style="margin:18px 0 6px">Behringer X-Touch Compact</h3>
+    <p class="muted" style="margin:0 0 8px;font-size:14px">Готовая раскладка: работает сразу после «Подключить MIDI-пульт», ничего назначать не надо. Нажмите на любую кнопку на картинке — выберете, что она делает, и подпишете по-своему. Кнопки на пульте светятся, когда их сцена включена, фейдеры сами встают на место.</p>
+    <div class="row"><label class="row"><input type="checkbox" id="xtcOn" checked> раскладка включена</label><button id="xtcFind">Найти кнопку на пульте</button><button id="xtcPrint">Распечатать подписи</button><label class="row muted" style="font-size:13px">шаг <input id="xtcMm" type="number" min="20" max="60" value="37" style="width:56px"> мм</label><button id="xtcReset">Вернуть как было</button></div>
+    <div id="xtcBox" style="margin-top:10px"></div>
   </div>
 
   <div class="panel" style="margin-top:14px">
@@ -1569,6 +1578,7 @@ function fnList(){const a=[{id:'gm',t:'Мастер',k:'fader'},{id:'bo',t:'Бл
 const fnName=id=>(fnList().find(f=>f.id===id)||{t:id}).t;
 function ctlName(key){const [k,ch,n]=key.split(':'); return (k==='cc'?'Регулятор '+n:k==='n'?'Кнопка '+n:'Фейдер')+' · канал '+(+ch+1)}
 function midiMsg(e){
+  try{ if(xtcMsg(e)) return }catch(err){}
   const d=e.data; if(!d||d.length<2) return; const type=d[0]&0xF0, ch=d[0]&15; let kind,num=d[1],val;
   if(type===0xB0){kind='cc';val=(d[2]||0)/127}
   else if(type===0x90||type===0x80){kind='n';val=(type===0x90&&(d[2]||0)>0)?1:0}
@@ -1607,7 +1617,8 @@ function midiOut(id,val){
 }
 function bindMidi(){
   const names=[]; midiAcc.inputs.forEach(i=>{i.onmidimessage=midiMsg; names.push(i.name)});
-  $('#midiStatus').textContent=names.length?'Подключён: '+names.join(', '):'MIDI-пульт не найден. Проверьте USB-кабель и питание пульта.';
+  setTimeout(()=>{try{xtcSync(true)}catch(e){}},300);
+  $('#midiStatus').textContent=names.length?'Подключён: '+names.join(', ')+(names.some(n=>/x-?touch\s*compact/i.test(n))?' — раскладка X-Touch Compact работает':''):'MIDI-пульт не найден. Проверьте USB-кабель и питание пульта.';
 }
 $('#midiConnect').onclick=async()=>{
   if(!navigator.requestMIDIAccess){$('#midiStatus').textContent='Здесь MIDI недоступен. Откройте программу в Google Chrome.';return}
@@ -1638,6 +1649,141 @@ function wizNext(){
   renderMidi();
 }
 renderMidi();
+// ---------- Behringer X-Touch Compact: готовая раскладка, свои подписи, подсветка кнопок, моторные фейдеры ----------
+// Пульт в стандартном режиме, слой A, MIDI-канал 1 (заводские настройки).
+// Передаёт: фейдеры 1–8 и MAIN — CC 1–9; регуляторы 1–16 — CC 10–25; нажатие регуляторов — ноты 0–15; кнопки 1–39 — ноты 16–54.
+// Принимает: фейдеры — CC 1–9 (мотор), подсветка кнопки N — нота N−1 (0 выкл, 1 горит, 2 мигает).
+const XTC_CTL = (() => { const a = [];
+  for (let i = 1; i <= 8; i++) a.push({ id: 'e' + i, t: 'enc', cc: 9 + i, n: 'Регулятор ' + i });
+  for (let i = 9; i <= 16; i++) a.push({ id: 'e' + i, t: 'enc', cc: 9 + i, n: 'Регулятор ' + i });
+  for (let i = 1; i <= 16; i++) a.push({ id: 'p' + i, t: 'btn', note: i - 1, n: 'Нажатие регулятора ' + i });
+  const row = ['верхний ряд', 'второй ряд', 'третий ряд'];
+  for (let i = 1; i <= 24; i++) a.push({ id: 'b' + i, t: 'btn', note: 15 + i, led: i - 1, n: `Кнопка ${(i - 1) % 8 + 1}, ${row[Math.floor((i - 1) / 8)]}` });
+  for (let i = 25; i <= 33; i++) a.push({ id: 'b' + i, t: 'btn', note: 15 + i, led: i - 1, n: i === 33 ? 'Кнопка под MAIN' : `Кнопка под фейдером ${i - 24}` });
+  const tr = ['◀◀', '▶▶', 'LOOP', '● запись', '■ стоп', '▶ пуск'];
+  for (let i = 34; i <= 39; i++) a.push({ id: 'b' + i, t: 'btn', note: 15 + i, led: i - 1, n: 'Кнопка ' + tr[i - 34] });
+  for (let i = 1; i <= 8; i++) a.push({ id: 'f' + i, t: 'fader', cc: i, n: 'Фейдер ' + i });
+  a.push({ id: 'f9', t: 'fader', cc: 9, n: 'Фейдер MAIN' });
+  return a; })();
+const XTC_BY = {}; for (const c of XTC_CTL) XTC_BY[c.id] = c;
+function xtcDefaults() { const m = {};
+  for (let i = 1; i <= 8; i++) { m['f' + i] = 'pb:' + (i - 1); m['b' + i] = 'go:' + (i - 1); m['b' + (8 + i)] = 'back:' + (i - 1); m['b' + (16 + i)] = 'flash:' + (i - 1); m['b' + (24 + i)] = 'off:' + (i - 1); }
+  m.f9 = 'gm'; m.b33 = 'bo';
+  Object.assign(m, { e1: 'a:dim', e2: 'a:hue', e3: 'a:sat', e4: 'a:white', e5: 'a:pan', e6: 'a:tilt', e7: 'a:zoom', e8: 'a:amber', e9: 'pb:8', e10: 'pb:9' });
+  Object.assign(m, { b34: 'standby', b35: 'clear', b36: 'selall', b37: 'selnone', b38: 'alloff', b39: 'go:0' });
+  return m; }
+function xtcCfg() { if (!show.xtc || typeof show.xtc !== 'object') show.xtc = { on: true, fn: xtcDefaults(), lbl: {} }; show.xtc.fn = show.xtc.fn || xtcDefaults(); show.xtc.lbl = show.xtc.lbl || {}; return show.xtc; }
+const pbNm = i => (show.playbacks[i] && show.playbacks[i].name) || ('Фейдер ' + (i + 1));
+function xtcFnList(kind) {
+  const L = [{ id: '', t: '— ничего —' }];
+  if (kind === 'fader' || kind === 'enc') { L.push({ id: 'gm', t: 'Мастер' }); for (let i = 0; i < PB_COUNT; i++) L.push({ id: 'pb:' + i, t: 'Уровень: ' + pbNm(i) }); }
+  if (kind === 'enc') for (const [k, t] of [['dim', 'Яркость выбранных'], ['hue', 'Цвет (оттенок) выбранных'], ['sat', 'Насыщенность выбранных'], ['red', 'Красный'], ['green', 'Зелёный'], ['blue', 'Синий'], ['white', 'Белый'], ['amber', 'Янтарный'], ['pan', 'Поворот (Pan)'], ['tilt', 'Наклон (Tilt)'], ['zoom', 'Зум (размер луча)'], ['strobe', 'Строб']]) L.push({ id: 'a:' + k, t });
+  if (kind === 'btn') { L.push({ id: 'bo', t: 'Блэкаут' }, { id: 'standby', t: 'Дежурный свет' }, { id: 'clear', t: 'Очистить программер' }, { id: 'selall', t: 'Выбрать все приборы' }, { id: 'selnone', t: 'Снять выбор' }, { id: 'alloff', t: 'Погасить все сцены' });
+    for (let i = 0; i < PB_COUNT; i++) L.push({ id: 'go:' + i, t: 'GO: ' + pbNm(i) }, { id: 'back:' + i, t: 'Назад: ' + pbNm(i) }, { id: 'flash:' + i, t: 'Вспышка: ' + pbNm(i) }, { id: 'off:' + i, t: 'Погасить: ' + pbNm(i) }); }
+  return L; }
+function xtcFnName(id, kind) { const f = xtcFnList(kind).find(x => x.id === id); return f ? f.t : '—'; }
+// подпись кнопки: своя, если задана, иначе короткая по функции
+function xtcShort(id) { if (!id) return ''; const [f, i] = id.split(':'), n = i != null ? pbNm(+i) : '';
+  return ({ gm: 'Мастер', bo: 'Блэкаут', standby: 'Дежурный', clear: 'Очистить', selall: 'Все', selnone: 'Снять выбор', alloff: 'Всё погасить', pb: n, go: 'GO ' + n, back: '◀ ' + n, flash: 'Вспышка ' + n, off: 'Погасить ' + n,
+    a: ({ dim: 'Яркость', hue: 'Цвет', sat: 'Насыщ.', red: 'Красный', green: 'Зелёный', blue: 'Синий', white: 'Белый', amber: 'Янтарный', pan: 'Pan', tilt: 'Tilt', zoom: 'Зум', strobe: 'Строб' })[i] })[f] || id; }
+const xtcLabel = c => (xtcCfg().lbl[c] || '').trim() || xtcShort(xtcCfg().fn[c]);
+const isXtc = port => /x-?touch\s*compact/i.test((port && port.name) || '');
+const XHS = { hue: 0, sat: 0 };
+function xtcRun(fn, val, ctl) {
+  const [f, ix] = fn.split(':'), pb = (ix != null && /^\d+$/.test(ix)) ? show.playbacks[+ix] : null, r = pb ? rt(pb) : null, press = val > .5;
+  if (f === 'pb' && r) { const was = r.level; r.level = val; if (was === 0 && val > 0) { r.ts = performance.now(); if (r.cur < 0) { r.cur = 0; r.prev = null; r.fd = 0 } } lastPb = pb; return; }
+  if (f === 'gm') { gm = val; $('#gm').value = Math.round(val * 100); $('#gmv').textContent = Math.round(val * 100) + '%'; return; }
+  if (f === 'a') { if (!sel.size) { xtcHint(ctl, 'сначала выберите приборы на «Пульте»'); return; }
+    if (ix === 'hue' || ix === 'sat') { XHS[ix] = val; const c = hsv(XHS.hue), s = XHS.sat; setProg('red', 1 - s * (1 - c[0])); setProg('green', 1 - s * (1 - c[1])); setProg('blue', 1 - s * (1 - c[2])); }
+    else setProg(ix, val); clearTimeout(xtcRun.t); xtcRun.t = setTimeout(renderProg, 120); return; }
+  if (f === 'flash' && r) { r.flash = press; if (press) { r.ts = performance.now(); if (r.cur < 0) { r.cur = 0; r.prev = null } } return; }
+  if (!press) return;
+  if (f === 'go' && pb) go(pb);
+  else if (f === 'back' && pb) back(pb);
+  else if (f === 'off' && r) { r.level = 0; xtcFader('pb:' + ix, 0); }
+  else if (f === 'alloff') show.playbacks.forEach((p, i) => { rt(p).level = 0; xtcFader('pb:' + i, 0); });
+  else if (f === 'bo') $('#bo').click();
+  else if (f === 'standby') $('#standbyBtn').click();
+  else if (f === 'clear') { prog = {}; progFx = []; renderProg(); }
+  else if (f === 'selall') { show.fixtures.forEach(x => sel.add(x.id)); selChanged(); }
+  else if (f === 'selnone') { sel.clear(); selChanged(); }
+}
+function xtcHint(ctl, extra) { const c = XTC_BY[ctl]; if (!c) return; const t = `${c.n}: ${xtcLabel(ctl) || 'ничего не назначено'}` + (extra ? ' — ' + extra : '');
+  const now = performance.now(); if (xtcHint.last === t && now - xtcHint.at < 1500) return; xtcHint.last = t; xtcHint.at = now; toast(t, 2000); }
+// разбор сообщения с X-Touch Compact; true — сообщение обработано
+function xtcMsg(e) {
+  const cfg = xtcCfg(); if (!cfg.on || !isXtc(e.target)) return false;
+  const d = e.data; if (!d || d.length < 2) return true; const type = d[0] & 0xF0, num = d[1], v = d[2] || 0;
+  let c = null, val = 0;
+  if (type === 0xB0) { c = XTC_CTL.find(x => x.cc === num && x.t !== 'btn'); val = v / 127; }
+  else if (type === 0x90 || type === 0x80) { c = XTC_CTL.find(x => x.t === 'btn' && x.note === num); val = type === 0x90 && v > 0 ? 1 : 0; }
+  if (type === 0xB0 && num >= 101 && num <= 109) { xtcTouch['f' + (num - 100)] = v > 0 ? 1e15 : performance.now(); return true; } // касание фейдера
+  if (!c) return true; // слой B и прочее — пропускаем
+  if (c.t === 'fader') xtcLvl[c.id] = v;
+  if (xtcLearn) { xtcLearn(c.id); return true; }
+  const fn = cfg.fn[c.id]; if (c.t !== 'btn' || val > 0) xtcHint(c.id); if (!fn) return true;
+  if (c.t === 'fader' && performance.now() - (xtcSent[c.id] || 0) < 250) return true; // это наш же мотор
+  xtcRun(fn, val, c.id); return true;
+}
+let xtcLearn = null; const xtcSent = {}, xtcLed = {};
+function xtcSend(msg) { if (!midiAcc) return; midiAcc.outputs.forEach(o => { if (isXtc(o)) try { o.send(msg) } catch (e) {} }); }
+function xtcFader(fn, val) { const cfg = show.xtc; if (!cfg || !cfg.on) return; for (const id in cfg.fn) { if (cfg.fn[id] !== fn) continue; const c = XTC_BY[id]; if (!c || c.t !== 'fader') continue; xtcSent[id] = performance.now(); xtcSend([0xB0, c.cc, Math.round(clamp(val) * 127)]); } }
+// подсветка кнопок: горит — сцена включена / дежурный включён; мигает — блэкаут
+function xtcLeds(force) { const cfg = show.xtc; if (!cfg || !cfg.on || !midiAcc) return;
+  for (const c of XTC_CTL) { if (c.led == null) continue; const fn = cfg.fn[c.id] || '', [f, ix] = fn.split(':'), pb = ix != null && /^\d+$/.test(ix) ? show.playbacks[+ix] : null, r = pb ? rt(pb) : null;
+    let s = 0; if (r && (f === 'go' || f === 'off')) s = r.level > 0 ? 1 : 0; else if (r && f === 'flash') s = r.flash ? 1 : 0;
+    else if (f === 'bo') s = blackout ? 2 : 0; else if (f === 'standby') s = standby ? 1 : 0;
+    if (force || xtcLed[c.id] !== s) { xtcLed[c.id] = s; xtcSend([0x90, c.led, s]); } } }
+let xtcLvl = {};
+function xtcSync(force) { const cfg = show.xtc; if (!cfg || !cfg.on || !midiAcc) return; xtcLeds(force);
+  for (const id in cfg.fn) { const c = XTC_BY[id]; if (!c || c.t !== 'fader') continue; const fn = cfg.fn[id], [f, ix] = fn.split(':');
+    const v = f === 'gm' ? gm : f === 'pb' && show.playbacks[+ix] ? rt(show.playbacks[+ix]).level : null; if (v == null) continue;
+    const q = Math.round(clamp(v) * 127); if (force || xtcLvl[id] !== q) { xtcLvl[id] = q; if (performance.now() - (xtcTouch[id] || 0) > 400) { xtcSent[id] = performance.now(); xtcSend([0xB0, c.cc, q]); } } } }
+const xtcTouch = {};
+setInterval(() => { try { xtcSync(false) } catch (e) {} }, 120);
+
+// ----- карта пульта на экране -----
+function renderXtc() {
+  const box = $('#xtcBox'); if (!box) return; const cfg = xtcCfg();
+  const cell = (id, cls) => { const c = XTC_BY[id], lb = xtcLabel(id); return `<button class="xk ${cls || ''} ${xtcEdit === id ? 'on' : ''}" data-xk="${id}" title="${esc(c.n)}">${esc(lb || '·')}</button>`; };
+  const enc = i => cell('e' + i, 'enc'), btn = i => cell('b' + i);
+  let h = `<div class="xtc"><div class="xl">
+    <div class="xr">${[1, 2, 3, 4, 5, 6, 7, 8].map(enc).join('')}</div>
+    <div class="xr">${[1, 2, 3, 4, 5, 6, 7, 8].map(btn).join('')}</div>
+    <div class="xr">${[9, 10, 11, 12, 13, 14, 15, 16].map(btn).join('')}</div>
+    <div class="xr">${[17, 18, 19, 20, 21, 22, 23, 24].map(btn).join('')}</div>
+    <div class="xr">${[1, 2, 3, 4, 5, 6, 7, 8].map(i => cell('f' + i, 'fd')).join('')}${cell('f9', 'fd main')}</div>
+    <div class="xr">${[25, 26, 27, 28, 29, 30, 31, 32, 33].map(btn).join('')}</div></div>
+    <div class="xs"><div class="xr2">${[9, 10, 11, 12, 13, 14, 15, 16].map(enc).join('')}</div><div class="xr2">${[34, 35, 36, 37, 38, 39].map(btn).join('')}</div></div></div>`;
+  if (xtcEdit) { const c = XTC_BY[xtcEdit], kind = c.t, isPb = /^pb:\d+$/.test(cfg.fn[xtcEdit] || '') && c.t === 'fader';
+    h += `<div class="how" style="margin-top:10px"><b>${esc(c.n)}</b>
+      <label class="row" style="margin-top:6px">Что делает <select id="xtcFn">${xtcFnList(kind).map(f => `<option value="${f.id}" ${f.id === (cfg.fn[xtcEdit] || '') ? 'selected' : ''}>${esc(f.t)}</option>`).join('')}</select></label>
+      <label class="row" style="margin-top:6px">${isPb ? 'Название сцены (видно и на «Пульте»)' : 'Своя подпись'} <input id="xtcLbl" type="text" maxlength="24" value="${esc(isPb ? pbNm(+cfg.fn[xtcEdit].split(':')[1]) : (cfg.lbl[xtcEdit] || ''))}" placeholder="${esc(xtcShort(cfg.fn[xtcEdit]))}"></label>
+      <div class="row" style="margin-top:6px"><button id="xtcDone">Готово</button></div></div>`; }
+  box.innerHTML = h;
+  box.querySelectorAll('[data-xk]').forEach(b => b.onclick = () => { xtcEdit = xtcEdit === b.dataset.xk ? null : b.dataset.xk; renderXtc(); });
+  if (xtcEdit) { $('#xtcFn').onchange = e => { cfg.fn[xtcEdit] = e.target.value; save(); xtcSync(true); renderXtc(); };
+    $('#xtcLbl').onchange = e => { const fn = cfg.fn[xtcEdit] || '', v = e.target.value.trim(); if (/^pb:\d+$/.test(fn) && XTC_BY[xtcEdit].t === 'fader') { const pb = show.playbacks[+fn.split(':')[1]]; pb.name = v || pb.name; try { renderPbs() } catch (_) {} } else cfg.lbl[xtcEdit] = v; save(); renderXtc(); };
+    $('#xtcDone').onclick = () => { xtcEdit = null; renderXtc(); }; }
+  $('#xtcOn').checked = !!cfg.on;
+}
+let xtcEdit = null;
+$('#xtcOn').onchange = e => { xtcCfg().on = e.target.checked; save(); xtcSync(true); };
+twoStep($('#xtcReset'), 'Точно вернуть?', () => { const c = xtcCfg(); c.fn = xtcDefaults(); c.lbl = {}; save(); xtcSync(true); renderXtc(); toast('Раскладка X-Touch Compact — как была изначально.'); });
+$('#xtcFind').onclick = () => { if (!midiAcc) { toast('Сначала нажмите «Подключить MIDI-пульт».'); return; } toast('Нажмите кнопку, покрутите регулятор или подвиньте фейдер на пульте — он подсветится здесь.', 5000);
+  xtcLearn = id => { xtcLearn = null; xtcEdit = id; renderXtc(); const el = document.querySelector(`[data-xk="${id}"]`); if (el) el.scrollIntoView({ block: 'nearest' }); }; };
+// подписи для печати: полоски под фейдеры и кнопки
+$('#xtcPrint').onclick = () => { const mm = Math.max(20, Math.min(60, +($('#xtcMm').value) || 37)); const L = id => esc(xtcLabel(id) || '');
+  const strip = (ids, t) => `<h3>${t}</h3><table><tr>${ids.map(id => `<td>${L(id)}</td>`).join('')}</tr></table>`;
+  const w = window.open('', '_blank'); if (!w) { toast('Браузер не дал открыть окно печати. Разрешите всплывающие окна.'); return; }
+  w.document.write(`<!doctype html><meta charset="utf-8"><title>Подписи X-Touch Compact</title><style>body{font:12px/1.2 sans-serif;margin:10mm}h3{font-size:11px;margin:8mm 0 2mm;color:#555}table{border-collapse:collapse}td{width:${mm}mm;height:9mm;border:1px dashed #999;text-align:center;font-weight:700;font-size:11px;padding:0 1mm}p{color:#555}</style>
+    <p>Вырежьте полоски по пунктиру и приклейте над рядами. Ширина клетки — ${mm} мм (меняется в программе, если не совпадёт с шагом фейдеров).</p>
+    ${strip([1, 2, 3, 4, 5, 6, 7, 8].map(i => 'e' + i), 'Регуляторы 1–8')}${strip([1, 2, 3, 4, 5, 6, 7, 8].map(i => 'b' + i), 'Кнопки — верхний ряд')}${strip([9, 10, 11, 12, 13, 14, 15, 16].map(i => 'b' + i), 'Кнопки — второй ряд')}${strip([17, 18, 19, 20, 21, 22, 23, 24].map(i => 'b' + i), 'Кнопки — третий ряд')}
+    ${strip(['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9'], 'Фейдеры (последний — MAIN)')}${strip([25, 26, 27, 28, 29, 30, 31, 32, 33].map(i => 'b' + i), 'Кнопки под фейдерами')}
+    ${strip([9, 10, 11, 12, 13, 14, 15, 16].map(i => 'e' + i), 'Регуляторы 9–16 (справа)')}${strip([34, 35, 36, 37, 38, 39].map(i => 'b' + i), 'Кнопки справа: ◀◀ ▶▶ LOOP ● ■ ▶')}
+    <script>setTimeout(()=>print(),300)<\/script>`); w.document.close(); };
+renderXtc();
+
 
 // ---------- экран: композиция слои × кадры, как в Resolume ----------
 const MF=new Map();                         // имя файла -> File (только в этой сессии)
@@ -2850,7 +2996,7 @@ function frame(){
   try{frameEdit()}catch(e){}
   requestAnimationFrame(frame);
 }
-function renderAll(){ try{renderScreenAll()}catch(e){} renderStage();renderProg();renderPals();pbDirty=true;renderPatch();renderDraft();monBuilt=false;if($('#tab-monitor').classList.contains('active'))buildMonitor()}
+function renderAll(){try{renderXtc()}catch(e){}  try{renderScreenAll()}catch(e){} renderStage();renderProg();renderPals();pbDirty=true;renderPatch();renderDraft();monBuilt=false;if($('#tab-monitor').classList.contains('active'))buildMonitor()}
 try{ if(localStorage.getItem(KEY+'-help')==='0'){document.body.classList.add('nohelp');$('#helpBtn').classList.remove('on')} const t=localStorage.getItem(KEY+'-tab'); if(t&&document.getElementById('tab-'+t)) openTab(t)}catch(e){}
 renderAll();
 if(show.example) toast('Загружен пример шоу. Замените приборы на свои во вкладке «Приборы».');
