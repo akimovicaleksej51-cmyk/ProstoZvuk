@@ -328,7 +328,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.35</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.35.2</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -517,8 +517,8 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
   <div class="panel" style="margin-top:14px">
     <h2>Фейдеры — ваши сцены</h2>
     <div class="how" style="margin-bottom:10px">«Записать» — сохраняет текущую настройку как новую сцену (кью) в этот фейдер. Поднимите фейдер — сцена появится. <b>GO</b> — следующая сцена, <b>◀</b> — предыдущая. «Чейз» — сцены переключаются сами по кругу. <b>Вспышка</b> — сцена горит, пока держите кнопку.</div>
-    <div class="how" id="t81Box" style="margin-bottom:10px"><b>Сцены из Titan (шоу School81)</b> — 15 сцен, как в пульте Titan: френели, PAR, Wash, Beam, эффекты. Название сцены меняется прямо в поле над фейдером. Во время работы сцену можно подстроить: кнопка «Настроить» на её карточке.
-      <div class="row" style="margin-top:6px;gap:6px;flex-wrap:wrap"><button id="t81Add" class="primary">Добавить сцены Titan в свободные фейдеры</button><button id="t81All">Заменить все фейдеры сценами Titan</button></div></div>
+    <div id="t81Box" style="margin-bottom:10px;padding:10px 12px;border:1px solid var(--accent);border-radius:var(--r);font-size:13px"><b>Сцены из Titan (шоу School81)</b> — 15 сцен, как в пульте Titan: френели, PAR, Wash, Beam, эффекты. Название сцены меняется прямо в поле над фейдером. Во время работы сцену можно подстроить: кнопка «Настроить» на её карточке.
+      <div class="row" style="margin-top:6px;gap:6px;flex-wrap:wrap"><button id="t81Add" class="primary">Добавить сцены Titan в свободные фейдеры</button><button id="t81All">Заменить все фейдеры сценами Titan</button><button id="pbClearAll">Очистить все фейдеры</button></div></div>
     <div class="pbs" id="pbs"></div>
   </div>
 </section>
@@ -1554,7 +1554,9 @@ function importTitan81(replace){
 }
 function t81Panel(){ const b=$('#t81Box'); if(!b) return;
   b.querySelector('#t81Add').onclick=()=>importTitan81(false);
-  twoStep(b.querySelector('#t81All'),'Точно? Фейдеры 1–15 заменятся',()=>importTitan81(true)); }
+  twoStep(b.querySelector('#t81All'),'Точно? Фейдеры 1–15 заменятся',()=>importTitan81(true));
+  twoStep(b.querySelector('#pbClearAll'),'Точно стереть ВСЕ фейдеры? Нажмите ещё раз',()=>{ show.playbacks=show.playbacks.map((pb,i)=>{const e=emptyPb(i); e.id=pb.id; RT[pb.id]={cur:-1,prev:null,fs:0,fd:0,level:0,flash:false,ts:0,lastStep:0}; return e});
+    save(); pbDirty=true; renderPbs(); try{renderXtc()}catch(_){} toast('Все фейдеры очищены.') }); }
 
 // ---------- патч ----------
 const typeOptions=()=>[...Object.entries(LIB),...Object.entries(show.profiles)];
