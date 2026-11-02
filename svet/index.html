@@ -328,7 +328,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.34</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.35</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -517,6 +517,8 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
   <div class="panel" style="margin-top:14px">
     <h2>Фейдеры — ваши сцены</h2>
     <div class="how" style="margin-bottom:10px">«Записать» — сохраняет текущую настройку как новую сцену (кью) в этот фейдер. Поднимите фейдер — сцена появится. <b>GO</b> — следующая сцена, <b>◀</b> — предыдущая. «Чейз» — сцены переключаются сами по кругу. <b>Вспышка</b> — сцена горит, пока держите кнопку.</div>
+    <div class="how" id="t81Box" style="margin-bottom:10px"><b>Сцены из Titan (шоу School81)</b> — 15 сцен, как в пульте Titan: френели, PAR, Wash, Beam, эффекты. Название сцены меняется прямо в поле над фейдером. Во время работы сцену можно подстроить: кнопка «Настроить» на её карточке.
+      <div class="row" style="margin-top:6px;gap:6px;flex-wrap:wrap"><button id="t81Add" class="primary">Добавить сцены Titan в свободные фейдеры</button><button id="t81All">Заменить все фейдеры сценами Titan</button></div></div>
     <div class="pbs" id="pbs"></div>
   </div>
 </section>
@@ -908,9 +910,11 @@ const FXT = {
   wave:{n:'Волна яркости',g:'int',speed:30,size:1,spread:1},
   chase:{n:'Бегущий огонь',g:'int',speed:120,size:1,spread:1},
   rainbow:{n:'Радуга',g:'col',speed:10,size:1,spread:.5},
-  strobe:{n:'Стробоскоп',g:'int',speed:300,size:1,spread:0}
+  strobe:{n:'Стробоскоп',g:'int',speed:300,size:1,spread:0},
+  nod:{n:'Кивок (вверх-вниз)',g:'pos',speed:20,size:.4,spread:1},
+  sway:{n:'Качание (влево-вправо)',g:'pos',speed:20,size:.4,spread:1}
 };
-const PB_COUNT = 10;
+const PB_COUNT = 20;
 const clamp=(x,a=0,b=1)=>x<a?a:x>b?b:x;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $=s=>document.querySelector(s);
@@ -988,6 +992,12 @@ function fixBeamAddr(s){ if(s.beamAddrV===2) return; const was=s.beamAddrV===1; 
   const map={301:305,317:321,333:337,349:353}; let n=0;
   for(const f of s.fixtures){ if(f.type==='u_beam'&&(f.line||1)===1&&map[f.addr]&&/beam/i.test(f.name)){ f.addr=map[f.addr]; n++ } }
   if(n) window.__beamFixed=n; }
+// в.35: настоящая таблица Dialighting Beam LED 150, 16 каналов (взята из шоу Titan School81)
+function fixBeam16(s){ if(s.beamV16===1) return; s.beamV16=1; const R=(l,d)=>d==null?{a:'raw',l}:{a:'raw',l,d};
+  for(const k in s.profiles){ const p=s.profiles[k]; if(!p||!Array.isArray(p.ch)||!/Beam LED 150/i.test(p.name||'')||p.ch.length!==16) continue;
+    const c7=p.ch[6]&&p.ch[6].a!=='raw'?p.ch[6]:{a:'strobe'};
+    p.ch=[{a:'pan'},{a:'panf'},{a:'tilt'},{a:'tiltf'},{a:'speed'},{a:'dim'},c7,{a:'cwheel'},{a:'gobo'},{a:'prism'},R('Вращение призмы 1'),R('Призма 2 (255 = вкл)'),R('Вращение призмы 2'),{a:'focus'},R('Макросы (0 = выкл)'),R('Управление / сброс (не трогать)')];
+    p.name='Dialighting Beam LED 150 — 16 кан. (таблица из Titan)'; } }
 function fixShow(s){
   if(!s||!Array.isArray(s.fixtures)) throw new Error('Это не файл шоу');
   s.profiles=s.profiles||{}; s.palettes=s.palettes||[]; s.groups=s.groups||[];
@@ -998,6 +1008,7 @@ function fixShow(s){
   fixWash6(s);
   fixWashReal(s);
   fixBeamAddr(s);
+  fixBeam16(s);
   for(let i=0;i<PB_COUNT;i++) if(!s.playbacks[i]) s.playbacks[i]=emptyPb(i);
   return s;
 }
@@ -1049,6 +1060,7 @@ function cueBlend(pb,now){
   }
   return {values:out,fx:t<.5?(prev.fx||[]):(cur.fx||[])};
 }
+let FXT_LAST=0; const FXPH=new WeakMap();
 function hsv(h){h=((h%1)+1)%1;const i=Math.floor(h*6),f=h*6-i,q=1-f;return [[1,f,0],[q,1,0],[0,1,f],[0,q,1],[f,0,1],[1,0,q]][i]}
 function compute(now){
   const sec=now/1000;
@@ -1059,14 +1071,16 @@ function compute(now){
   const fxl=[];
   for(const {pb,r} of live){
     if(pb.mode==='chase'&&pb.cues.length>1){
-      const step=60000/Math.max(1,pb.bpm);
+      const step=60000/Math.max(1,pb.bpm*(pb.fxs??1));
       if(now-r.lastStep>=step){r.lastStep=now; go(pb,true,now)}
     }
     if(r.cur<0){r.cur=0;r.prev=null}
     const lv=r.flash?1:r.level, c=cueBlend(pb,now); if(!c) continue;
     for(const id in c.values){ const v=vals[id]; if(!v) continue; const s=c.values[id];
-      for(const k in s){ if(!(k in v)) continue; if(k==='dim') v.dim=Math.max(v.dim,s.dim*lv); else v[k]=s[k]; } }
-    for(const fx of c.fx) fxl.push([fx,lv]);
+      for(const k in s){ if(!(k in v)) continue; if(k==='dim') v.dim=Math.max(v.dim,s.dim*lv); else v[k]=s[k]; }
+      if(pb.tint&&'red' in v){ v.red=pb.tint[0]; v.green=pb.tint[1]; v.blue=pb.tint[2]; for(const k of ['white','amber','uv']) if(k in v) v[k]=0 } }
+    if(pb.tint) for(const fx of c.fx) for(const id of fx.fixtures){ const v=vals[id]; if(v&&'red' in v&&!(id in c.values)){ v.red=pb.tint[0]; v.green=pb.tint[1]; v.blue=pb.tint[2] } }
+    for(const fx of c.fx) fxl.push([fx,lv*(pb.fxz??1),pb.fxs??1]);
   }
   // монтаж: свет с дорожки «Свет» (поверх фейдеров, под программером)
   if(typeof edLightOn==='function'&&edLightOn()&&EDL.cur){ const c=edlBlend(now);
@@ -1077,17 +1091,21 @@ function compute(now){
   for(const fx of progFx) fxl.push([fx,1]);
   baseVals={}; for(const id in vals) baseVals[id]=Object.assign({},vals[id]);
   // эффекты
-  for(const [fx,sc] of fxl){
+  const dts=FXT_LAST?Math.min(.5,Math.max(0,sec-FXT_LAST)):0; FXT_LAST=sec;
+  for(const [fx,sc,km] of fxl){
     const ids=fx.fixtures.filter(id=>vals[id]), n=ids.length||1, s=fx.size*sc;
+    let ph; if(fx.id&&km!=null&&km!==1){ if(!FXPH.has(fx)) FXPH.set(fx,sec*fx.speed/60); ph=FXPH.get(fx)+dts*fx.speed*km/60; FXPH.set(fx,ph) } else { ph=sec*fx.speed/60; FXPH.delete(fx) }
     ids.forEach((id,i)=>{
-      const v=vals[id], p=sec*fx.speed/60+(i/n)*fx.spread, TAU=Math.PI*2;
+      const v=vals[id], p=ph+(i/n)*fx.spread, TAU=Math.PI*2;
       switch(fx.type){
         case 'circle': if('pan' in v){v.pan+=s*.25*Math.cos(TAU*p); v.tilt+=s*.25*Math.sin(TAU*p)} break;
         case 'eight': if('pan' in v){v.pan+=s*.25*Math.sin(TAU*p); v.tilt+=s*.15*Math.sin(2*TAU*p)} break;
-        case 'wave': v.dim*=1-s*(.5-.5*Math.sin(TAU*p)); break;
-        case 'chase': {const st=Math.floor(sec*fx.speed/60)%n; v.dim*=i===st?1:1-s; break}
+        case 'wave': v.dim*=Math.max(0,1-s*(.5-.5*Math.sin(TAU*p))); break;
+        case 'chase': {const st=Math.floor(ph)%n; v.dim*=i===st?1:1-Math.min(1,s); break}
+        case 'nod': if('tilt' in v) v.tilt+=s*.25*Math.sin(TAU*p); break;
+        case 'sway': if('pan' in v) v.pan+=s*.25*Math.sin(TAU*p); break;
         case 'rainbow': if('red' in v){const c=hsv(p); v.red+=(c[0]-v.red)*s; v.green+=(c[1]-v.green)*s; v.blue+=(c[2]-v.blue)*s} break;
-        case 'strobe': {const on=((sec*fx.speed/60)%1)<.5; v.dim*=on?1:1-s; break}
+        case 'strobe': {const on=(ph%1)<.5; v.dim*=on?1:1-Math.min(1,s); break}
       }
     });
   }
@@ -1447,6 +1465,8 @@ function renderPbs(){
         </div>
       </div>
       <div class="lv"><span data-lvl="${i}">${Math.round(r.level*100)}%</span> · <span class="info" data-cinfo="${i}">${n?`сцена ${Math.max(r.cur,0)+1} из ${n}`:'пусто'}</span></div>
+      ${pb.note?`<div class="info" style="font-family:inherit;font-size:12px;line-height:1.35">${esc(pb.note)}</div>`:''}
+      ${n?pbAdjHtml(pb,i):''}
       ${n?`<div class="cuelist" data-cl="${i}">${pb.cues.map((c,j)=>`<span class="${j===r.cur?'cur':''}" title="${esc(c.name)}">${j+1}</span>`).join('')}</div>`:'<div class="info">Настройте свет и нажмите «Записать»</div>'}
       <div class="opt">
         <label>Режим<select data-mode="${i}" style="width:100%;min-height:30px;padding:2px 4px;font-size:12px"><option value="list"${pb.mode==='list'?' selected':''}>Список</option><option value="chase"${pb.mode==='chase'?' selected':''}>Чейз</option></select></label>
@@ -1464,6 +1484,9 @@ function renderPbs(){
   el.querySelectorAll('[data-flash]').forEach(b=>{const pb=show.playbacks[+b.dataset.flash], r=rt(pb);
     b.onpointerdown=e=>{r.flash=true; r.ts=performance.now(); if(r.cur<0){r.cur=0;r.prev=null} b.classList.add('on')};
     const up=()=>{r.flash=false;b.classList.remove('on')}; b.onpointerup=up; b.onpointerleave=up; b.onpointercancel=up;});
+  el.querySelectorAll('[data-adj]').forEach(inp=>inp.oninput=()=>{const [i,k]=inp.dataset.adj.split(':'); const pb=show.playbacks[+i]; pb[k]=inp.value/100; const o=inp.parentElement.querySelector('b'); if(o) o.textContent=inp.value+'%'; save()});
+  el.querySelectorAll('[data-tint]').forEach(b=>b.onclick=()=>{const [i,c]=b.dataset.tint.split(':'); const pb=show.playbacks[+i]; pb.tint=c===''?null:COLORS[+c][1].slice(); save(); pbDirty=true; renderPbs()});
+  el.querySelectorAll('details[data-adjd]').forEach(d=>d.ontoggle=()=>{ADJOPEN[d.dataset.adjd]=d.open});
   el.querySelectorAll('[data-rec]').forEach(b=>b.onclick=()=>record(+b.dataset.rec));
   el.querySelectorAll('[data-upd]').forEach(b=>b.onclick=()=>updateCue(+b.dataset.upd));
   el.querySelectorAll('[data-mode]').forEach(s=>s.onchange=()=>{show.playbacks[+s.dataset.mode].mode=s.value;save();pbDirty=true});
@@ -1472,6 +1495,17 @@ function renderPbs(){
   el.querySelectorAll('[data-del]').forEach(b=>twoStep(b,'Точно стереть?',()=>{const i=+b.dataset.del; const id=show.playbacks[i].id; show.playbacks[i]=emptyPb(i); show.playbacks[i].id=id; RT[id]={cur:-1,prev:null,fs:0,fd:0,level:0,flash:false,ts:0,lastStep:0}; save(); pbDirty=true}));
   pbDirty=false; updPbLive();
 }
+const ADJOPEN={};
+function pbAdjHtml(pb,i){ const hasFx=pb.mode==='chase'||pb.cues.some(c=>c.fx&&c.fx.length), sp=Math.round((pb.fxs??1)*100), sz=Math.round((pb.fxz??1)*100);
+  const tn=pb.tint, cur=tn?COLORS.findIndex(c=>c[1].join()===tn.join()):-1;
+  return `<details data-adjd="${pb.id}" ${ADJOPEN[pb.id]?'open':''} style="font-size:12px"><summary style="cursor:pointer">Настроить${(sp!==100||sz!==100||tn)?' <span class="muted">(изменено)</span>':''}</summary>
+    <div class="stack" style="gap:6px;margin-top:6px">
+      <div class="muted">Яркость — сам фейдер. Здесь — пока сцена горит:</div>
+      ${hasFx?`<label>Скорость ${pb.mode==='chase'?'чейза и ':''}эффектов: <b>${sp}%</b><input type="range" min="10" max="300" step="5" value="${sp}" data-adj="${i}:fxs" style="width:100%"></label>`:''}
+      ${pb.cues.some(c=>c.fx&&c.fx.length)?`<label>Размах эффектов: <b>${sz}%</b><input type="range" min="0" max="200" step="5" value="${sz}" data-adj="${i}:fxz" style="width:100%"></label>`:''}
+      <div>Цвет сцены:</div>
+      <div class="row" style="gap:4px;flex-wrap:wrap"><button data-tint="${i}:" style="min-height:26px;padding:2px 6px;font-size:11px${cur<0&&!tn?';outline:2px solid var(--accent)':''}">как записано</button>${COLORS.map((c,j)=>`<button data-tint="${i}:${j}" title="${esc(c[0])}" aria-label="${esc(c[0])}" style="min-height:26px;width:26px;padding:0;background:rgb(${c[1].map(x=>Math.round(x*255)).join(',')})${j===cur?';outline:2px solid var(--accent)':''}"></button>`).join('')}</div>
+    </div></details>` }
 function updPbLive(){
   show.playbacks.forEach((pb,i)=>{const r=rt(pb), card=document.querySelector(`.pb[data-pb="${i}"]`); if(!card) return;
     card.classList.toggle('live',(r.flash||r.level>0)&&pb.cues.length>0);
@@ -1496,6 +1530,31 @@ function updateCue(i){
   if(progFx.length) c.fx=(c.fx||[]).concat(JSON.parse(JSON.stringify(progFx)));
   save(); toast(`Сцена ${Math.max(r.cur,0)+1} в «${pb.name}» обновлена.`);
 }
+
+const TITAN81=[{"name":"Френели дежурный","t":"Фейдер 1","note":"4 френеля на 25 %, холодный белый (6500 K), узкий луч. Спокойная заливка сцены.","cues":[["Дежурный",{"2:1":{"dim":0.25,"#cto":1.0,"zoom":1.0},"2:4":{"dim":0.25,"#cto":1.0,"zoom":1.0},"2:7":{"dim":0.25,"#cto":1.0,"zoom":1.0},"2:10":{"dim":0.25,"#cto":1.0,"zoom":1.0}},[]]]},{"name":"PAR красный ⇄ лаванда","t":"Фейдер 2 (список)","note":"10 PAR. GO листает: 1 — красный; 2 — лаванда с бегущим огнём; 3 — снова красный.","cues":[["Красный",{"1:1":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0},"1:11":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0},"1:21":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0},"1:31":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0},"1:41":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0},"1:51":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0},"1:61":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0},"1:71":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0},"1:81":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0},"1:91":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0}},[]],["Лаванда бегущая",{"1:41":{"red":0.71,"green":0.43,"blue":0.94,"dim":1},"1:91":{"red":0.71,"green":0.43,"blue":0.94,"dim":1},"1:31":{"red":0.71,"green":0.43,"blue":0.94,"dim":1},"1:81":{"red":0.71,"green":0.43,"blue":0.94,"dim":1},"1:21":{"red":0.71,"green":0.43,"blue":0.94,"dim":1},"1:71":{"red":0.71,"green":0.43,"blue":0.94,"dim":1},"1:11":{"red":0.71,"green":0.43,"blue":0.94,"dim":1},"1:61":{"red":0.71,"green":0.43,"blue":0.94,"dim":1},"1:1":{"red":0.71,"green":0.43,"blue":0.94,"dim":1},"1:51":{"red":0.71,"green":0.43,"blue":0.94,"dim":1}},[{"type":"chase","fx":["1:1","1:11","1:21","1:31","1:41","1:51","1:61","1:71","1:81","1:91"],"speed":290,"size":1,"spread":1}]],["Красный",{"1:1":{"blue":0.0,"green":0.0,"red":1.0,"dim":1.0},"1:11":{"blue":0.0,"green":0.0,"red":1.0,"dim":1.0},"1:21":{"blue":0.0,"green":0.0,"red":1.0,"dim":1.0},"1:31":{"blue":0.0,"green":0.0,"red":1.0,"dim":1.0},"1:41":{"blue":0.0,"green":0.0,"red":1.0,"dim":1.0},"1:51":{"blue":0.0,"green":0.0,"red":1.0,"dim":1.0},"1:61":{"blue":0.0,"green":0.0,"red":1.0,"dim":1.0},"1:71":{"blue":0.0,"green":0.0,"red":1.0,"dim":1.0},"1:81":{"blue":0.0,"green":0.0,"red":1.0,"dim":1.0},"1:91":{"blue":0.0,"green":0.0,"red":1.0,"dim":1.0}},[]]]},{"name":"Общий: зелёный + жёлтый","t":"Фейдер 3","note":"PAR зелёные, 4 Wash жёлтые и направлены на сцену, 4 Beam светят в одну точку.","cues":[["Общий",{"1:1":{"red":0.0,"green":1.0,"blue":0.0,"dim":1.0},"1:11":{"red":0.0,"green":1.0,"blue":0.0,"dim":1.0},"1:21":{"red":0.0,"green":1.0,"blue":0.0,"dim":1.0},"1:31":{"red":0.0,"green":1.0,"blue":0.0,"dim":1.0},"1:41":{"red":0.0,"green":1.0,"blue":0.0,"dim":1.0},"1:51":{"red":0.0,"green":1.0,"blue":0.0,"dim":1.0},"1:61":{"red":0.0,"green":1.0,"blue":0.0,"dim":1.0},"1:71":{"red":0.0,"green":1.0,"blue":0.0,"dim":1.0},"1:81":{"red":0.0,"green":1.0,"blue":0.0,"dim":1.0},"1:91":{"red":0.0,"green":1.0,"blue":0.0,"dim":1.0},"1:203":{"red":1.0,"green":1.0,"blue":0.0,"pan":0.649,"tilt":0.42,"zoom":0.0,"dim":1.0},"1:254":{"red":1.0,"green":1.0,"blue":0.0,"pan":0.649,"tilt":0.42,"zoom":0.0,"dim":1.0},"1:305":{"pan":0.458,"tilt":0.557,"dim":1.0,"focus":0.767},"1:321":{"pan":0.458,"tilt":0.557,"dim":1.0,"focus":0.767},"1:337":{"pan":0.458,"tilt":0.557,"dim":1.0,"focus":0.767},"1:353":{"pan":0.458,"tilt":0.557,"dim":1.0,"focus":0.767},"1:101":{"red":1.0,"green":1.0,"blue":0.0,"pan":0.765,"tilt":0.283,"zoom":0.0,"dim":1.0},"1:152":{"red":1.0,"green":1.0,"blue":0.0,"pan":0.518,"tilt":0.311,"zoom":0.0,"dim":1.0}},[]]]},{"name":"Wash розовые, качание","t":"Фейдер 4","note":"4 Wash розовые, узкий луч, медленно покачиваются небольшим кругом.","cues":[["Розовый",{"1:101":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.5,"zoom":0.0},"1:152":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.5,"zoom":0.0},"1:203":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.5,"zoom":0.0},"1:254":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.5,"zoom":0.0}},[{"type":"circle","fx":["1:101","1:152","1:203","1:254"],"speed":15,"size":0.4,"spread":1}]]]},{"name":"Дискотека фиолет","t":"Фейдер 5","note":"Wash 1–2 лаванда, Wash 3–4 ультрафиолет; PAR 1–5 тёплый красный, PAR 6–10 синие; Beam вниз. Головы плавно ходят, PAR пульсируют.","cues":[["Дискотека",{"1:101":{"red":0.71,"green":0.43,"blue":0.94,"zoom":0.0,"dim":1.0},"1:1":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0,"white":0.302,"amber":0.406,"uv":0.0},"1:152":{"red":0.71,"green":0.43,"blue":0.94,"zoom":0.0,"dim":1.0},"1:11":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0,"white":0.302,"amber":0.406,"uv":0.0},"1:203":{"red":0.2,"green":0.0,"blue":1.0,"zoom":0.0,"dim":1.0},"1:21":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0,"white":0.302,"amber":0.406,"uv":0.0},"1:254":{"red":0.2,"green":0.0,"blue":1.0,"zoom":0.0,"dim":1.0},"1:31":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0,"white":0.302,"amber":0.406,"uv":0.0},"1:41":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0,"white":0.302,"amber":0.406,"uv":0.0},"1:51":{"dim":1.0,"red":0.0,"green":0.037,"blue":1.0,"white":0.0,"amber":0.0,"uv":0.0},"1:61":{"dim":1.0,"red":0.0,"green":0.037,"blue":1.0,"white":0.0,"amber":0.0,"uv":0.0},"1:71":{"dim":1.0,"red":0.0,"green":0.037,"blue":1.0,"white":0.0,"amber":0.0,"uv":0.0},"1:81":{"dim":1.0,"red":0.0,"green":0.037,"blue":1.0,"white":0.0,"amber":0.0,"uv":0.0},"1:91":{"dim":1.0,"red":0.0,"green":0.037,"blue":1.0,"white":0.0,"amber":0.0,"uv":0.0},"1:305":{"tilt":0.6,"dim":1.0,"focus":0.0},"1:321":{"tilt":0.6,"dim":1.0,"focus":0.0},"1:337":{"tilt":0.6,"dim":1.0,"focus":0.0},"1:353":{"tilt":0.6,"dim":1.0,"focus":0.0}},[{"type":"eight","fx":["1:101","1:152","1:203","1:254","1:305","1:321","1:337","1:353"],"speed":10,"size":0.5,"spread":1},{"type":"wave","fx":["1:1","1:11","1:21","1:31","1:41","1:51","1:61","1:71","1:81","1:91"],"speed":31,"size":1,"spread":1}]]]},{"name":"Wash 1 цветной чейз","t":"Фейдер 6 (чейз)","mode":"chase","bpm":60,"note":"Только Wash 1: раз в секунду меняет цвет и место — жёлтый, красный, пурпурный, бирюзовый.","cues":[["Жёлтый",{"1:101":{"red":1.0,"green":1.0,"blue":0.0,"pan":0.711,"tilt":0.368,"dim":1.0}},[]],["Красный",{"1:101":{"red":1.0,"green":0.0,"blue":0.0,"pan":0.711,"tilt":0.588,"dim":1.0}},[]],["Пурпурный",{"1:101":{"red":1.0,"green":0.0,"blue":1.0,"pan":0.827,"tilt":0.643,"dim":1.0}},[]],["Бирюзовый",{"1:101":{"red":0.0,"green":1.0,"blue":1.0,"pan":0.827,"tilt":0.35,"dim":1.0}},[]]]},{"name":"PAR бегущий огонь","t":"Кнопки окна 1 и 2","note":"10 PAR по очереди вспыхивают справа налево. Цвет берут от другой включённой сцены, сами по себе — белые.","cues":[["Бег",{"1:41":{"dim":1.0},"1:31":{"dim":1.0},"1:21":{"dim":1.0},"1:11":{"dim":1.0},"1:1":{"dim":1.0},"1:91":{"dim":1.0},"1:81":{"dim":1.0},"1:71":{"dim":1.0},"1:61":{"dim":1.0},"1:51":{"dim":1.0}},[{"type":"chase","fx":["1:91","1:81","1:71","1:61","1:51","1:41","1:31","1:21","1:11","1:1"],"speed":290,"size":1,"spread":1}]]]},{"name":"PAR бег быстрый","t":"Кнопка окна 3","note":"То же, что «бегущий огонь», но в два раза быстрее.","cues":[["Бег быстрый",{"1:41":{"dim":1.0},"1:31":{"dim":1.0},"1:21":{"dim":1.0},"1:11":{"dim":1.0},"1:1":{"dim":1.0},"1:91":{"dim":1.0},"1:81":{"dim":1.0},"1:71":{"dim":1.0},"1:61":{"dim":1.0},"1:51":{"dim":1.0}},[{"type":"chase","fx":["1:91","1:81","1:71","1:61","1:51","1:41","1:31","1:21","1:11","1:1"],"speed":600,"size":1,"spread":1}]]]},{"name":"PAR лаванда бегущая","t":"Кнопка окна 4","note":"10 PAR цвета лаванды, огонь бежит слева направо.","cues":[["Лаванда",{"1:41":{"red":0.71,"green":0.43,"blue":0.94,"dim":1},"1:31":{"red":0.71,"green":0.43,"blue":0.94,"dim":1},"1:21":{"red":0.71,"green":0.43,"blue":0.94,"dim":1},"1:11":{"red":0.71,"green":0.43,"blue":0.94,"dim":1},"1:1":{"red":0.71,"green":0.43,"blue":0.94,"dim":1},"1:91":{"red":0.71,"green":0.43,"blue":0.94,"dim":1},"1:81":{"red":0.71,"green":0.43,"blue":0.94,"dim":1},"1:71":{"red":0.71,"green":0.43,"blue":0.94,"dim":1},"1:61":{"red":0.71,"green":0.43,"blue":0.94,"dim":1},"1:51":{"red":0.71,"green":0.43,"blue":0.94,"dim":1}},[{"type":"chase","fx":["1:1","1:11","1:21","1:31","1:41","1:51","1:61","1:71","1:81","1:91"],"speed":290,"size":1,"spread":1}]]]},{"name":"Beam мигание","t":"Кнопка окна 6","note":"4 Beam: луч мигает и меняет резкость, головы кивают вверх-вниз.","cues":[["Мигание",{"1:305":{"dim":1,"pan":0.46,"tilt":0.56,"focus":0.5},"1:321":{"dim":1,"pan":0.46,"tilt":0.56,"focus":0.5},"1:337":{"dim":1,"pan":0.46,"tilt":0.56,"focus":0.5},"1:353":{"dim":1,"pan":0.46,"tilt":0.56,"focus":0.5}},[{"type":"wave","fx":["1:305","1:321","1:337","1:353"],"speed":30,"size":1,"spread":1},{"type":"nod","fx":["1:305","1:321","1:337","1:353"],"speed":30,"size":0.4,"spread":1}]]]},{"name":"Beam призма","t":"Кнопки окна 7 и 8","note":"4 Beam с призмой, призма медленно вращается.","cues":[["Призма",{"1:337":{"dim":1.0,"#prism2":1,"#prism2rot":0.36,"focus":0.0},"1:353":{"dim":1.0,"#prism2":1,"#prism2rot":0.36,"focus":0.0},"1:305":{"dim":1.0,"#prism2":1,"#prism2rot":0.36,"focus":0.0},"1:321":{"dim":1.0,"#prism2":1,"#prism2rot":0.36,"focus":0.0}},[]]]},{"name":"Beam призма + круг","t":"Кнопка окна 9","note":"4 Beam с вращающейся призмой, головы описывают маленький круг.","cues":[["Призма круг",{"1:305":{"dim":1.0,"#prism2":1,"#prism2rot":0.36,"focus":0.0},"1:321":{"dim":1.0,"#prism2":1,"#prism2rot":0.36,"focus":0.0},"1:337":{"dim":1.0,"#prism2":1,"#prism2rot":0.36,"focus":0.0},"1:353":{"dim":1.0,"#prism2":1,"#prism2rot":0.36,"focus":0.0}},[{"type":"circle","fx":["1:305","1:321","1:337","1:353"],"speed":15,"size":0.4,"spread":1}]]]},{"name":"Beam волна","t":"Кнопка окна 10","note":"4 Beam по очереди ходят восьмёркой и мигают — «волна».","cues":[["Волна",{"1:305":{"dim":1,"pan":0.46,"tilt":0.56,"focus":0.5},"1:321":{"dim":1,"pan":0.46,"tilt":0.56,"focus":0.5},"1:337":{"dim":1,"pan":0.46,"tilt":0.56,"focus":0.5},"1:353":{"dim":1,"pan":0.46,"tilt":0.56,"focus":0.5}},[{"type":"eight","fx":["1:305","1:321","1:337","1:353"],"speed":20,"size":0.6,"spread":1},{"type":"wave","fx":["1:305","1:321","1:337","1:353"],"speed":20,"size":1,"spread":1}]]]},{"name":"Wash покачивание","t":"Кнопка окна 11","note":"Wash 3 и 4 на полную яркость и медленно покачиваются. Цвет — от другой сцены.","cues":[["Качание",{"1:203":{"dim":1.0},"1:254":{"dim":1.0},"1:101":{"dim":1.0},"1:152":{"dim":1.0}},[{"type":"circle","fx":["1:203","1:254"],"speed":15,"size":0.4,"spread":1}]]]},{"name":"Дискотека + пульс","t":"Кнопки окна 16 и 17","note":"Как «Дискотека фиолет», но Beam светят прямо, а вся сцена пульсирует яркостью.","cues":[["Пульс",{"1:101":{"red":0.71,"green":0.43,"blue":0.94,"dim":1.0,"zoom":0.0},"1:152":{"red":0.71,"green":0.43,"blue":0.94,"dim":1.0,"zoom":0.0},"1:203":{"red":0.2,"green":0.0,"blue":1.0,"dim":1.0,"zoom":0.0},"1:254":{"red":0.2,"green":0.0,"blue":1.0,"dim":1.0,"zoom":0.0},"1:1":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0,"white":0.302,"amber":0.406,"uv":0.0},"1:11":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0,"white":0.302,"amber":0.406,"uv":0.0},"1:21":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0,"white":0.302,"amber":0.406,"uv":0.0},"1:31":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0,"white":0.302,"amber":0.406,"uv":0.0},"1:41":{"dim":1.0,"red":1.0,"green":0.0,"blue":0.0,"white":0.302,"amber":0.406,"uv":0.0},"1:51":{"dim":1.0,"red":0.0,"green":0.037,"blue":1.0,"white":0.0,"amber":0.0,"uv":0.0},"1:61":{"dim":1.0,"red":0.0,"green":0.037,"blue":1.0,"white":0.0,"amber":0.0,"uv":0.0},"1:71":{"dim":1.0,"red":0.0,"green":0.037,"blue":1.0,"white":0.0,"amber":0.0,"uv":0.0},"1:81":{"dim":1.0,"red":0.0,"green":0.037,"blue":1.0,"white":0.0,"amber":0.0,"uv":0.0},"1:91":{"dim":1.0,"red":0.0,"green":0.037,"blue":1.0,"white":0.0,"amber":0.0,"uv":0.0},"1:305":{"dim":1.0,"focus":0.0},"1:321":{"dim":1.0,"focus":0.0},"1:337":{"dim":1.0,"focus":0.0},"1:353":{"dim":1.0,"focus":0.0}},[{"type":"wave","fx":["1:1","1:11","1:21","1:31","1:41","1:51","1:61","1:71","1:81","1:91","1:101","1:152","1:203","1:254","1:305","1:321","1:337","1:353"],"speed":31,"size":1,"spread":1}]]]}];
+const T81RAW={'#cto':/CTO|тёпл|темп/i,'#prism2':/Призма 2/i,'#prism2rot':/Вращение призмы 2/i};
+function t81Fix(key){ const [l,a]=key.split(':').map(Number); return show.fixtures.find(f=>LN(f)===l&&f.addr===a) }
+function t81Vals(f,v){ const p=prof(f), o={};
+  for(const k in v){ if(k[0]==='#'){ const re=T81RAW[k]; const i=p.ch.findIndex(c=>c.a==='raw'&&re&&re.test(c.l||'')); if(i>=0) o['raw'+i]=v[k]; continue }
+    if(p.ch.some(c=>c.a===k)) o[k]=v[k] }
+  return o }
+function importTitan81(replace){
+  let miss=new Set(), put=0, skip=0;
+  const slots=replace?show.playbacks.map((_,i)=>i):show.playbacks.map((pb,i)=>pb.cues.length?-1:i).filter(i=>i>=0);
+  TITAN81.forEach((sc,n)=>{ const i=slots[n]; if(i==null){skip++;return}
+    const pb=show.playbacks[i], id=pb.id;
+    const cues=sc.cues.map(([name,cv,fxs])=>{ const values={};
+      for(const key in cv){ const f=t81Fix(key); if(!f){miss.add(key);continue} const o=t81Vals(f,cv[key]); if(Object.keys(o).length) values[f.id]=o }
+      const fx=fxs.map(x=>({id:uid(),type:x.type,fixtures:x.fx.map(t81Fix).filter(Boolean).map(f=>f.id),speed:x.speed,size:x.size,spread:x.spread})).filter(x=>x.fixtures.length);
+      return {name,fade:sc.mode==='chase'?0:1,values,fx} });
+    show.playbacks[i]={id,name:sc.name,note:sc.note+' (В Titan: '+sc.t+'.)',cues,mode:sc.mode||'list',bpm:sc.bpm||60,fade:sc.mode==='chase'?0:1,fxs:1,fxz:1,tint:null};
+    RT[id]={cur:-1,prev:null,fs:0,fd:0,level:0,flash:false,ts:0,lastStep:0}; put++ });
+  show.example=false; save(); pbDirty=true; renderPbs(); try{renderXtc()}catch(_){}
+  toast(`Добавлено сцен из Titan: ${put}`+(skip?`. Не хватило свободных фейдеров для ${skip} — нажмите «Заменить все фейдеры»`:'')+(miss.size?`. Нет приборов по адресам: ${[...miss].join(', ')}`:''),9000);
+}
+function t81Panel(){ const b=$('#t81Box'); if(!b) return;
+  b.querySelector('#t81Add').onclick=()=>importTitan81(false);
+  twoStep(b.querySelector('#t81All'),'Точно? Фейдеры 1–15 заменятся',()=>importTitan81(true)); }
 
 // ---------- патч ----------
 const typeOptions=()=>[...Object.entries(LIB),...Object.entries(show.profiles)];
@@ -3039,6 +3098,7 @@ function frame(){
 function renderAll(){try{renderXtc()}catch(e){}  try{renderScreenAll()}catch(e){} renderStage();renderProg();renderPals();pbDirty=true;renderPatch();renderDraft();monBuilt=false;if($('#tab-monitor').classList.contains('active'))buildMonitor()}
 try{ if(localStorage.getItem(KEY+'-help')==='0'){document.body.classList.add('nohelp');$('#helpBtn').classList.remove('on')} const t=localStorage.getItem(KEY+'-tab'); if(t&&document.getElementById('tab-'+t)) openTab(t)}catch(e){}
 renderAll();
+try{t81Panel()}catch(e){console.error(e)}
 if(show.example) toast('Загружен пример шоу. Замените приборы на свои во вкладке «Приборы».');
 if(window.__beamFixed) setTimeout(()=>toast('Адреса голов Beam возвращены на рабочие: 305, 321, 337, 353.'),1500);
 requestAnimationFrame(frame);
