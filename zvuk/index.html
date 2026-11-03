@@ -146,6 +146,7 @@ input.tin{width:86px;font-family:var(--f-mono)} input.nin{width:72px;font-family
 .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#262b35;border:1px solid #3a414f;padding:10px 16px;border-radius:10px;box-shadow:0 8px 30px #0008;max-width:min(680px,92vw);z-index:50}
 .prog{height:6px;border-radius:4px;background:#252a33;overflow:hidden}.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .1s}
 .kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px}
+section.panel.player.pz-over{outline:3px dashed #ff9a3c;outline-offset:-6px;background:rgba(255,154,60,.08)}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0f1115">
@@ -156,7 +157,7 @@ input.tin{width:86px;font-family:var(--f-mono)} input.nin{width:72px;font-family
 <body>
 <div class="app">
 <header>
-  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.10</span></div>
+  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.11</span></div>
   <div class="row">
     <button id="addBtn" title="Добавить песни">＋ Песни…</button>
     <button id="addDirBtn" title="Добавить папку с музыкой">＋ Папка…</button>
@@ -1506,12 +1507,12 @@ const savePL=()=>IDB.set('pl',PL.map(t=>({id:t.id,name:t.name,dur:t.dur,edited:!
 // ---------- звук ----------
 let ctx=null, eqNodes=[], preG, panN, master, analyser, proc, streamDest=null;
 function AC(){ if(ctx) return ctx;
-  ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:'playback'});
+  ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
   preG=ctx.createGain(); let last=preG;
   S.peq.forEach(()=>{ const b=ctx.createBiquadFilter(); last.connect(b); last=b; eqNodes.push(b) });
   panN=ctx.createStereoPanner(); master=ctx.createGain(); analyser=ctx.createAnalyser(); analyser.fftSize=4096; analyser.smoothingTimeConstant=.78;
   fadeG=ctx.createGain(); last.connect(panN); panN.connect(fadeG); fadeG.connect(master); master.connect(analyser); analyser.connect(ctx.destination);
-  proc=ctx.createScriptProcessor(4096,1,2); proc.onaudioprocess=onAudio; trG=ctx.createGain(); proc.connect(trG); trG.connect(preG);
+  proc=ctx.createScriptProcessor(2048,1,2); proc.onaudioprocess=onAudio; trG=ctx.createGain(); proc.connect(trG); trG.connect(preG);
   applyEq(); applyVol(); applyBal();
   if(S.devMain&&ctx.setSinkId) ctx.setSinkId(S.devMain).catch(()=>{});
   return ctx }
@@ -1550,7 +1551,10 @@ function applyBal(){ if(panN) panN.pan.value=S.bal/100 }
 
 // ---------- загрузка и декодирование ----------
 async function decodeFile(blob){ const ab=await blob.arrayBuffer(); return await AC().decodeAudioData(ab) }
-async function getBuf(t){ if(BUF.has(t.id)) return BUF.get(t.id); const blob=await IDB.get('f:'+t.id); if(!blob) throw new Error('файл не найден'); const b=await decodeFile(blob); keepBuf(t.id,b); if(!t.dur){ t.dur=b.duration; savePL(); renderPL() } return b }
+setTimeout(()=>{ try{ if(PL&&PL[0]&&!P.buf) preload(PL[0]) }catch(e){} },2500);
+const DECP=new Map(); // id -> обещание декодирования (чтобы не читать файл дважды)
+function preload(t){ if(!t||BUF.has(t.id)||DECP.has(t.id)) return; const pr=getBuf(t).catch(()=>{}).finally(()=>DECP.delete(t.id)); DECP.set(t.id,pr) }
+async function getBuf(t){ if(BUF.has(t.id)) return BUF.get(t.id); if(DECP.has(t.id)){ await DECP.get(t.id); if(BUF.has(t.id)) return BUF.get(t.id) } const blob=await IDB.get('f:'+t.id); if(!blob) throw new Error('файл не найден'); const b=await decodeFile(blob); keepBuf(t.id,b); if(!t.dur){ t.dur=b.duration; savePL(); renderPL() } return b }
 function keepBuf(id,b){ BUF.set(id,b); const keep=new Set([P.id,ED.id,CUE.id,id,...MX.map(m=>m.id)]); for(const k of [...BUF.keys()]) if(BUF.size>6&&!keep.has(k)) BUF.delete(k) }
 const AUDIO_RE=/\.(mp3|wav|ogg|oga|m4a|aac|flac|opus|webm|wma|mp4|m4v|mov|3gp)$/i;
 async function addFiles(files){
@@ -1580,7 +1584,7 @@ function renderPL(){
 $('#pl tbody').addEventListener('click',e=>{ const tr=e.target.closest('tr'); if(!tr) return; const id=tr.dataset.id;
   if(e.shiftKey&&lastSel){ const a=PL.findIndex(t=>t.id===lastSel), b=PL.findIndex(t=>t.id===id); for(let i=Math.min(a,b);i<=Math.max(a,b);i++) selIds.add(PL[i].id) }
   else if(e.ctrlKey||e.metaKey){ selIds.has(id)?selIds.delete(id):selIds.add(id) } else { selIds.clear(); selIds.add(id) }
-  lastSel=id; $$('#pl tbody tr').forEach(r=>r.classList.toggle('sel',selIds.has(r.dataset.id))) }); // без перерисовки — иначе не сработает двойной щелчок
+  lastSel=id; $$('#pl tbody tr').forEach(r=>r.classList.toggle('sel',selIds.has(r.dataset.id))); preload(PL.find(t=>t.id===id)) }); // без перерисовки — иначе не сработает двойной щелчок
 $('#pl tbody').addEventListener('dblclick',e=>{ const tr=e.target.closest('tr'); if(tr) playId(tr.dataset.id) });
 let dragId=null;
 $('#pl tbody').addEventListener('dragstart',e=>{ const tr=e.target.closest('tr'); dragId=tr&&tr.dataset.id; e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/x-pz',dragId||'') });
@@ -1589,6 +1593,15 @@ $('#pl tbody').addEventListener('drop',e=>{ if(!dragId) return; e.preventDefault
   if(tr&&tr.dataset.id!==dragId){ const from=PL.findIndex(t=>t.id===dragId), item=PL.splice(from,1)[0], to=PL.findIndex(t=>t.id===tr.dataset.id); PL.splice(to,0,item); savePL(); renderPL() } dragId=null });
 $('#pl tbody').addEventListener('dragend',()=>{ dragId=null; $$('#pl tr.drag-over').forEach(x=>x.classList.remove('drag-over')) });
 $('#plSearch').oninput=renderPL;
+// ---- перетащить песню из плейлиста наверх, в проигрыватель: она встаёт «на старт» (на паузе, уже прочитана) — ▶ или пробел запускают мгновенно ----
+(function(){ const pane=document.querySelector('section.panel.player'); if(!pane) return; let n=0;
+  const isPz=e=>[...(e.dataTransfer.types||[])].includes('text/x-pz');
+  pane.addEventListener('dragenter',e=>{ if(!isPz(e)) return; e.preventDefault(); n++; pane.classList.add('pz-over') });
+  pane.addEventListener('dragover',e=>{ if(!isPz(e)) return; e.preventDefault(); e.dataTransfer.dropEffect='move' });
+  pane.addEventListener('dragleave',e=>{ if(!isPz(e)) return; if(--n<=0){ n=0; pane.classList.remove('pz-over') } });
+  pane.addEventListener('drop',async e=>{ if(!isPz(e)) return; e.preventDefault(); e.stopPropagation(); n=0; pane.classList.remove('pz-over');
+    const id=e.dataTransfer.getData('text/x-pz')||dragId; dragId=null; if(!id) return; const t=PL.find(x=>x.id===id); if(!t) return;
+    if(P.playing){ if(id!==P.id){ const from=PL.findIndex(x=>x.id===id), item=PL.splice(from,1)[0], cur=PL.findIndex(x=>x.id===P.id); PL.splice(cur+1,0,item); savePL(); renderPL(); preload(item) } toast('Сейчас играет другая песня — не прерываю. «'+t.name+'» встала следующей.',5000) } else { await playId(id,0,true); toast('На старте: «'+t.name+'». ▶ или пробел — запуск') } }); })();
 $('#plDel').onclick=()=>delSel();
 // ---- переименование песни: прямо в строке плейлиста (кнопка, F2 или щелчок по ✎) ----
 function renameTrack(id){ const t=PL.find(x=>x.id===id); if(!t) return toast('Выберите песню в плейлисте.');
@@ -1620,15 +1633,16 @@ $('#plToMix').onclick=()=>{ if(!selIds.size) return toast('Выберите пе
 $('#plCue').onclick=()=>{ const id=[...selIds][0]; if(!id) return toast('Выберите песню в плейлисте.'); cueLoad(id); openTab('cue') };
 
 // ---------- воспроизведение ----------
-async function playId(id,startFrame){
+async function playId(id,startFrame,paused){
   const t=PL.find(x=>x.id===id); if(!t) return; AC(); if(ctx.state==='suspended') await ctx.resume();
   let b; try{ b=await getBuf(t) }catch(e){ toast('Не получилось прочитать «'+t.name+'»: '+e.message); t.bad=true; renderPL(); return }
-  P.id=id; P.buf=b; P.end=b.length; P.pos=startFrame||0; P.stMode=false; if(P.filter) P.filter.clear&&P.filter.clear(); P.loopA=P.loopB=null; P.ended=false; P.playing=true;
+  P.id=id; P.buf=b; P.end=b.length; P.pos=startFrame||0; P.stMode=false; if(P.filter) P.filter.clear&&P.filter.clear(); P.loopA=P.loopB=null; P.ended=false; P.playing=!paused;
   if(ED.id===id&&ED.loop&&ED.a!=null) setLoop();
   $('#tTitle').textContent=t.name; $('#tSub').textContent=`${b.numberOfChannels===1?'моно':'стерео'} · ${Math.round(b.sampleRate/100)/10} кГц · ${fmt(b.duration)}`;
   seekPeaks=null; cancelFade(); applyTrG(); uiPlay(); renderPL(); marksUi(); document.title=t.name+' — Просто Звук';
   if(!$('#lyrBox').hidden) lyrLoad(id);
   if(S.level&&t.lufs==null) levelTrack(t).then(()=>{ savePL(); applyTrG(); renderPL() }).catch(()=>{});
+  setTimeout(()=>{ const j=nextIdx(1); if(j>=0&&!S.shuffle) preload(PL[j]) },1500);
 }
 function uiPlay(){ $('#bPlay').textContent=P.playing?'❚❚':'▶' }
 function togglePlay(){ if(fading){ cancelFade(); if(P.playing) return } if(!P.buf){ const id=[...selIds][0]||(PL[0]&&PL[0].id); if(id) playId(id); return } AC(); ctx.resume(); P.playing=!P.playing; if(P.playing&&P.ended){ P.ended=false; seekTo(0) } uiPlay(); renderPL() }
