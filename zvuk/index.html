@@ -157,7 +157,7 @@ section.panel.player.pz-over{outline:3px dashed #ff9a3c;outline-offset:-6px;back
 <body>
 <div class="app">
 <header>
-  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.13</span></div>
+  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.14</span></div>
   <div class="row">
     <button id="addBtn" title="Добавить песни">＋ Песни…</button>
     <button id="addDirBtn" title="Добавить папку с музыкой">＋ Папка…</button>
@@ -1507,7 +1507,7 @@ const savePL=()=>IDB.set('pl',PL.map(t=>({id:t.id,name:t.name,dur:t.dur,edited:!
 // ---------- звук ----------
 let ctx=null, eqNodes=[], preG, panN, master, analyser, proc, streamDest=null;
 function AC(){ if(ctx) return ctx;
-  ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:'playback'});
+  ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
   preG=ctx.createGain(); let last=preG;
   S.peq.forEach(()=>{ const b=ctx.createBiquadFilter(); last.connect(b); last=b; eqNodes.push(b) });
   panN=ctx.createStereoPanner(); master=ctx.createGain(); analyser=ctx.createAnalyser(); analyser.fftSize=4096; analyser.smoothingTimeConstant=.78;
@@ -1650,14 +1650,14 @@ $('#plCue').onclick=()=>{ const id=[...selIds][0]; if(!id) return toast('Выб�
 async function playId(id,startFrame,paused){
   const t=PL.find(x=>x.id===id); if(!t) return; AC(); if(ctx.state==='suspended') await ctx.resume();
   let b; try{ b=await getBuf(t) }catch(e){ toast('Не получилось прочитать «'+t.name+'»: '+e.message); t.bad=true; renderPL(); return }
-  if(S.level&&t.lufs==null){ try{ await levelTrack(t); savePL() }catch(e){} }   // громкость выравниваем ДО старта, а не на ходу
-  if(P.playing&&trG){ const tc=ctx.currentTime; trG.gain.cancelScheduledValues(tc); trG.gain.setValueAtTime(trG.gain.value,tc); trG.gain.linearRampToValueAtTime(0,tc+.03); await new Promise(r=>setTimeout(r,40)) }   // старая песня уходит за 30 мс — без щелчка
+  if(S.level&&t.lufs==null&&t.gainQ==null) quickLevel(t,b);   // быстрая оценка громкости (несколько мс) — точная досчитается в фоне и подстроится незаметно
+  if(P.playing&&trG){ const tc=ctx.currentTime; trG.gain.cancelScheduledValues(tc); trG.gain.setValueAtTime(trG.gain.value,tc); trG.gain.linearRampToValueAtTime(0,tc+.02); await new Promise(r=>setTimeout(r,22)) }   // старая песня уходит за 30 мс — без щелчка
   P.id=id; P.buf=b; P.end=b.length; P.pos=startFrame||0; P.stMode=false; if(P.filter) P.filter.clear&&P.filter.clear(); P.loopA=P.loopB=null; P.ended=false; P.playing=!paused;
   if(ED.id===id&&ED.loop&&ED.a!=null) setLoop();
   $('#tTitle').textContent=t.name; $('#tSub').textContent=`${b.numberOfChannels===1?'моно':'стерео'} · ${Math.round(b.sampleRate/100)/10} кГц · ${fmt(b.duration)}`;
   seekPeaks=null; natStop(); cancelFade(); applyTrG(true); natTick(); uiPlay(); renderPL(); marksUi(); document.title=t.name+' — Просто Звук';
   if(!$('#lyrBox').hidden) lyrLoad(id);
-  if(S.level&&t.lufs==null) levelTrack(t).then(()=>{ savePL(); applyTrG(); renderPL() }).catch(()=>{});
+  if(S.level&&t.lufs==null) levelTrack(t).then(()=>{ savePL(); if(P.id===t.id&&trG) trG.gain.setTargetAtTime(trackGainLin(t.id),ctx.currentTime,1.2); renderPL() }).catch(()=>{});
   setTimeout(()=>{ const j=nextIdx(1); if(j>=0&&!S.shuffle) preload(PL[j]) },1500);
 }
 function uiPlay(){ $('#bPlay').textContent=P.playing?'❚❚':'▶' }
@@ -2220,9 +2220,9 @@ const ZIP={ T:null,
 
 // ---------- громкость песни (выравнивание) и плавное затухание ----------
 let fading=false, fadeT=0;
-const trackGainLin=id=>{ const t=PL.find(x=>x.id===id); return S.level&&t&&t.gain!=null?Math.pow(10,t.gain/20):1 };
+const trackGainLin=id=>{ const t=PL.find(x=>x.id===id); if(!(S.level&&t)) return 1; const g=t.gain!=null?t.gain:t.gainQ; return g!=null?Math.pow(10,g/20):1 };
 function applyTrG(soft){ if(!(trG&&ctx)) return; const t=ctx.currentTime, g=trackGainLin(P.id);
-  if(soft){ trG.gain.cancelScheduledValues(t); trG.gain.setValueAtTime(0,t); trG.gain.linearRampToValueAtTime(g,t+.06) } else trG.gain.setTargetAtTime(g,t,.03) }
+  if(soft){ trG.gain.cancelScheduledValues(t); trG.gain.setValueAtTime(0,t); trG.gain.linearRampToValueAtTime(g,t+.02) } else trG.gain.setTargetAtTime(g,t,.03) }
 function cancelFade(){ if(!fading) return; clearTimeout(fadeT); fading=false; const t=ctx.currentTime; fadeG.gain.cancelScheduledValues(t); fadeG.gain.setValueAtTime(fadeG.gain.value,t); fadeG.gain.linearRampToValueAtTime(1,t+.08); $('#bFade').classList.remove('on') }
 function fadeOut(sec){ if(!P.playing) return; AC(); if(fading&&sec>.2) return; clearTimeout(fadeT); fading=true; const t=ctx.currentTime; fadeG.gain.cancelScheduledValues(t); fadeG.gain.setValueAtTime(fadeG.gain.value,t); fadeG.gain.linearRampToValueAtTime(0,t+sec); $('#bFade').classList.add('on');
   fadeT=setTimeout(()=>{ P.playing=false; uiPlay(); renderPL(); const n=ctx.currentTime; fadeG.gain.cancelScheduledValues(n); fadeG.gain.setValueAtTime(1,n); fading=false; $('#bFade').classList.remove('on') },sec*1000+80) }
@@ -2232,6 +2232,9 @@ async function measureLufs(buf){ const sr=buf.sampleRate, ch=Math.min(2,buf.numb
   const r=await oc.startRendering(), B=Math.round(sr*.4), H=Math.round(sr*.1), L=[...Array(ch)].map((_,c)=>r.getChannelData(c)), zs=[];
   for(let s=0;s+B<=r.length;s+=H){ let z=0; for(const d of L){ let a=0; for(let i=s;i<s+B;i+=2) a+=d[i]*d[i]; z+=a/(B/2) } zs.push(z) }
   const lk=z=>-0.691+10*Math.log10(z||1e-12); let g=zs.filter(z=>lk(z)>-70); if(!g.length) return -70; const rel=lk(g.reduce((a,b)=>a+b,0)/g.length)-10; g=g.filter(z=>lk(z)>rel); return lk(g.reduce((a,b)=>a+b,0)/g.length) }
+function quickLevel(t,b){ try{ const ch=Math.min(2,b.numberOfChannels), n=b.length, step=7; let sum=0, cnt=0, pk=1e-4;
+    for(let c=0;c<ch;c++){ const d=b.getChannelData(c); for(let i=0;i<n;i+=step){ const v=d[i]; sum+=v*v; const a=v<0?-v:v; if(a>pk) pk=a } cnt+=Math.ceil(n/step) }
+    const lu=10*Math.log10(sum/Math.max(1,cnt)*ch+1e-12)-0.691+1.5; let g=(S.lufsTarget||-16)-lu; g=Math.max(-12,Math.min(9,g)); g=Math.min(g,20*Math.log10(.98/pk)); t.gainQ=Math.round(g*10)/10 }catch(e){} }
 async function levelTrack(t){ const b=await getBuf(t), lu=await measureLufs(b), pk=Math.max(1e-4,peakOf(b)); let g=(S.lufsTarget||-16)-lu; g=Math.max(-12,Math.min(9,g)); g=Math.min(g,20*Math.log10(.98/pk)); t.lufs=Math.round(lu*10)/10; t.gain=Math.round(g*10)/10 }
 $('#plLevel').onclick=async ()=>{ if(S.level){ if(!confirm('Выключить выравнивание громкости? Песни снова будут звучать как в исходных файлах.')) return; S.level=false; saveS(); applyTrG(); renderPL(); levelUi(); return toast('Выравнивание выключено.') }
   const todo=PL.filter(t=>t.lufs==null&&!t.bad); let i=0; for(const t of todo){ i++; toast(`Измеряю громкость: ${i} из ${todo.length} — «${t.name}»`,60000); try{ await levelTrack(t) }catch(e){ } await new Promise(r=>setTimeout(r,0)) }
