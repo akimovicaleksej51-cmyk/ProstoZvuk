@@ -156,7 +156,7 @@ input.tin{width:86px;font-family:var(--f-mono)} input.nin{width:72px;font-family
 <body>
 <div class="app">
 <header>
-  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.9</span></div>
+  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.10</span></div>
   <div class="row">
     <button id="addBtn" title="Добавить песни">＋ Песни…</button>
     <button id="addDirBtn" title="Добавить папку с музыкой">＋ Папка…</button>
@@ -229,6 +229,7 @@ input.tin{width:86px;font-family:var(--f-mono)} input.nin{width:72px;font-family
       <button id="plToMix" title="Добавить выбранные в склейку">＋ В склейку</button>
       <button id="plEdit" title="Открыть выбранную в редакторе">✂ В редактор</button>
       <button id="plDl" title="Сохранить выбранные песни файлами на компьютер">⬇ Сохранить файл</button>
+      <button id="plRen" title="Переименовать выбранную песню (F2). Файл на диске не меняется — только название в программе">✎ Переименовать</button>
       <button id="plDel" title="Убрать выбранные из плейлиста (Delete)">Убрать</button>
       <button id="plClear">Очистить</button>
     </div>
@@ -1589,6 +1590,24 @@ $('#pl tbody').addEventListener('drop',e=>{ if(!dragId) return; e.preventDefault
 $('#pl tbody').addEventListener('dragend',()=>{ dragId=null; $$('#pl tr.drag-over').forEach(x=>x.classList.remove('drag-over')) });
 $('#plSearch').oninput=renderPL;
 $('#plDel').onclick=()=>delSel();
+// ---- переименование песни: прямо в строке плейлиста (кнопка, F2 или щелчок по ✎) ----
+function renameTrack(id){ const t=PL.find(x=>x.id===id); if(!t) return toast('Выберите песню в плейлисте.');
+  const tr=$('#pl tbody').querySelector(`tr[data-id="${id}"]`); if(!tr){ $('#plSearch').value=''; renderPL(); return setTimeout(()=>renameTrack(id)) }
+  const td=tr.querySelector('td.t'); tr.draggable=false;
+  td.innerHTML=`<input type="text" class="ren" value="${esc(t.name)}" maxlength="200" style="width:100%;min-height:30px;font:inherit" aria-label="Новое название">`;
+  const inp=td.querySelector('input'); inp.focus(); inp.select(); let done=false;
+  const fin=ok=>{ if(done) return; done=true; const v=inp.value.trim();
+    if(ok&&v&&v!==t.name){ t.name=v; savePL();
+      if(P.id===id){ const tt=$('#tTitle'); if(tt) tt.textContent=v; document.title=v+' — Просто Звук' }
+      try{ if(typeof ED!=='undefined'&&ED.id===id) $('#edName').textContent=v }catch(_){}
+      try{ if(typeof MX!=='undefined') MX.forEach(m=>{ if(m.id===id) m.name=v }) }catch(_){}
+      toast('Переименовано: «'+v+'»') }
+    renderPL() };
+  inp.addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Enter'){ e.preventDefault(); fin(true) } else if(e.key==='Escape'){ e.preventDefault(); fin(false) } });
+  inp.addEventListener('blur',()=>fin(true));
+  ['click','dblclick','mousedown'].forEach(ev=>inp.addEventListener(ev,e=>e.stopPropagation())) }
+$('#plRen').onclick=()=>renameTrack([...selIds][0]||P.id);
+document.addEventListener('keydown',e=>{ if(e.key!=='F2'||e.target.matches('input,textarea,select')) return; const id=[...selIds][0]; if(id&&$('#pl')&&!$('#pl').hidden){ e.preventDefault(); renameTrack(id) } });
 async function delSel(){ if(!selIds.size) return; for(const id of selIds){ if(P.id===id) stopPlay(); IDB.del('f:'+id); IDB.del('o:'+id); IDB.del('l:'+id); BUF.delete(id) } PL=PL.filter(t=>!selIds.has(t.id)); selIds.clear(); savePL(); renderPL() }
 let clrArm=0; $('#plClear').onclick=()=>{ if(Date.now()-clrArm>3000){ clrArm=Date.now(); toast('Нажмите «Очистить» ещё раз, чтобы убрать все песни.'); return } selIds=new Set(PL.map(t=>t.id)); delSel() };
 $('#plEdit').onclick=()=>{ const id=[...selIds][0]||P.id; if(!id) return toast('Выберите песню в плейлисте.'); openEditor(id); openTab('ed') };
