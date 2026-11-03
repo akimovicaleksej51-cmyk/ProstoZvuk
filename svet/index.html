@@ -328,7 +328,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.35.4</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.35.5</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -562,6 +562,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
     <button id="mOpen2">На второй экран</button>
     <button id="mClearAll">Убрать всё</button>
     <button id="mBlack">Затемнить</button>
+    <button id="mPause" title="Остановить все видео на экране на текущем кадре / продолжить (клавиша P)">❚❚ Пауза</button>
     <div class="gm"><label for="mMaster">Яркость</label><input id="mMaster" type="range" min="0" max="100" value="100"><span id="mMasterV" class="mono">100%</span></div>
   </div>
   <div class="panel" style="margin-top:14px">
@@ -823,7 +824,7 @@ window.makeRenderer=function(root,opt){
     case 'master': master=m.v; shadeTo(m.fade==null?.15:m.fade); break;
     case 'black': black=!!m.on; shadeTo(m.fade==null?.6:m.fade); break;
     case 'pause': each(e=>e.pause&&e.pause()); break;
-    case 'resume': each(e=>e.play&&e.play().catch(()=>{})); break;
+    case 'resume': each(e=>{ if(e.play&&!e.ended) e.play().catch(()=>{}) }); break;
   }}
   function unmute(){ if(opt.muted) return; each(e=>{ if(e.tagName==='VIDEO'){ e.muted=false; e.play().catch(()=>{}) } }) }
   function status(){ const s={}; for(const [id,L] of layers){ const e=L.cur&&L.cur.firstChild; if(e&&e.tagName==='VIDEO') s[id]={t:e.currentTime,d:e.duration} } return s }
@@ -1921,7 +1922,12 @@ fixMedia(show);
 // --- отправка на экран и в предпросмотр
 let BC=null; try{ BC=new BroadcastChannel('svet-prosto-ekran') }catch(e){}
 let msgN=0; const msgId=()=>Math.random().toString(36).slice(2,8)+(++msgN);
-function scrSend(m){ m.__sp=1; m.__id=msgId(); preview.cmd(m); if(SCR.win&&!SCR.win.closed){ try{SCR.win.postMessage(m,'*')}catch(e){} } try{ BC&&BC.postMessage(m) }catch(e){} }
+let scrPaused=false;
+function scrPauseUi(){ const b=document.getElementById('mPause'); if(!b) return; b.textContent=scrPaused?'▶ Продолжить':'❚❚ Пауза'; b.classList.toggle('primary',scrPaused) }
+function scrPause(on){ scrPaused=on==null?!scrPaused:!!on; scrSend({type:scrPaused?'pause':'resume'}); scrPauseUi() }
+function scrSend(m){ if(m.type==='trigger'&&scrPaused){ scrPaused=false; scrPauseUi(); const r={type:'resume',__sp:1,__id:msgId()}; preview.cmd(r); if(SCR.win&&!SCR.win.closed){ try{SCR.win.postMessage(r,'*')}catch(e){} } try{ BC&&BC.postMessage(r) }catch(e){} }
+  if(m.type==='pause'&&!scrPaused){ scrPaused=true; setTimeout(scrPauseUi) } else if(m.type==='resume'&&scrPaused){ scrPaused=false; setTimeout(scrPauseUi) }
+  m.__sp=1; m.__id=msgId(); preview.cmd(m); if(SCR.win&&!SCR.win.closed){ try{SCR.win.postMessage(m,'*')}catch(e){} } try{ BC&&BC.postMessage(m) }catch(e){} }
 function sendLayers(){ scrSend({type:'layers',list:MED().layers.map(l=>({id:l.id,z:lz(l.id),opacity:l.opacity}))}) }
 const recOrPlay=()=>TL.mode==='rec'||TL.mode==='play';
 function mTriggerCell(key,offset=0,instant=false){
@@ -2009,6 +2015,7 @@ $('#mTest').onclick=()=>{
 $('#mOpen2').onclick=()=>openOutput(true);
 $('#mClearAll').onclick=()=>mClearAll(false);
 $('#mBlack').onclick=()=>mSetBlack(!M.black);
+$('#mPause').onclick=()=>scrPause();
 $('#mMaster').oninput=e=>mSetMaster(e.target.value/100);
 $('#mAddCol').onclick=()=>{ MED().cols++; save(); renderComp() };
 $('#mAddLayer').onclick=()=>{ const n=MED().layers.length+1; MED().layers.unshift({id:'L'+uid(),name:'Слой '+n,opacity:1}); save(); sendLayers(); renderComp(); toast('Новый слой добавлен сверху.') };
@@ -3085,6 +3092,7 @@ document.addEventListener('keydown',e=>{
     e.preventDefault(); const st=e.shiftKey?.01:.05;
     if(e.key==='ArrowUp') nudgeDim(st); else if(e.key==='ArrowDown') nudgeDim(-st); else nudgeGm(e.key==='ArrowRight'?st:-st); return }
   if(e.key==='Enter'&&!e.target.matches('button')){e.preventDefault(); const pb=lastPb||show.playbacks.find(p=>p.cues.length); if(pb) go(pb); return}
+  if(e.code==='KeyP'&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!e.repeat&&!e.target.matches('input,textarea,select,[contenteditable]')){e.preventDefault(); scrPause(); toast(scrPaused?'Видео на экране на паузе (P — продолжить)':'Видео продолжается'); return}
   if(e.key==='Escape'){sel.clear();selChanged()}
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='a'&&$('#tab-desk').classList.contains('active')){e.preventDefault();show.fixtures.forEach(f=>sel.add(f.id));selChanged()}
 });
