@@ -157,7 +157,7 @@ section.panel.player.pz-over{outline:3px dashed #ff9a3c;outline-offset:-6px;back
 <body>
 <div class="app">
 <header>
-  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.12</span></div>
+  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.13</span></div>
   <div class="row">
     <button id="addBtn" title="Добавить песни">＋ Песни…</button>
     <button id="addDirBtn" title="Добавить папку с музыкой">＋ Папка…</button>
@@ -1529,9 +1529,7 @@ function onAudio(e){
   const end=P.loopB!=null?P.loopB:P.end;
   if(neutral){
     if(P.stMode){ P.stMode=false }
-    const b=P.buf, l=b.getChannelData(0), r=b.numberOfChannels>1?b.getChannelData(1):l; let i=0;
-    while(i<n){ for(;i<n&&P.pos<end;i++,P.pos++){ L[i]=l[P.pos]; R[i]=r[P.pos] }
-      if(P.pos>=end){ if(P.loopB!=null){ P.pos=P.loopA } else { for(;i<n;i++){L[i]=0;R[i]=0} P.ended=true; break } } }
+    L.fill(0); R.fill(0); return   // играет встроенный проигрыватель (NAT), позицию ведёт natTick
   } else {
     stEnsure(); if(!P.stMode){ P.filter.sourcePosition=P.pos; P.stMode=true }
     const k=P.filter.extract(tmp,n); let i=0; for(;i<k;i++){ L[i]=tmp[i*2]; R[i]=tmp[i*2+1] } for(;i<n;i++){L[i]=0;R[i]=0}
@@ -1539,6 +1537,22 @@ function onAudio(e){
     if(k===0||P.filter.sourcePosition>=end&&k<n){ if(P.loopB!=null){ P.filter.sourcePosition=P.loopA; P.pos=P.loopA } else P.ended=true }
   }
 }
+// ---- встроенный проигрыватель браузера для обычной скорости и тона ----
+const NAT={src:null,buf:null,t0:0,pos0:0,a:null,b:null,end:0,last:-1};
+const natNeutral=()=>Math.abs(P.tempo-1)<1e-3&&P.semi===0;
+function natStop(){ const s=NAT.src; if(!s) return; NAT.src=null; try{ s.onended=null; s.stop() }catch(e){} try{ s.disconnect() }catch(e){} }
+function natStart(){ natStop(); const b=P.buf, sr=b.sampleRate, s=ctx.createBufferSource(); s.buffer=b; s.connect(trG);
+  const off=Math.max(0,Math.min(P.pos,P.end-1))/sr;
+  if(P.loopB!=null){ s.loop=true; s.loopStart=P.loopA/sr; s.loopEnd=P.loopB/sr; s.start(0,off) } else s.start(0,off,Math.max(0,(P.end-P.pos)/sr));
+  NAT.src=s; NAT.buf=b; NAT.t0=ctx.currentTime; NAT.pos0=P.pos; NAT.a=P.loopA; NAT.b=P.loopB; NAT.end=P.end; NAT.last=P.pos }
+function natTick(){ if(!ctx) return; const want=P.playing&&P.buf&&natNeutral()&&!P.ended;
+  if(!want){ if(NAT.src){ if(P.playing&&!natNeutral()) { /* дальше считает SoundTouch с этого места */ } natStop() } return }
+  if(!NAT.src||NAT.buf!==P.buf||P.pos!==NAT.last||NAT.a!==P.loopA||NAT.b!==P.loopB||NAT.end!==P.end){ natStart(); return }
+  const sr=NAT.buf.sampleRate; let p=NAT.pos0+(ctx.currentTime-NAT.t0)*sr;
+  if(NAT.b!=null&&p>=NAT.b){ const Lp=NAT.b-NAT.a; p=NAT.a+((p-NAT.a)%Lp) }
+  p=Math.floor(p); if(NAT.b==null&&p>=NAT.end){ P.pos=NAT.end; NAT.last=P.pos; natStop(); P.ended=true; return }
+  P.pos=p; NAT.last=p }
+setInterval(natTick,10);
 function seekTo(frame){ if(!P.buf) return; frame=Math.max(0,Math.min(P.end-1,frame|0)); P.pos=frame; if(P.stMode&&P.filter) P.filter.sourcePosition=frame; P.ended=false }
 function setTempo(t){ P.tempo=t; if(P.st) P.st.tempo=t }
 function setSemi(s){ P.semi=s; if(P.st) P.st.pitchSemitones=s }
@@ -1553,7 +1567,7 @@ function applyBal(){ if(panN) panN.pan.value=S.bal/100 }
 async function decodeFile(blob){ const ab=await blob.arrayBuffer(); return await AC().decodeAudioData(ab) }
 setTimeout(()=>{ try{ if(PL&&PL[0]&&!P.buf) preload(PL[0]) }catch(e){} },2500);
 const DECP=new Map(); // id -> обещание декодирования (чтобы не читать файл дважды)
-function preload(t){ if(!t||BUF.has(t.id)||DECP.has(t.id)) return; const pr=getBuf(t).catch(()=>{}).finally(()=>DECP.delete(t.id)); DECP.set(t.id,pr) }
+function preload(t){ if(!t||BUF.has(t.id)||DECP.has(t.id)) return; const pr=getBuf(t).then(()=>{ if(S.level&&t.lufs==null) return levelTrack(t).then(()=>savePL()) }).catch(()=>{}).finally(()=>DECP.delete(t.id)); DECP.set(t.id,pr) }
 async function getBuf(t){ if(BUF.has(t.id)) return BUF.get(t.id); if(DECP.has(t.id)){ await DECP.get(t.id); if(BUF.has(t.id)) return BUF.get(t.id) } const blob=await IDB.get('f:'+t.id); if(!blob) throw new Error('файл не найден'); const b=await decodeFile(blob); keepBuf(t.id,b); if(!t.dur){ t.dur=b.duration; savePL(); renderPL() } return b }
 function keepBuf(id,b){ BUF.set(id,b); const keep=new Set([P.id,ED.id,CUE.id,id,...MX.map(m=>m.id)]); for(const k of [...BUF.keys()]) if(BUF.size>6&&!keep.has(k)) BUF.delete(k) }
 const AUDIO_RE=/\.(mp3|wav|ogg|oga|m4a|aac|flac|opus|webm|wma|mp4|m4v|mov|3gp)$/i;
@@ -1636,10 +1650,12 @@ $('#plCue').onclick=()=>{ const id=[...selIds][0]; if(!id) return toast('Выб�
 async function playId(id,startFrame,paused){
   const t=PL.find(x=>x.id===id); if(!t) return; AC(); if(ctx.state==='suspended') await ctx.resume();
   let b; try{ b=await getBuf(t) }catch(e){ toast('Не получилось прочитать «'+t.name+'»: '+e.message); t.bad=true; renderPL(); return }
+  if(S.level&&t.lufs==null){ try{ await levelTrack(t); savePL() }catch(e){} }   // громкость выравниваем ДО старта, а не на ходу
+  if(P.playing&&trG){ const tc=ctx.currentTime; trG.gain.cancelScheduledValues(tc); trG.gain.setValueAtTime(trG.gain.value,tc); trG.gain.linearRampToValueAtTime(0,tc+.03); await new Promise(r=>setTimeout(r,40)) }   // старая песня уходит за 30 мс — без щелчка
   P.id=id; P.buf=b; P.end=b.length; P.pos=startFrame||0; P.stMode=false; if(P.filter) P.filter.clear&&P.filter.clear(); P.loopA=P.loopB=null; P.ended=false; P.playing=!paused;
   if(ED.id===id&&ED.loop&&ED.a!=null) setLoop();
   $('#tTitle').textContent=t.name; $('#tSub').textContent=`${b.numberOfChannels===1?'моно':'стерео'} · ${Math.round(b.sampleRate/100)/10} кГц · ${fmt(b.duration)}`;
-  seekPeaks=null; cancelFade(); applyTrG(); uiPlay(); renderPL(); marksUi(); document.title=t.name+' — Просто Звук';
+  seekPeaks=null; natStop(); cancelFade(); applyTrG(true); natTick(); uiPlay(); renderPL(); marksUi(); document.title=t.name+' — Просто Звук';
   if(!$('#lyrBox').hidden) lyrLoad(id);
   if(S.level&&t.lufs==null) levelTrack(t).then(()=>{ savePL(); applyTrG(); renderPL() }).catch(()=>{});
   setTimeout(()=>{ const j=nextIdx(1); if(j>=0&&!S.shuffle) preload(PL[j]) },1500);
@@ -2205,8 +2221,9 @@ const ZIP={ T:null,
 // ---------- громкость песни (выравнивание) и плавное затухание ----------
 let fading=false, fadeT=0;
 const trackGainLin=id=>{ const t=PL.find(x=>x.id===id); return S.level&&t&&t.gain!=null?Math.pow(10,t.gain/20):1 };
-function applyTrG(){ if(trG&&ctx) trG.gain.setTargetAtTime(trackGainLin(P.id),ctx.currentTime,.03) }
-function cancelFade(){ if(!fading) return; clearTimeout(fadeT); fading=false; const t=ctx.currentTime; fadeG.gain.cancelScheduledValues(t); fadeG.gain.setValueAtTime(1,t); $('#bFade').classList.remove('on') }
+function applyTrG(soft){ if(!(trG&&ctx)) return; const t=ctx.currentTime, g=trackGainLin(P.id);
+  if(soft){ trG.gain.cancelScheduledValues(t); trG.gain.setValueAtTime(0,t); trG.gain.linearRampToValueAtTime(g,t+.06) } else trG.gain.setTargetAtTime(g,t,.03) }
+function cancelFade(){ if(!fading) return; clearTimeout(fadeT); fading=false; const t=ctx.currentTime; fadeG.gain.cancelScheduledValues(t); fadeG.gain.setValueAtTime(fadeG.gain.value,t); fadeG.gain.linearRampToValueAtTime(1,t+.08); $('#bFade').classList.remove('on') }
 function fadeOut(sec){ if(!P.playing) return; AC(); if(fading&&sec>.2) return; clearTimeout(fadeT); fading=true; const t=ctx.currentTime; fadeG.gain.cancelScheduledValues(t); fadeG.gain.setValueAtTime(fadeG.gain.value,t); fadeG.gain.linearRampToValueAtTime(0,t+sec); $('#bFade').classList.add('on');
   fadeT=setTimeout(()=>{ P.playing=false; uiPlay(); renderPL(); const n=ctx.currentTime; fadeG.gain.cancelScheduledValues(n); fadeG.gain.setValueAtTime(1,n); fading=false; $('#bFade').classList.remove('on') },sec*1000+80) }
 $('#bFade').onclick=e=>{ if(fading){ cancelFade(); toast('Затухание отменено.'); return } if(!P.playing) return toast('Сейчас ничего не играет.'); const sec=e.shiftKey?8:(S.fadeSec||4); fadeOut(sec); toast(`Песня плавно уходит за ${sec} с…`,sec*1000) };
