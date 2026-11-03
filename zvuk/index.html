@@ -157,7 +157,7 @@ section.panel.player.pz-over{outline:3px dashed #ff9a3c;outline-offset:-6px;back
 <body>
 <div class="app">
 <header>
-  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.11</span></div>
+  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.12</span></div>
   <div class="row">
     <button id="addBtn" title="Добавить песни">＋ Песни…</button>
     <button id="addDirBtn" title="Добавить папку с музыкой">＋ Папка…</button>
@@ -1507,12 +1507,12 @@ const savePL=()=>IDB.set('pl',PL.map(t=>({id:t.id,name:t.name,dur:t.dur,edited:!
 // ---------- звук ----------
 let ctx=null, eqNodes=[], preG, panN, master, analyser, proc, streamDest=null;
 function AC(){ if(ctx) return ctx;
-  ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
+  ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:'playback'});
   preG=ctx.createGain(); let last=preG;
   S.peq.forEach(()=>{ const b=ctx.createBiquadFilter(); last.connect(b); last=b; eqNodes.push(b) });
   panN=ctx.createStereoPanner(); master=ctx.createGain(); analyser=ctx.createAnalyser(); analyser.fftSize=4096; analyser.smoothingTimeConstant=.78;
   fadeG=ctx.createGain(); last.connect(panN); panN.connect(fadeG); fadeG.connect(master); master.connect(analyser); analyser.connect(ctx.destination);
-  proc=ctx.createScriptProcessor(2048,1,2); proc.onaudioprocess=onAudio; trG=ctx.createGain(); proc.connect(trG); trG.connect(preG);
+  proc=ctx.createScriptProcessor(4096,1,2); proc.onaudioprocess=onAudio; trG=ctx.createGain(); proc.connect(trG); trG.connect(preG);
   applyEq(); applyVol(); applyBal();
   if(S.devMain&&ctx.setSinkId) ctx.setSinkId(S.devMain).catch(()=>{});
   return ctx }
