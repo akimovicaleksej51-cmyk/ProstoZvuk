@@ -157,7 +157,7 @@ section.panel.player.pz-over{outline:3px dashed #ff9a3c;outline-offset:-6px;back
 <body>
 <div class="app">
 <header>
-  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.14</span></div>
+  <div class="brand"><span class="dot"></span>Просто Звук <span class="muted mono" style="font-size:11px;font-weight:400">в.1.15</span></div>
   <div class="row">
     <button id="addBtn" title="Добавить песни">＋ Песни…</button>
     <button id="addDirBtn" title="Добавить папку с музыкой">＋ Папка…</button>
@@ -180,6 +180,7 @@ section.panel.player.pz-over{outline:3px dashed #ff9a3c;outline-offset:-6px;back
         <button id="bNext" title="Следующая">⏭</button>
         <button id="bShuffle" class="blue" title="Перемешать"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h3.5c2 0 3.2 1 4.3 2.7l2.4 4.6c1.1 1.7 2.3 2.7 4.3 2.7H21"/><path d="M3 17h3.5c1.3 0 2.2-.4 3-1.2"/><path d="M14.2 8.2c.8-.8 1.7-1.2 3-1.2H21"/><path d="M18 4l3 3-3 3"/><path d="M18 14l3 3-3 3"/></svg></button>
         <button id="bRepeat" class="blue" title="Повтор: выкл / все / одна"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11V9a3 3 0 0 1 3-3h13"/><path d="M17 3l3 3-3 3"/><path d="M20 13v2a3 3 0 0 1-3 3H4"/><path d="M7 21l-3-3 3-3"/></svg></button>
+        <button id="bXf" title="Кроссфейд: следующая песня плавно входит, пока уходит текущая. Работает при переключении и в конце песни. Секунды — в окошке справа">⤨ Кроссфейд</button><input id="xfSec" type="number" min="1" max="20" step="1" title="Длина кроссфейда, секунд" aria-label="Длина кроссфейда, секунд" style="width:52px;min-height:36px;text-align:center">
         <button id="bFade" title="Плавно увести песню (F; с Shift — 8 секунд). Esc — мгновенная тишина">⤵ Увести</button>
         <button id="bLink" title="Отправить песню в «Просто Свет»">💡 В Свет</button>
       </div>
@@ -1491,7 +1492,7 @@ const PRE=(lc,ls,p2,p3,p4,hs)=>{ const b=PEQ0(); [lc,ls,p2,p3,p4,hs].forEach((v,
 const PRESETS={'Ровно':PRE(),'Голос':PRE({on:true,f:100},{g:-2},{f:300,g:-2,q:1.4},{f:2500,g:3,q:1},{f:5500,g:2,q:1.4},{f:10000,g:2}),'Больше баса':PRE(null,{f:90,g:6}),'Больше верха':PRE(null,null,null,null,null,{f:7000,g:6}),
   'Зал (сцена)':PRE({on:true,f:60},{g:1},{f:250,g:-2,q:1},{f:2500,g:1.5,q:1},null,{g:2}),'Убрать гул':PRE({on:true,f:120,q:.9},null,{f:250,g:-3,q:1.5}),'Рок':PRE(null,{g:4},{f:500,g:-2,q:1},{f:2500,g:2,q:1},null,{g:4}),
   'Поп':PRE(null,{g:2},{f:700,g:1.5,q:.8},{f:2500,g:2.5,q:1},null,{g:2}),'Танцевальная':PRE(null,{f:80,g:6},{f:400,g:-2,q:1},null,{f:6000,g:3,q:1},{g:3}),'Тихо ночью':PRE(null,{g:2},null,null,{f:4000,g:-3,q:1},{g:-3})};
-const S=Object.assign({vol:85,bal:0,peq:PEQ0(),eqOn:true,rta:true,preset:'Ровно',shuffle:false,repeat:0,devMain:'',devCue:'',cueVol:80,cueDupVol:50,myPre:{},cueEq:true,level:false,fadeSec:4,lyrOpen:false,lufsTarget:-16,vizMode:'pv',pvAuto:true,pvGlow:60,pvShape:0,pvSens:1.3},(()=>{try{return JSON.parse(localStorage.getItem(KEY+'-s')||'{}')}catch(e){return{}}})());
+const S=Object.assign({vol:85,bal:0,peq:PEQ0(),eqOn:true,rta:true,preset:'Ровно',shuffle:false,repeat:0,devMain:'',devCue:'',cueVol:80,cueDupVol:50,myPre:{},cueEq:true,level:false,fadeSec:4,xf:false,xfSec:4,lyrOpen:false,lufsTarget:-16,vizMode:'pv',pvAuto:true,pvGlow:60,pvShape:0,pvSens:1.3},(()=>{try{return JSON.parse(localStorage.getItem(KEY+'-s')||'{}')}catch(e){return{}}})());
 if(!Array.isArray(S.peq)||S.peq.length!==6) S.peq=PEQ0();
 const saveS=()=>{try{localStorage.setItem(KEY+'-s',JSON.stringify(S))}catch(e){}};
 // ---------- хранение песен (IndexedDB: сами файлы) ----------
@@ -1538,7 +1539,7 @@ function onAudio(e){
   }
 }
 // ---- встроенный проигрыватель браузера для обычной скорости и тона ----
-const NAT={src:null,buf:null,t0:0,pos0:0,a:null,b:null,end:0,last:-1};
+const NAT={src:null,buf:null,t0:0,pos0:0,a:null,b:null,end:0,last:-1}; let XFAUTO=null;
 const natNeutral=()=>Math.abs(P.tempo-1)<1e-3&&P.semi===0;
 function natStop(){ const s=NAT.src; if(!s) return; NAT.src=null; try{ s.onended=null; s.stop() }catch(e){} try{ s.disconnect() }catch(e){} }
 function natStart(){ natStop(); const b=P.buf, sr=b.sampleRate, s=ctx.createBufferSource(); s.buffer=b; s.connect(trG);
@@ -1550,7 +1551,9 @@ function natTick(){ if(!ctx) return; const want=P.playing&&P.buf&&natNeutral()&&
   if(!NAT.src||NAT.buf!==P.buf||P.pos!==NAT.last||NAT.a!==P.loopA||NAT.b!==P.loopB||NAT.end!==P.end){ natStart(); return }
   const sr=NAT.buf.sampleRate; let p=NAT.pos0+(ctx.currentTime-NAT.t0)*sr;
   if(NAT.b!=null&&p>=NAT.b){ const Lp=NAT.b-NAT.a; p=NAT.a+((p-NAT.a)%Lp) }
-  p=Math.floor(p); if(NAT.b==null&&p>=NAT.end){ P.pos=NAT.end; NAT.last=P.pos; natStop(); P.ended=true; return }
+  p=Math.floor(p);
+  if(S.xf&&NAT.b==null&&S.repeat!==2&&!fading&&XFAUTO!==P.id&&NAT.end-p<=Math.max(1,+S.xfSec||4)*sr&&NAT.end-NAT.pos0>(Math.max(1,+S.xfSec||4)+1)*sr){ XFAUTO=P.id; const j=nextIdx(1); if(j>=0&&PL[j].id!==P.id){ P.pos=p; NAT.last=p; playId(PL[j].id); return } }
+  if(NAT.b==null&&p>=NAT.end){ P.pos=NAT.end; NAT.last=P.pos; natStop(); P.ended=true; return }
   P.pos=p; NAT.last=p }
 setInterval(natTick,10);
 function seekTo(frame){ if(!P.buf) return; frame=Math.max(0,Math.min(P.end-1,frame|0)); P.pos=frame; if(P.stMode&&P.filter) P.filter.sourcePosition=frame; P.ended=false }
@@ -1651,11 +1654,16 @@ async function playId(id,startFrame,paused){
   const t=PL.find(x=>x.id===id); if(!t) return; AC(); if(ctx.state==='suspended') await ctx.resume();
   let b; try{ b=await getBuf(t) }catch(e){ toast('Не получилось прочитать «'+t.name+'»: '+e.message); t.bad=true; renderPL(); return }
   if(S.level&&t.lufs==null&&t.gainQ==null) quickLevel(t,b);   // быстрая оценка громкости (несколько мс) — точная досчитается в фоне и подстроится незаметно
-  if(P.playing&&trG){ const tc=ctx.currentTime; trG.gain.cancelScheduledValues(tc); trG.gain.setValueAtTime(trG.gain.value,tc); trG.gain.linearRampToValueAtTime(0,tc+.02); await new Promise(r=>setTimeout(r,22)) }   // старая песня уходит за 30 мс — без щелчка
+  let xfDur=0;
+  if(S.xf&&P.playing&&NAT.src&&P.id!==id&&natNeutral()&&!P.ended){   // КРОССФЕЙД: старая песня уходит своим путём, новая входит
+    xfDur=Math.max(1,Math.min(20,+S.xfSec||4)); const old=NAT.src, xg=ctx.createGain(), tc=ctx.currentTime; NAT.src=null;
+    xg.gain.setValueAtTime(trG.gain.value,tc); xg.gain.linearRampToValueAtTime(0,tc+xfDur); try{ old.disconnect() }catch(e){} old.connect(xg); xg.connect(preG);
+    setTimeout(()=>{ try{ old.stop() }catch(e){} try{ old.disconnect(); xg.disconnect() }catch(e){} },xfDur*1000+150);
+  } else if(P.playing&&trG){ const tc=ctx.currentTime; trG.gain.cancelScheduledValues(tc); trG.gain.setValueAtTime(trG.gain.value,tc); trG.gain.linearRampToValueAtTime(0,tc+.02); await new Promise(r=>setTimeout(r,22)) }   // старая песня уходит за 30 мс — без щелчка
   P.id=id; P.buf=b; P.end=b.length; P.pos=startFrame||0; P.stMode=false; if(P.filter) P.filter.clear&&P.filter.clear(); P.loopA=P.loopB=null; P.ended=false; P.playing=!paused;
   if(ED.id===id&&ED.loop&&ED.a!=null) setLoop();
   $('#tTitle').textContent=t.name; $('#tSub').textContent=`${b.numberOfChannels===1?'моно':'стерео'} · ${Math.round(b.sampleRate/100)/10} кГц · ${fmt(b.duration)}`;
-  seekPeaks=null; natStop(); cancelFade(); applyTrG(true); natTick(); uiPlay(); renderPL(); marksUi(); document.title=t.name+' — Просто Звук';
+  seekPeaks=null; natStop(); cancelFade(); applyTrG(true,xfDur||.02); natTick(); uiPlay(); if(xfDur) toast('Кроссфейд '+xfDur+' с → «'+t.name+'»'); renderPL(); marksUi(); document.title=t.name+' — Просто Звук';
   if(!$('#lyrBox').hidden) lyrLoad(id);
   if(S.level&&t.lufs==null) levelTrack(t).then(()=>{ savePL(); if(P.id===t.id&&trG) trG.gain.setTargetAtTime(trackGainLin(t.id),ctx.currentTime,1.2); renderPL() }).catch(()=>{});
   setTimeout(()=>{ const j=nextIdx(1); if(j>=0&&!S.shuffle) preload(PL[j]) },1500);
@@ -1669,6 +1677,11 @@ function nextIdx(dir){ if(!PL.length) return -1; const i=PL.findIndex(t=>t.id===
 function next(dir=1){ const j=nextIdx(dir); if(j<0){ P.playing=false; uiPlay(); renderPL(); return } playId(PL[j].id) }
 $('#bPlay').onclick=togglePlay; $('#bStop').onclick=stopPlay; $('#bNext').onclick=()=>next(1);
 $('#bPrev').onclick=()=>{ if(P.buf&&P.pos/P.buf.sampleRate>3) seekTo(0); else next(-1) };
+function uiXf(){ const b=$('#bXf'); if(b){ b.classList.toggle('on',!!S.xf); b.textContent=S.xf?'⤨ Кроссфейд: вкл':'⤨ Кроссфейд' } const i=$('#xfSec'); if(i&&document.activeElement!==i) i.value=S.xfSec||4 }
+$('#bXf').onclick=()=>{ S.xf=!S.xf; saveS(); uiXf(); toast(S.xf?'Кроссфейд включён: '+(S.xfSec||4)+' с. Песни будут плавно перетекать друг в друга':'Кроссфейд выключен') };
+$('#xfSec').onchange=e=>{ S.xfSec=Math.max(1,Math.min(20,Math.round(+e.target.value||4))); e.target.value=S.xfSec; saveS() };
+$('#xfSec').addEventListener('keydown',e=>{ if(e.key==='Enter') e.target.blur() });
+uiXf();
 $('#bShuffle').onclick=()=>{ S.shuffle=!S.shuffle; saveS(); uiModes() };
 $('#bRepeat').onclick=()=>{ S.repeat=(S.repeat+1)%3; saveS(); uiModes() };
 const ICON_RP='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11V9a3 3 0 0 1 3-3h13"/><path d="M17 3l3 3-3 3"/><path d="M20 13v2a3 3 0 0 1-3 3H4"/><path d="M7 21l-3-3 3-3"/></svg>', ICON_R1='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11V9a3 3 0 0 1 3-3h13"/><path d="M17 3l3 3-3 3"/><path d="M20 13v2a3 3 0 0 1-3 3H4"/><path d="M7 21l-3-3 3-3"/><path d="M11 10.5l1.5-1v5.5" stroke-width="1.9"/></svg>';
@@ -2221,8 +2234,8 @@ const ZIP={ T:null,
 // ---------- громкость песни (выравнивание) и плавное затухание ----------
 let fading=false, fadeT=0;
 const trackGainLin=id=>{ const t=PL.find(x=>x.id===id); if(!(S.level&&t)) return 1; const g=t.gain!=null?t.gain:t.gainQ; return g!=null?Math.pow(10,g/20):1 };
-function applyTrG(soft){ if(!(trG&&ctx)) return; const t=ctx.currentTime, g=trackGainLin(P.id);
-  if(soft){ trG.gain.cancelScheduledValues(t); trG.gain.setValueAtTime(0,t); trG.gain.linearRampToValueAtTime(g,t+.02) } else trG.gain.setTargetAtTime(g,t,.03) }
+function applyTrG(soft,dur){ if(!(trG&&ctx)) return; const t=ctx.currentTime, g=trackGainLin(P.id);
+  if(soft){ trG.gain.cancelScheduledValues(t); trG.gain.setValueAtTime(0,t); trG.gain.linearRampToValueAtTime(g,t+(dur||.02)) } else trG.gain.setTargetAtTime(g,t,.03) }
 function cancelFade(){ if(!fading) return; clearTimeout(fadeT); fading=false; const t=ctx.currentTime; fadeG.gain.cancelScheduledValues(t); fadeG.gain.setValueAtTime(fadeG.gain.value,t); fadeG.gain.linearRampToValueAtTime(1,t+.08); $('#bFade').classList.remove('on') }
 function fadeOut(sec){ if(!P.playing) return; AC(); if(fading&&sec>.2) return; clearTimeout(fadeT); fading=true; const t=ctx.currentTime; fadeG.gain.cancelScheduledValues(t); fadeG.gain.setValueAtTime(fadeG.gain.value,t); fadeG.gain.linearRampToValueAtTime(0,t+sec); $('#bFade').classList.add('on');
   fadeT=setTimeout(()=>{ P.playing=false; uiPlay(); renderPL(); const n=ctx.currentTime; fadeG.gain.cancelScheduledValues(n); fadeG.gain.setValueAtTime(1,n); fading=false; $('#bFade').classList.remove('on') },sec*1000+80) }
