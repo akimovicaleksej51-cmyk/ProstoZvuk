@@ -328,7 +328,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.37.1</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.37.2</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -2386,10 +2386,12 @@ function applyEv(e,instant){
   if('bo' in e) setBO(e.bo);
   if(e.m){ if(instant) pendingM=e.m; else applyM(e.m,false) }
 }
+function edHasScreen(r){ r=r||curRec(); return !!(r&&r.type==='edit'&&r.tracks&&Object.values(r.tracks.layers||{}).some(l=>l&&l.length)) }
 function resetState(){
+  const keepScr=isEdit()&&!edHasScreen();
   prog={}; progFx=[]; for(const pb of show.playbacks){const r=rt(pb); r.level=0;r.flash=false;r.cur=-1;r.prev=null;r.fd=0}
   gm=1; $('#gm').value=100; $('#gmv').textContent='100%'; setBO(false);
-  mReset();
+  if(!keepScr) mReset();
 }
 function seek(t){
   if(isEdit()){ SEEK_T=t; TL.idx=0; TL.pausedAt=t; if(TL.audio) TL.audio.currentTime=t/1000; edApply(t,true,true); afterApply(); return }
@@ -2596,7 +2598,7 @@ function edApply(t,instant,force){
   let ch=false;
   for(const l of MED().layers){ const b=blockAt(r.tracks.layers[l.id],t), cur=ML[l.id];
     if(b){ if(!cur||cur.key!=='ed:'+b.id||(force&&b.clip.kind==='video')){ edTrigger(l.id,b,Math.max(0,(t-b.start+(b.off||0))/1000),instant); ch=true } }
-    else if(cur){ mClearLayer(l.id,instant) } }
+    else if(cur&&String(cur.key).startsWith('ed:')){ mClearLayer(l.id,instant) } }   // свои футажи (запущенные вручную) монтаж не убирает
   if(ch) renderLive();
 }
 function edResetLive(soft){ EDL.cur=null; EDL.prev=null; EDL.bid=undefined; if(!soft) for(const lid of Object.keys(ML)) if(String(ML[lid].key).startsWith('ed:')) mClearLayer(lid,true) }
