@@ -328,7 +328,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.37.2</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.38</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -562,6 +562,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
     <button id="mOpen2">На второй экран</button>
     <button id="mClearAll">Убрать всё</button>
     <button id="mBlack">Затемнить</button>
+    <button id="mRemote" title="Переключать кадры с телефона (как пульт для презентации). Нужна программа «Пульт» на этом Маке">📱 Пульт с телефона</button>
     <button id="mPv" title="Щелчок по кадру показывает его только здесь, в предпросмотре. На экран (проектор) ничего не уходит, пока не нажмёте «Вывести на экран»">👁 Предпросмотр</button>
     <button id="mPause" title="Остановить все видео на экране на текущем кадре / продолжить (клавиша P)">❚❚ Пауза</button>
     <div class="gm"><label for="mMaster">Яркость</label><input id="mMaster" type="range" min="0" max="100" value="100"><span id="mMasterV" class="mono">100%</span></div>
@@ -580,6 +581,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
     <div class="row" style="margin-top:8px"><button id="mAddCol">+ Кадр</button><button id="mAddLayer">+ Слой</button></div>
   </div>
   <div class="scr-grid">
+    <div id="remBox" hidden style="font-size:14px;line-height:1.5;padding:10px 12px;border:1px solid var(--accent);border-radius:var(--r);margin-bottom:10px"></div>
     <div class="panel stack" id="pvPanel" hidden>
       <h2>Предпросмотр <span class="muted" style="font-size:12px;font-family:var(--f-body);letter-spacing:0;font-weight:400">— только здесь, на экран не выводится</span></h2>
       <div class="preview" id="pvBox" style="cursor:default"><div id="pvSel" hidden style="position:absolute;border:2px dashed #ffb84d;background:rgba(255,184,77,.12);z-index:200000;pointer-events:none"></div></div>
@@ -2247,6 +2249,46 @@ function renderInsp(){
   $('#iTransAll').onclick=()=>{ for(const k in MED().cells){ MED().cells[k].trans=c.trans; MED().cells[k].dur=c.dur } save(); renderComp(); toast('Переход применён ко всем клипам') };
 }
 function renderCompCells(){ renderComp(true) }
+// ---------- пульт с телефона (через программу-посредник «Пульт» на этом компьютере) ----------
+const REM={ws:null,on:false,cur:null,last:'',thN:-1,info:null,t:null,iv:null,phones:0};
+function remOrder(){ const m=MED(), L=m.layers.map(l=>l.id);
+  return Object.keys(m.cells).filter(k=>m.cells[k]).sort((a,b)=>{ const ca=+a.slice(a.lastIndexOf(':')+1), cb=+b.slice(b.lastIndexOf(':')+1); return ca-cb||L.indexOf(cellLayer(a))-L.indexOf(cellLayer(b)) }) }
+function remState(){ const m=MED(), order=remOrder(), names={}, files={};
+  for(const k of order){ const c=m.cells[k]; names[k]=c.name||String(c.file).replace(/\.[^.]+$/,''); files[k]=c.file }
+  const live=Object.values(ML).map(x=>x.key).filter(k=>order.includes(k));
+  if(REM.cur&&!live.includes(REM.cur)) REM.cur=live[live.length-1]||null; if(!REM.cur&&live.length) REM.cur=live[live.length-1];
+  return {type:'state',order,names,files,live,cur:REM.cur,black:!!M.black,paused:!!scrPaused,master:M.master} }
+function remSend(force){ const ws=REM.ws; if(!ws||ws.readyState!==1) return;
+  const st=JSON.stringify(remState()); if(force||st!==REM.last){ REM.last=st; ws.send(st) }
+  const bin=MED().bin, n=bin.filter(b=>b.thumb).length; if(force||n!==REM.thN){ REM.thN=n; const t={}; for(const b of bin) if(b.thumb) t[b.file]=b.thumb; ws.send(JSON.stringify({type:'thumbs',t})) } }
+function remCmd(m){ const order=remOrder(); let i=order.indexOf(REM.cur);
+  const go=k=>{ if(!k) return; REM.cur=k; if(M.black) mSetBlack(false,.3); mTriggerCell(k) };
+  switch(m.act){
+    case 'go': go(m.key); break;
+    case 'next': if(!order.length) break; go(order[Math.min(order.length-1,i+1)]); if(i===order.length-1) toast('Это последний кадр'); break;
+    case 'prev': if(!order.length) break; go(order[Math.max(0,i<0?0:i-1)]); break;
+    case 'black': mSetBlack(!M.black,.5); break;
+    case 'pause': scrPause(); break;
+    case 'clear': mClearAll(false); REM.cur=null; break;
+    case 'master': mSetMaster(Math.max(0,Math.min(1,+m.v||0)),0); break }
+  setTimeout(()=>remSend(),30) }
+function remUi(){ const b=$('#mRemote'); if(!b) return; const ok=REM.ws&&REM.ws.readyState===1;
+  b.classList.toggle('primary',REM.on); b.textContent=REM.on?(ok?'📱 Пульт: на связи'+(REM.phones?' · телефонов '+REM.phones:''):'📱 Пульт: жду программу…'):'📱 Пульт с телефона';
+  const box=$('#remBox'); if(!box) return; box.hidden=!REM.on;
+  if(!REM.on) return;
+  box.innerHTML=ok?(`<b>На телефоне откройте:</b> ${(REM.info&&REM.info.ips&&REM.info.ips.length)?REM.info.ips.map(ip=>`<span class="mono" style="font-size:20px;color:var(--accent)">http://${ip}:${REM.info.port}</span>`).join(' или '):'<span class="muted">адрес покажет окно программы «Пульт»</span>'}<br><span class="muted">Телефон и Мак — в одной сети (например, раздача Wi-Fi с телефона). Кнопки на телефоне: ◀ Назад / Далее ▶, все кадры, «Затемнить», «Пауза». Порядок кадров — по столбцам «Композиции».</span>`)
+    :`<b>Запустите программу «Пульт»</b> на этом Маке (двойной щелчок по «Пульт с телефона.command»). <span class="muted">Как только она заработает, здесь появится адрес для телефона.</span>` }
+function remConnect(){ if(!REM.on) return; try{ REM.ws=new WebSocket('ws://127.0.0.1:8770/app') }catch(e){ REM.t=setTimeout(remConnect,2000); return }
+  REM.ws.onopen=async()=>{ remSend(true); try{ REM.info=await (await fetch('http://127.0.0.1:8770/info')).json() }catch(e){} remUi() };
+  REM.ws.onmessage=e=>{ let m; try{ m=JSON.parse(e.data) }catch(_){ return } if(m.type==='cmd') remCmd(m); else if(m.type==='hub'){ REM.phones=m.phones; remUi() } };
+  REM.ws.onclose=()=>{ REM.ws=null; remUi(); if(REM.on) REM.t=setTimeout(remConnect,2000) };
+  REM.ws.onerror=()=>{} }
+function remSet(on){ REM.on=on; try{ localStorage.setItem(KEY+'-remote',on?'1':'') }catch(e){}
+  clearTimeout(REM.t); clearInterval(REM.iv);
+  if(on){ remConnect(); REM.iv=setInterval(()=>remSend(),400) } else { try{ REM.ws&&REM.ws.close() }catch(e){} REM.ws=null }
+  remUi() }
+$('#mRemote').onclick=()=>remSet(!REM.on);
+try{ if(localStorage.getItem(KEY+'-remote')==='1') setTimeout(()=>remSet(true),500) }catch(e){}
 // ---------- предпросмотр: кадр видно только здесь, на проектор не уходит ----------
 const PV={on:false,key:null,r:null,area:false,undo:null};
 function pvRenderer(){ if(!PV.r){ PV.r=makeRenderer($('#pvBox'),{muted:true}); PV.r.cmd({type:'layers',list:[{id:'pv',z:1,opacity:1}]}) } return PV.r }
