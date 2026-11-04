@@ -328,7 +328,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.38</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.38.1</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -860,7 +860,7 @@ window.makeRenderer=function(root,opt){
   let bc=null; try{ bc=new BroadcastChannel('svet-prosto-ekran'); bc.onmessage=e=>onMsg(e.data) }catch(e){}
   const stl=document.createElement('div'); stl.style.cssText='position:fixed;right:8px;bottom:6px;font:11px/1.3 ui-monospace,monospace;color:#555;z-index:30;pointer-events:none';
   document.body.appendChild(stl);
-  setInterval(()=>{ const ago=lastMsg?Math.round((Date.now()-lastMsg)/1000):-1; stl.textContent=(ago>=0&&ago<6?'связь есть':'нет связи')+' · файлов '+nFiles+' · команд '+nCmd+(bc?'':' · канал2 нет') },1000);
+  setInterval(()=>{ const ago=lastMsg?Math.round((Date.now()-lastMsg)/1000):-1; const ok=ago>=0&&ago<6; stl.style.display=ok?'none':''; stl.textContent=ok?'':'нет связи с программой' },1000);   // на экране ничего лишнего: надпись только если связь пропала
   // если окно не связано с программой (например, Chrome восстановил его после перезапуска) — говорим об этом крупно
   const lost=document.createElement('div'); lost.style.cssText='position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:18px;background:#000;color:#fff;font:600 42px/1.3 system-ui,sans-serif;text-align:center;padding:40px;z-index:20';
   lost.innerHTML='<div style="color:#e5604d">Нет связи с программой</div><div style="font-size:26px;font-weight:400;color:#bbb">Закройте это окно и откройте экран заново<br>кнопкой «Открыть экран» или «На второй экран» в программе.</div>';
