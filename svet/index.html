@@ -328,7 +328,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.36</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.37.1</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
@@ -612,7 +612,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
     <button id="edNew" class="primary">+ Новый монтаж</button>
     <button id="edDup">Копия</button>
     <span class="ed-sep"></span>
-    <button id="edAudioBtn">Выбрать запись спектакля…</button>
+    <button id="edAudioBtn" title="Можно выбрать сразу все фонограммы концерта (Ctrl или Shift) — каждый монтаж найдёт свою по названию файла">Выбрать запись спектакля…</button>
     <span id="edAudioName" class="muted" style="font-size:13px"></span>
   </div>
   <div id="edBody">
@@ -702,7 +702,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
   <div class="panel" style="margin-top:14px">
     <h2>Фонограмма <span class="muted" style="font-size:12px;font-family:var(--f-body)">необязательно</span></h2>
     <div class="row">
-      <label class="row" style="gap:8px"><button id="pAudioBtn" type="button">Выбрать музыку…</button><input id="pAudio" type="file" accept="audio/*" hidden></label>
+      <label class="row" style="gap:8px"><button id="pAudioBtn" type="button">Выбрать музыку…</button><input id="pAudio" type="file" accept="audio/*" multiple hidden></label>
       <span id="pAudioName" class="muted" style="font-size:14px">Не выбрана. Без фонограммы свет идёт по секундомеру.</span>
       <button id="pAudioOff" hidden>Убрать</button>
     </div>
@@ -1093,16 +1093,16 @@ function compute(now){
   // монтаж: свет с дорожки «Свет» (поверх фейдеров, под программером)
   if(typeof edLightOn==='function'&&edLightOn()&&EDL.cur){ const c=edlBlend(now);
     for(const id in c.values){ const v=vals[id]; if(!v) continue; const s=c.values[id]; for(const k in s) if(k in v) v[k]=s[k] }
-    for(const fx of c.fx) fxl.push([fx,1]); }
+    const mt=nowT(now)/1000; for(const fx of c.fx) fxl.push([fx,1,null,mt]); }   // эффекты монтажа идут по времени песни — шаги попадают в доли
   // программер
   for(const id in prog){const v=vals[id]; if(!v) continue; for(const k in prog[id]) if(k in v) v[k]=prog[id][k]}
   for(const fx of progFx) fxl.push([fx,1]);
   baseVals={}; for(const id in vals) baseVals[id]=Object.assign({},vals[id]);
   // эффекты
   const dts=FXT_LAST?Math.min(.5,Math.max(0,sec-FXT_LAST)):0; FXT_LAST=sec;
-  for(const [fx,sc,km] of fxl){
+  for(const [fx,sc,km,mt] of fxl){
     const ids=fx.fixtures.filter(id=>vals[id]), n=ids.length||1, s=fx.size*sc;
-    let ph; if(fx.id&&km!=null&&km!==1){ if(!FXPH.has(fx)) FXPH.set(fx,sec*fx.speed/60); ph=FXPH.get(fx)+dts*fx.speed*km/60; FXPH.set(fx,ph) } else { ph=sec*fx.speed/60; FXPH.delete(fx) }
+    let ph; if(mt!=null){ ph=(mt-(fx.t0||0))*fx.speed/60 } else if(fx.id&&km!=null&&km!==1){ if(!FXPH.has(fx)) FXPH.set(fx,sec*fx.speed/60); ph=FXPH.get(fx)+dts*fx.speed*km/60; FXPH.set(fx,ph) } else { ph=sec*fx.speed/60; FXPH.delete(fx) }
     ids.forEach((id,i)=>{
       const v=vals[id], p=ph+(i/n)*fx.spread, TAU=Math.PI*2;
       switch(fx.type){
@@ -2496,7 +2496,14 @@ function setAudio(f,remember=true){
 }
 async function restoreAudio(name){ if(!name||TL.audioName===name) return false;
   try{ const f=await IDB.get('audio:'+name); if(f){ setAudio(f instanceof File?f:new File([f],name),false); toast('Фонограмма подключена: '+name); return true } }catch(e){} return false }
-$('#pAudio').onchange=e=>{ const f=e.target.files[0]; if(!f) return; e.target.value=''; setAudio(f);
+$('#pAudio').onchange=async e=>{ const fs=[...e.target.files]; e.target.value=''; if(!fs.length) return;
+  if(fs.length>1){ // сразу все фонограммы концерта: сохраняем, каждый монтаж сам найдёт свою по имени файла
+    let n=0; for(const x of fs){ try{ await IDB.set('audio:'+x.name,x); n++ }catch(_){} }
+    const r=curRec(), match=r&&fs.find(x=>x.name===r.audioName);
+    if(match) setAudio(match,false); else if(r&&r.type==='edit'&&!r.audioName){ setAudio(fs[0]); r.audioName=fs[0].name; saveTLS() }
+    const names=new Set(fs.map(x=>x.name)), miss=TLS.filter(t=>t.audioName&&!names.has(t.audioName)).length;
+    toast(`Сохранено фонограмм: ${n}. Монтажи подхватят свои сами`+(miss?` (без фонограммы осталось монтажей: ${miss})`:''),7000); return }
+  const f=fs[0]; setAudio(f);
   const r=curRec(); if(r&&r.type==='edit'&&r.audioName!==f.name){ r.audioName=f.name; saveTLS() } };
 $('#pAudioOff').onclick=()=>{ if(TL.audio) TL.audio.pause(); TL.audio=null; if(TL.audioUrl) URL.revokeObjectURL(TL.audioUrl); TL.audioUrl=null; TL.audioName=null; TL.audioFile=null; $('#pAudioOff').hidden=true; try{edAudioChanged(null)}catch(e){} uiPlay(); };
 function uiPlay(){
