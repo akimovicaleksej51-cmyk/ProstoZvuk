@@ -298,6 +298,38 @@ tr.conflict td{color:var(--bad)}
 .bigbtns button{min-height:52px;padding:10px 20px;font-size:16px;font-weight:600}
 button.rec{background:var(--bad);border-color:var(--bad);color:#fff}
 button.go{background:var(--ok);border-color:var(--ok);color:#06140c}
+/* в.39: очередь номеров и режим «Шоу» */
+.sl-now{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 18px;align-items:end;margin-bottom:4px}
+.sl-now .lb{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.sl-now .nm{font-size:20px;font-weight:600;overflow-wrap:anywhere}
+.sl-now .left{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:clamp(30px,6vw,48px);font-weight:600;line-height:1}
+#slList tr.cur td{background:rgba(95,211,141,.16)}
+#slList tr.nxt td{background:rgba(240,166,64,.12)}
+#slList td.nm{white-space:normal;min-width:160px}
+.sl-set{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px 18px;margin-top:14px;align-items:start}
+.sl-set label{display:flex;gap:8px;align-items:center;flex-wrap:wrap;align-content:flex-start}
+.sl-set label.ck{flex-wrap:nowrap;align-items:flex-start}
+.sl-set label.ck input{margin-top:4px;flex:none}
+.sl-set .stk{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.sl-set select{min-width:90px}
+#showMode{position:fixed;inset:0;z-index:5000;background:var(--bg);display:flex;flex-direction:column;gap:14px;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
+#showMode[hidden]{display:none}
+#showMode .sm-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:end}
+#showMode .lb{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+#smNow{font-size:clamp(24px,5vw,46px);font-weight:700;line-height:1.1;overflow-wrap:anywhere}
+#smLeft{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:clamp(54px,13vw,150px);font-weight:700;line-height:.95}
+#showMode .sm-next{font-size:clamp(17px,2.6vw,24px);padding:10px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
+#smGo{min-height:clamp(90px,20vh,190px);font-size:clamp(26px,5vw,48px);font-weight:700;border-radius:18px}
+#showMode small{display:block;font-size:13px;font-weight:400;opacity:.75;margin-top:2px}
+#showMode .sm-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+#showMode .sm-row button{min-height:76px;font-size:20px;font-weight:600;border-radius:14px}
+#showMode .sm-gm{display:grid;grid-template-columns:auto minmax(0,1fr) 64px;gap:14px;align-items:center;font-size:18px}
+#showMode .sm-gm input{height:36px}
+#smList{display:flex;flex-wrap:wrap;gap:6px}
+#smList span{border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:14px;color:var(--muted)}
+#smList span.cur{background:var(--ok);border-color:var(--ok);color:#06140c;font-weight:600}
+#smList span.nxt{border-color:var(--accent);color:inherit}
+#smExit{align-self:flex-start;margin-top:auto}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 /* 3D-сцена */
 .v3grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;align-items:start}
@@ -320,6 +352,23 @@ body.v3dark #v3Wrap{border-color:#000}body.v3dark #v3Hud{opacity:0}body.v3dark #
 body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opacity:1}
 </style>
 
+<div id="showMode" hidden role="dialog" aria-label="Режим «Шоу»">
+  <div class="sm-top">
+    <div><div class="lb">Сейчас</div><div id="smNow">—</div></div>
+    <div style="text-align:right"><div class="lb">до конца</div><div id="smLeft">—</div></div>
+  </div>
+  <div class="sm-next"><span class="lb">Дальше</span> <b id="smNext">—</b> <span id="smAuto" class="muted"></span></div>
+  <button id="smGo" class="go">Следующий номер ▶<small>Enter или стрелка →</small></button>
+  <div class="sm-row">
+    <button id="smPause">❚❚ Пауза<small>клавиша P</small></button>
+    <button id="smBO">Блэкаут<small>Пробел</small></button>
+    <button id="smFull">Свет на сцену<small>если что-то пошло не так</small></button>
+    <button id="smRelease" hidden>Отпустить свет<small>вернуть свет с пульта</small></button>
+  </div>
+  <div class="sm-gm"><label for="smGm">Мастер</label><input id="smGm" type="range" min="0" max="100" value="100"><span id="smGmV" class="mono">100%</span></div>
+  <div id="smList" aria-label="Номера очереди"></div>
+  <button id="smExit">Выйти из режима «Шоу»</button>
+</div>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0f1115">
 <link rel="icon" href="icon-192.png">
@@ -328,12 +377,13 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.38.1</span></div>
+  <div class="brand"><span class="lamp"></span>Просто Свет <span class="mono muted" style="font-size:11px;font-weight:400;letter-spacing:0" title="Версия программы">в.39</span></div>
   <span id="tlBar" class="row" hidden style="gap:6px">
     <button id="tlChip" class="state rec" title="Открыть вкладку «Спектакль»" style="min-height:34px;padding:4px 12px"><i></i><span id="tlChipTxt" class="mono"></span></button>
     <button id="tlBarPause" style="min-height:34px;padding:4px 10px" title="Пауза / продолжить">❚❚</button>
     <button id="tlBarStop" style="min-height:34px;padding:4px 10px" title="Стоп">■</button>
   </span>
+  <button id="holdChip" class="chip warn" type="button" hidden title="Свет остался от прошлого номера. Нажмите, чтобы отпустить его и вернуть свет с пульта"><span class="dot"></span><span id="holdChipTxt">Свет удерживается</span> ✕</button>
   <button id="readyChip" class="chip warn" type="button" title="Проверка перед показом"><span class="dot"></span>Проверяю…</button>
   <span id="outChip" class="chip warn" title="Куда идёт сигнал"><span class="dot"></span><span id="outTxt">Демо: без оборудования</span></span>
   <div class="gm"><label for="gm">Мастер</label><input id="gm" type="range" min="0" max="100" value="100"><span id="gmv" class="mono">100%</span></div>
@@ -562,7 +612,7 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
     <button id="mOpen2">На второй экран</button>
     <button id="mClearAll">Убрать всё</button>
     <button id="mBlack">Затемнить</button>
-    <button id="mRemote" title="Переключать кадры с телефона (как пульт для презентации). Нужна программа «Пульт» на этом Маке">📱 Пульт с телефона</button>
+    <button id="mRemote" title="Переключать кадры и вести свет с телефона. Нужна программа «Пульт» на этом компьютере">📱 Пульт с телефона</button>
     <button id="mPv" title="Щелчок по кадру показывает его только здесь, в предпросмотре. На экран (проектор) ничего не уходит, пока не нажмёте «Вывести на экран»">👁 Предпросмотр</button>
     <button id="mPause" title="Остановить все видео на экране на текущем кадре / продолжить (клавиша P)">❚❚ Пауза</button>
     <div class="gm"><label for="mMaster">Яркость</label><input id="mMaster" type="range" min="0" max="100" value="100"><span id="mMasterV" class="mono">100%</span></div>
@@ -696,6 +746,53 @@ body.v3dark .v3tr{opacity:.15;transition:opacity .3s}body.v3dark .v3tr:hover{opa
       <button id="pPunch" title="Стереть всё после текущего места и записать заново">● Перезаписать отсюда</button>
     </div>
   </div>
+  <div class="panel" style="margin-top:14px" id="slPanel">
+    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
+      <h2 style="margin:0">Очередь номеров</h2>
+      <span id="slHoldChip" class="state" hidden><i></i><span id="slHoldTxt">Свет удерживается</span></span>
+    </div>
+    <div class="how"><b>Концерт без пауз и скачков.</b> Соберите номера по порядку и нажимайте <b>«Следующий номер»</b>. Свет плавно перетекает из одного номера в другой, в конце номера не гаснет, музыка прошлого номера мягко уходит. Для каждого номера выберите, как он начинается: по кнопке, сразу, сам через несколько секунд или через темноту.</div>
+    <div class="sl-now">
+      <div><div class="lb">Сейчас</div><div class="nm" id="slNow">—</div></div>
+      <div style="text-align:right"><div class="lb">до конца</div><div class="left" id="slLeft">—</div></div>
+      <div style="grid-column:1/-1"><span class="lb">Дальше</span> <b id="slNextName">—</b> <span id="slAuto" class="muted"></span></div>
+    </div>
+    <div class="bigbtns">
+      <button class="go" id="slNext">▶ Начать с первого номера</button>
+      <button id="slShow" title="Только большие кнопки: ничего не сломаешь случайно">Режим «Шоу»</button>
+      <button id="slRelease" hidden title="Убрать удержанный свет: вернётся то, что стоит на пульте">Отпустить свет</button>
+      <button id="slReset" title="Следующим пойдёт первый номер очереди">⏮ С начала очереди</button>
+    </div>
+    <div class="tblwrap" style="margin-top:12px"><table id="slList"></table></div>
+    <div class="row" style="margin-top:10px">
+      <select id="slAddSel" aria-label="Какую запись добавить" style="min-width:220px;max-width:100%"></select>
+      <button id="slAdd">+ Добавить в очередь</button>
+      <button id="slAddAll" title="Все записи из «Мои спектакли» по порядку">Добавить все записи</button>
+      <button id="slClear">Очистить очередь</button>
+    </div>
+    <div class="sl-set">
+      <label>Переход света между номерами
+        <select id="slFade"><option value="0">сразу</option><option value="0.5">0,5 с</option><option value="1">1 с</option><option value="1.5">1,5 с</option><option value="2">2 с</option><option value="3">3 с</option><option value="5">5 с</option></select></label>
+      <label>Музыка прошлого номера уходит за
+        <select id="slXfa"><option value="0">сразу</option><option value="1">1 с</option><option value="2">2 с</option><option value="3">3 с</option><option value="5">5 с</option></select></label>
+      <label class="ck"><input type="checkbox" id="slHold"><span>В конце номера свет не гаснет, а остаётся</span></label>
+      <div class="stk"><label class="ck"><input type="checkbox" id="slInterOn"><span>Между номерами включать «перебивку» — свой свет для пауз</span></label>
+        <button id="slInterSave" type="button" title="Выставьте на пульте свет для пауз (например, тёплый на ведущего) и нажмите">Запомнить текущий свет</button>
+        <span id="slInterInfo" class="muted" style="font-size:13px"></span></div>
+    </div>
+    <div class="sl-set">
+      <label style="align-items:flex-start;flex-direction:column;gap:4px">Свет раньше или позже музыки <span id="slSyncV" class="mono muted">без сдвига</span>
+        <input id="slSync" type="range" min="-500" max="500" step="10" value="0" aria-label="Сдвиг света относительно музыки, миллисекунды">
+        <span class="muted" style="font-size:13px">Если на этом компьютере свет меняется раньше, чем слышно удар, — двигайте влево. Запоминается для этого компьютера.</span></label>
+      <label style="align-items:flex-start;flex-direction:column;gap:4px">Репетиция: начать с места
+        <span class="row" style="gap:8px"><input id="slFrom" type="text" inputmode="numeric" placeholder="1:20" style="width:90px" aria-label="С какого времени начать, минуты:секунды"><button id="slFromGo" type="button">▶ Играть отсюда</button></span>
+        <span class="muted" style="font-size:13px">Минуты:секунды выбранной записи. Удобно прогонять один кусок.</span></label>
+      <label style="align-items:flex-start;flex-direction:column;gap:4px">Управление с телефона
+        <button id="slRemote" type="button">📱 Пульт с телефона</button>
+        <span class="muted" style="font-size:13px">«Следующий номер», «Пауза», «Блэкаут» и мастер — с телефона из зала.</span></label>
+    </div>
+    <div id="slRemBox" hidden style="font-size:14px;line-height:1.5;padding:10px 12px;border:1px solid var(--accent);border-radius:var(--r);margin-top:10px"></div>
+  </div>
   <div class="panel" style="margin-top:14px">
     <h2>Мои спектакли <span id="tlCount" class="muted mono" style="font-size:12px"></span></h2>
     <p class="muted" style="font-size:13px;margin:0 0 10px">Каждая запись сохраняется отдельно и не стирает прошлые. Нажмите на запись, чтобы выбрать её для «Старт». «Перезаписать отсюда» создаёт новую версию, оригинал остаётся.</p>
@@ -782,7 +879,7 @@ window.makeRenderer=function(root,opt){
   opt=opt||{}; if(getComputedStyle(root).position==='static') root.style.position='relative'; root.style.overflow='hidden'; root.style.background='#000';
   const shade=document.createElement('div'); shade.style.cssText='position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;z-index:100000';
   root.appendChild(shade);
-  const files=new Map(), urls=new Map(), layers=new Map(); let master=1, black=false;
+  const files=new Map(), urls=new Map(), layers=new Map(), warm=new Map(); let master=1, black=false;
   const url=n=>{ if(!urls.has(n)){const f=files.get(n); if(!f) return null; urls.set(n,URL.createObjectURL(f))} return urls.get(n) };
   function setFiles(list){ for(const f of list||[]){ if(files.get(f.name)!==f){ if(urls.has(f.name)){URL.revokeObjectURL(urls.get(f.name));urls.delete(f.name)} files.set(f.name,f) } } }
   function layer(id,z){ let L=layers.get(id); if(!L){ const d=document.createElement('div'); d.style.cssText='position:absolute;inset:0;pointer-events:none'; root.insertBefore(d,shade); L={el:d,cur:null}; layers.set(id,L) } if(z!=null) L.el.style.zIndex=z; return L }
@@ -824,6 +921,7 @@ window.makeRenderer=function(root,opt){
   function each(fn){ for(const L of layers.values()) if(L.cur&&L.cur.firstChild) fn(L.cur.firstChild) }
   function cmd(m){ switch(m.type){
     case 'files': setFiles(m.files); break;
+    case 'warm': { for(const n of m.names||[]){ const u=url(n); if(!u||warm.has(n)) continue; const isV=!/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(n), el=document.createElement(isV?'video':'img'); if(isV){ el.muted=true; el.preload='auto' } el.src=u; warm.set(n,el); if(warm.size>6){ const k=warm.keys().next().value, o=warm.get(k); try{o.removeAttribute('src')}catch(e){} warm.delete(k) } } break }
     case 'layers': setLayers(m.list); break;
     case 'trigger': trigger(m); break;
     case 'clear': clear(m.layer,m.dur); break;
@@ -1045,6 +1143,10 @@ const sel=new Set();
 const RT={};          // рантайм фейдеров
 const rt=pb=>RT[pb.id]||(RT[pb.id]={cur:-1,prev:null,fs:0,fd:0,level:0,flash:false,ts:0,lastStep:0});
 let gm=1, blackout=false, lastPb=null;
+// в.39: удержание света в конце номера, плавный переход между номерами, «свет на сцену», сдвиг света относительно музыки
+const HOLD={look:null}, XF={from:null,t0:0,dur:0}, OUTV={}, XFK=['dim','red','green','blue','white','amber','uv','pan','tilt','zoom'];
+let fullStage=false, SYNC=0; try{ SYNC=+localStorage.getItem(KEY+'-sync')||0 }catch(e){}
+function xfStart(sec){ if(!(sec>0)){ XF.from=null; return } const from={}; for(const id in OUTV) from[id]=Object.assign({},OUTV[id]); XF.from=from; XF.t0=performance.now(); XF.dur=sec*1000 }
 let testCh=0,testV=0;
 const dmx=new Uint8Array(513), dmx2=new Uint8Array(513);
 const LN=f=>f.line===2?2:1, buf=l=>l===2?dmx2:dmx;
@@ -1095,7 +1197,7 @@ function compute(now){
   // монтаж: свет с дорожки «Свет» (поверх фейдеров, под программером)
   if(typeof edLightOn==='function'&&edLightOn()&&EDL.cur){ const c=edlBlend(now);
     for(const id in c.values){ const v=vals[id]; if(!v) continue; const s=c.values[id]; for(const k in s) if(k in v) v[k]=s[k] }
-    const mt=nowT(now)/1000; for(const fx of c.fx) fxl.push([fx,1,null,mt]); }   // эффекты монтажа идут по времени песни — шаги попадают в доли
+    const mt=(nowT(now)+(TL.mode==='play'?SYNC:0))/1000; for(const fx of c.fx) fxl.push([fx,1,null,mt]); }   // эффекты монтажа идут по времени песни — шаги попадают в доли
   // программер
   for(const id in prog){const v=vals[id]; if(!v) continue; for(const k in prog[id]) if(k in v) v[k]=prog[id][k]}
   for(const fx of progFx) fxl.push([fx,1]);
@@ -1121,12 +1223,27 @@ function compute(now){
   }
   // фейдер «яркость группы» (с X-Touch): поднимает яркость всех приборов группы, кто выше — тот и светит
   for(const g of show.groups||[]){ const l=GSUB[g.id]; if(!(l>0)) continue; for(const id of g.ids){ const v=vals[id]; if(v) v.dim=Math.max(v.dim||0,l) } }
+  // в.39: удержанный свет (конец номера, перебивка, темнота между номерами); программер остаётся сверху — руками можно поправить
+  if(HOLD.look){ for(const f of show.fixtures){ const h=HOLD.look[f.id]; if(h) Object.assign(vals[f.id],h) }
+    for(const id in prog){ const v=vals[id]; if(!v) continue; for(const k in prog[id]) if(k in v) v[k]=prog[id][k] } }
   if(standby) for(const f of show.fixtures){ const v=vals[f.id], p=prof(f); if(p.ch.some(c=>c.a==='pan')){ v.dim=0 } else { v.dim=.55; v.red=1; v.green=.82; v.blue=.55; v.white=1; v.amber=.6; v.uv=0 } }
+  // в.39: «Свет на сцену» — ровный светлый свет со всех приборов, кроме лучей
+  if(fullStage) for(const f of show.fixtures){ const v=vals[f.id], p=prof(f); if(p.ch.some(c=>c.a==='pan')&&!('red' in v)) continue;
+    v.dim=1; if('red' in v){ v.red=1; v.green=.9; v.blue=.75 } if('white' in v) v.white=1; if('amber' in v) v.amber=.5; if('uv' in v) v.uv=0 }
+  // в.39: плавный переход — от того, что горело в момент старта, к новому свету
+  if(XF.from){ const e=clamp((now-XF.t0)/XF.dur); if(e>=1) XF.from=null; else { const q=e*e*(3-2*e);
+    for(const f of show.fixtures){ const a=XF.from[f.id], v=vals[f.id]; if(!a) continue; const ad=a.dim||0, vd=v.dim||0;
+      for(const k of XFK){ if(!(k in v)||!(k in a)) continue;
+        if(k==='dim') v.dim=ad+(vd-ad)*q;
+        else if(ad<=.004) continue;            // из темноты: цвет и положение сразу новые, плавно растёт только яркость
+        else if(vd<=.004) v[k]=a[k];           // в темноту: цвет и положение не уезжают, плавно гаснет только яркость
+        else v[k]=a[k]+(v[k]-a[k])*q } } } }
   // вывод
   dmx.fill(0); dmx2.fill(0);
   for(const f of show.fixtures){
     const D=buf(LN(f));
     const v=vals[f.id], p=prof(f);
+    OUTV[f.id]=Object.assign({},v);
     v.dim=(blackout||f.off)?0:clamp(v.dim)*gm; v.pan=clamp(v.pan??.5); v.tilt=clamp(v.tilt??.5);
     finalVals[f.id]=v;
     const hasDim=p.ch.some(c=>c.a==='dim'), k=(!hasDim||p.vdim||v.dim<=0)?v.dim:1;
@@ -2257,7 +2374,7 @@ function remState(){ const m=MED(), order=remOrder(), names={}, files={};
   for(const k of order){ const c=m.cells[k]; names[k]=c.name||String(c.file).replace(/\.[^.]+$/,''); files[k]=c.file }
   const live=Object.values(ML).map(x=>x.key).filter(k=>order.includes(k));
   if(REM.cur&&!live.includes(REM.cur)) REM.cur=live[live.length-1]||null; if(!REM.cur&&live.length) REM.cur=live[live.length-1];
-  return {type:'state',order,names,files,live,cur:REM.cur,black:!!M.black,paused:!!scrPaused,master:M.master} }
+  let sl=null; try{ sl=slInfo() }catch(e){} return {type:'state',order,names,files,live,cur:REM.cur,black:!!M.black,paused:!!scrPaused,master:M.master,sl} }
 function remSend(force){ const ws=REM.ws; if(!ws||ws.readyState!==1) return;
   const st=JSON.stringify(remState()); if(force||st!==REM.last){ REM.last=st; ws.send(st) }
   const bin=MED().bin, n=bin.filter(b=>b.thumb).length; if(force||n!==REM.thN){ REM.thN=n; const t={}; for(const b of bin) if(b.thumb) t[b.file]=b.thumb; ws.send(JSON.stringify({type:'thumbs',t})) } }
@@ -2270,14 +2387,21 @@ function remCmd(m){ const order=remOrder(); let i=order.indexOf(REM.cur);
     case 'black': mSetBlack(!M.black,.5); break;
     case 'pause': scrPause(); break;
     case 'clear': mClearAll(false); REM.cur=null; break;
-    case 'master': mSetMaster(Math.max(0,Math.min(1,+m.v||0)),0); break }
+    case 'master': mSetMaster(Math.max(0,Math.min(1,+m.v||0)),0); break;
+    case 'slNext': slNext(); break;
+    case 'slPause': if(TL.mode==='play'||TL.mode==='pause') pauseResume(); break;
+    case 'slBO': $('#bo').click(); break;
+    case 'slFull': slFull(); break;
+    case 'slRelease': holdRelease(1); break;
+    case 'slGm': { const v=Math.max(0,Math.min(1,+m.v||0)); gm=v; $('#gm').value=Math.round(v*100); $('#gmv').textContent=Math.round(v*100)+'%'; break } }
   setTimeout(()=>remSend(),30) }
-function remUi(){ const b=$('#mRemote'); if(!b) return; const ok=REM.ws&&REM.ws.readyState===1;
+function remUi(){ try{ remUi0() }finally{ const b=$('#mRemote'), box=$('#remBox'), b2=$('#slRemote'), box2=$('#slRemBox'); if(b&&b2){ b2.classList.toggle('primary',REM.on); b2.textContent=b.textContent } if(box&&box2){ box2.hidden=box.hidden; box2.innerHTML=box.innerHTML } } }
+function remUi0(){ const b=$('#mRemote'); if(!b) return; const ok=REM.ws&&REM.ws.readyState===1;
   b.classList.toggle('primary',REM.on); b.textContent=REM.on?(ok?'📱 Пульт: на связи'+(REM.phones?' · телефонов '+REM.phones:''):'📱 Пульт: жду программу…'):'📱 Пульт с телефона';
   const box=$('#remBox'); if(!box) return; box.hidden=!REM.on;
   if(!REM.on) return;
-  box.innerHTML=ok?(`<b>На телефоне откройте:</b> ${(REM.info&&REM.info.ips&&REM.info.ips.length)?REM.info.ips.map(ip=>`<span class="mono" style="font-size:20px;color:var(--accent)">http://${ip}:${REM.info.port}</span>`).join(' или '):'<span class="muted">адрес покажет окно программы «Пульт»</span>'}<br><span class="muted">Телефон и Мак — в одной сети (например, раздача Wi-Fi с телефона). Кнопки на телефоне: ◀ Назад / Далее ▶, все кадры, «Затемнить», «Пауза». Порядок кадров — по столбцам «Композиции».</span>`)
-    :`<b>Запустите программу «Пульт»</b> на этом Маке (двойной щелчок по «Пульт с телефона.command»). <span class="muted">Как только она заработает, здесь появится адрес для телефона.</span>` }
+  box.innerHTML=ok?(`<b>На телефоне откройте:</b> ${(REM.info&&REM.info.ips&&REM.info.ips.length)?REM.info.ips.map(ip=>`<span class="mono" style="font-size:20px;color:var(--accent)">http://${ip}:${REM.info.port}</span>`).join(' или '):'<span class="muted">адрес покажет окно программы «Пульт»</span>'}<br><span class="muted">Телефон и компьютер — в одной сети (например, раздача Wi-Fi с телефона). На телефоне две вкладки. «Экран»: ◀ Назад / Далее ▶, все кадры, «Затемнить», «Пауза»; порядок кадров — по столбцам «Композиции». «Свет»: «Следующий номер», «Пауза», «Блэкаут», «Свет на сцену» и мастер.</span>`)
+    :`<b>Запустите программу «Пульт»</b> на этом компьютере: на Маке — двойной щелчок по «Пульт с телефона.command», на Windows — по «Пульт с телефона.exe». <span class="muted">Как только она заработает, здесь появится адрес для телефона.</span>` }
 function remConnect(){ if(!REM.on) return; try{ REM.ws=new WebSocket('ws://127.0.0.1:8770/app') }catch(e){ REM.t=setTimeout(remConnect,2000); return }
   REM.ws.onopen=async()=>{ remSend(true); try{ REM.info=await (await fetch('http://127.0.0.1:8770/info')).json() }catch(e){} remUi() };
   REM.ws.onmessage=e=>{ let m; try{ m=JSON.parse(e.data) }catch(_){ return } if(m.type==='cmd') remCmd(m); else if(m.type==='hub'){ REM.phones=m.phones; remUi() } };
@@ -2436,6 +2560,7 @@ function resetState(){
   if(!keepScr) mReset();
 }
 function seek(t){
+  if(HOLD.look&&TL.mode!=='play') HOLD.look=null;
   if(isEdit()){ SEEK_T=t; TL.idx=0; TL.pausedAt=t; if(TL.audio) TL.audio.currentTime=t/1000; edApply(t,true,true); afterApply(); return }
   resetState(); const ev=tlEv(); let i=0; SEEK_T=t; pendingM=null;
   for(;i<ev.length&&ev[i].t<=t;i++) applyEv(ev[i],true);
@@ -2452,15 +2577,15 @@ function timelineTick(now){
     const c=capture(), d=diff(TL.last,c); TL.last=c;
     if(d){d.t=Math.round(nowT(now)); TL.rec.events.push(d)}
   } else if(TL.mode==='play'&&isEdit()){
-    const t=nowT(now); edApply(t,false,false);
+    const t=nowT(now); edApply(t+SYNC,false,false);
     const audioDone=!TL.audio||TL.audio.ended||TL.audio.paused;
-    if(t>tlDur()&&audioDone){TL.mode='idle';TL.pausedAt=Math.min(t,tlTotal());uiPlay();toast('Спектакль закончился.')}
+    if(t>tlDur()&&audioDone){TL.mode='idle';TL.pausedAt=Math.min(t,tlTotal());uiPlay();showEnded()}
   } else if(TL.mode==='play'){
-    const t=nowT(now), ev=tlEv(); let n=0;
-    while(TL.idx<ev.length&&ev[TL.idx].t<=t){applyEv(ev[TL.idx],false);TL.idx++;n++}
+    const t=nowT(now), ev=tlEv(), ta=t+SYNC; let n=0;
+    while(TL.idx<ev.length&&ev[TL.idx].t<=ta){applyEv(ev[TL.idx],false);TL.idx++;n++}
     if(n) afterApply();
     const audioEnded=TL.audio&&TL.audio.ended, noAudio=!TL.audio||TL.audio.paused;
-    if(TL.idx>=ev.length&&(audioEnded||t>=tlTotal())){ if(TL.audio) TL.audio.pause(); TL.mode='idle';TL.pausedAt=tlTotal();uiPlay();toast('Спектакль закончился.')}
+    if(TL.idx>=ev.length&&(audioEnded||t>=tlTotal())){ if(TL.audio) TL.audio.pause(); TL.mode='idle';TL.pausedAt=tlTotal();uiPlay();showEnded()}
   }
 }
 const stamp=()=>{const d=new Date();return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
@@ -2489,6 +2614,7 @@ $('#pPunch').onclick=()=>{ const base=curRec(); if(isEdit()){toast('Это мо�
   const t=nowT(); if(TL.audio) TL.audio.pause(); TL.mode='idle'; seek(t); startRec(base,t); };
 $('#pStart').onclick=()=>{ if(!tlHas()){toast('Выберите запись в «Мои спектакли» или запишите новую.');return}
   if(TL.mode==='play') return; if(TL.mode==='rec') stopAll();
+  if(HOLD.look){ xfStart(SLD().fade); HOLD.look=null }   // в.39: из удержанного света — плавно в новый номер
   let t=TL.pausedAt; if(t>=tlTotal()-50) t=0;
   if(isEdit()&&!$('#tab-edit').classList.contains('active')&&TL.mode==='idle'){ resetState(); edResetLive() }
   else if(isEdit()) edResetLive(true);
@@ -2496,7 +2622,7 @@ $('#pStart').onclick=()=>{ if(!tlHas()){toast('Выберите запись в 
   if(TL.audio){TL.audio.currentTime=t/1000; TL.audio.play().catch(()=>toast('Не удалось включить музыку. Нажмите «Старт» ещё раз.'))}
   uiPlay(); };
 $('#pPause').onclick=pauseResume;
-$('#pStop').onclick=()=>{ const was=TL.mode; stopAll(); if(was==='play'||was==='pause') scrSend({type:'pause'}); if(was==='play'||was==='pause') TL.pausedAt=0; uiPlay(); };
+$('#pStop').onclick=()=>{ const was=TL.mode; try{ slStopAuto(); holdRelease(.5) }catch(e){} stopAll(); if(was==='play'||was==='pause') scrSend({type:'pause'}); if(was==='play'||was==='pause') TL.pausedAt=0; uiPlay(); };
 $('#pHome').onclick=()=>{ if(TL.mode==='rec') return; if(TL.audio) TL.audio.pause(); TL.mode='idle'; seek(0); uiPlay(); };
 $('#tlChip').onclick=()=>openTab('play');
 $('#tlBarPause').onclick=()=>{ if(TL.mode==='rec') return; pauseResume() };
@@ -2506,7 +2632,7 @@ $('#tlBarStop').onclick=()=>$('#pStop').click();
     const playing=TL.mode==='play'; seek(t); if(playing){TL.t0=performance.now()-t; if(TL.audio) TL.audio.play().catch(()=>{})} else TL.mode='pause'; uiPlay(); };
   bar.onpointerdown=e=>{ if(!tlTotal()) return; drag=true;bar.setPointerCapture(e.pointerId);go(e)}; bar.onpointermove=e=>drag&&go(e); bar.onpointerup=()=>drag=false;})();
 // список записей
-function selectTL(id,quiet){ if(TL.mode==='rec'){toast('Сначала остановите запись.');return} if(TL.audio) TL.audio.pause(); TL.mode='idle'; curTL=id; TL.pausedAt=0; TL.idx=0; saveTLS();
+function selectTL(id,quiet){ if(TL.mode==='rec'){toast('Сначала остановите запись.');return} try{ SL.run=false; slStopAuto() }catch(e){} if(TL.audio) TL.audio.pause(); TL.mode='idle'; curTL=id; TL.pausedAt=0; TL.idx=0; saveTLS();
   try{ edResetLive(); ED.sel=null; edRender() }catch(e){}
   renderTLList(); uiPlay(); if(!quiet) toast('Выбрано: '+(curRec()?.name||''));
   const r=curRec(); if(r&&r.audioName&&r.audioName!==TL.audioName) restoreAudio(r.audioName) }
@@ -2524,6 +2650,7 @@ function renderTLList(){
       <td><div class="row" style="gap:4px;flex-wrap:nowrap"><button data-pick="${r.id}" ${r.id===curTL?'disabled':''}>Выбрать</button><button data-tdel="${r.id}" ${isRec?'disabled':''}>Удалить</button></div></td></tr>`}).join('');
   t.querySelectorAll('button[data-pick]').forEach(b=>b.onclick=()=>selectTL(b.dataset.pick));
   t.querySelectorAll('[data-ren]').forEach(i=>{i.onchange=()=>{const r=TLS.find(x=>x.id===i.dataset.ren); if(r){r.name=i.value.trim()||r.name; saveTLS()}}; i.onfocus=()=>{ if(i.dataset.ren!==curTL&&TL.mode!=='rec') selectTL(i.dataset.ren) }});
+  try{ slRender() }catch(e){}
   t.querySelectorAll('[data-tdel]').forEach(b=>twoStep(b,'Точно удалить?',()=>{ const id=b.dataset.tdel; TLS=TLS.filter(x=>x.id!==id); if(curTL===id){curTL=TLS.length?TLS[TLS.length-1].id:null; TL.mode='idle'; TL.pausedAt=0} saveTLS(); renderTLList(); uiPlay(); toast('Запись удалена.') }));
 }
 // фонограмма
@@ -2567,6 +2694,7 @@ function uiPlay(){
   $('#tlBarPause').hidden=m==='rec'; $('#tlBarPause').textContent=m==='pause'?'▶':'❚❚';
 }
 function frameTL(){
+  try{ slFrame() }catch(e){}
   const t=TL.mode==='rec'||TL.mode==='play'?nowT():TL.pausedAt;
   const on=TL.mode!=='idle', chip=$('#tlChip');
   $('#tlBar').hidden=!on;
@@ -2578,6 +2706,168 @@ function frameTL(){
   $('#pLbl').textContent=TL.mode==='rec'?'запись…':isEdit()?'монтаж: блоков '+edCount(curRec()):(tlEv().length?'изменений света: '+tlEv().length:'');
 }
 uiPlay();
+
+// ---------- в.39: очередь номеров — бесшовный переход от одной записи к другой ----------
+// Очередь хранится в шоу: show.setlist={items:[{id,rec,start:'btn'|'now'|'auto',wait,dark,fade}],fade,xfa,hold,inter:{on,look}}
+function SLD(){ const d=show.setlist||(show.setlist={}); if(!Array.isArray(d.items)) d.items=[]; if(d.fade==null) d.fade=1.5; if(d.xfa==null) d.xfa=2; if(d.hold==null) d.hold=true; if(!d.inter) d.inter={on:false,look:null}; return d }
+const SL={i:-1,run:false,timer:null,autoAt:0,pend:-1,pre:null,preTok:0,lastGo:0,dark:false,busy:false};
+const slRec=it=>it?TLS.find(t=>t.id===it.rec)||null:null;
+const cloneLook=o=>{ const c={}; for(const id in o){ const a=o[id], b={}; for(const k in a) b[k]=Math.round(a[k]*1000)/1000; c[id]=b } return c };
+function blackLook(){ const l={}; for(const f of show.fixtures) l[f.id]={dim:0}; return l }
+function holdLook(look,fade){ xfStart(fade); HOLD.look=look }
+function holdRelease(fade){ if(!HOLD.look) return; xfStart(fade==null?.5:fade); HOLD.look=null; SL.dark=false }
+function slStopAuto(){ clearTimeout(SL.timer); SL.timer=null; SL.autoAt=0; SL.pend=-1 }
+function slArm(i,sec){ slStopAuto(); SL.pend=i; SL.autoAt=performance.now()+sec*1000; SL.timer=setTimeout(()=>{ SL.timer=null; SL.autoAt=0; SL.pend=-1; slGo(i,{skipDark:true}) },sec*1000) }
+// музыка прошлого номера мягко уходит, пока начинается следующий
+function fadeOutAudio(a,url,sec){ const v0=a.volume, t0=performance.now(); const iv=setInterval(()=>{ const e=(performance.now()-t0)/(sec*1000);
+  if(e>=1||a.paused||a.ended){ clearInterval(iv); try{a.pause()}catch(_){} if(url) try{URL.revokeObjectURL(url)}catch(_){} return }
+  a.volume=Math.max(0,v0*(1-e)*(1-e)) },40) }
+function slMakeAudio(f,name){ if(!(f instanceof File)) f=new File([f],name); const url=URL.createObjectURL(f), audio=new Audio(url); audio.preload='auto'; try{audio.load()}catch(e){} return {name,file:f,url,audio} }
+async function slAudioFor(name){
+  if(SL.pre&&SL.pre.name===name){ const p=SL.pre; SL.pre=null; return p }
+  let f=null; if(TL.audioFile&&TL.audioName===name) f=TL.audioFile; else { try{ f=await IDB.get('audio:'+name) }catch(e){} }
+  return f?slMakeAudio(f,name):null }
+// пока идёт номер — заранее готовим следующий: музыку и первые футажи
+function slPreload(i){ const r=slRec(SLD().items[i]), tok=++SL.preTok;
+  if(SL.pre&&(!r||SL.pre.name!==r.audioName)){ try{URL.revokeObjectURL(SL.pre.url)}catch(e){} SL.pre=null }
+  if(!r) return;
+  if(r.audioName&&!SL.pre) IDB.get('audio:'+r.audioName).then(f=>{ if(f&&tok===SL.preTok&&!SL.pre) SL.pre=slMakeAudio(f,r.audioName) }).catch(()=>{});
+  try{ if(r.type==='edit'&&r.tracks){ const names=[...new Set(Object.values(r.tracks.layers||{}).flat().filter(b=>b&&b.clip&&b.start<3000).map(b=>b.clip.file))].filter(n=>MF.has(n)); if(names.length) scrSend({type:'warm',names}) } }catch(e){} }
+// запуск номера i: свет перетекает из того, что горит сейчас; музыка прошлого номера уходит
+async function slGo(i,o){ o=o||{}; const d=SLD(), it=d.items[i], r=slRec(it);
+  if(!it){ toast('Очередь закончилась — это был последний номер.'); return }
+  if(!r){ toast('Запись этого номера удалена. Уберите строку из очереди.'); return }
+  if(TL.mode==='rec'){ toast('Сначала остановите запись.'); return }
+  if(SL.busy) return;
+  slStopAuto(); SL.lastGo=performance.now();
+  const fade=it.fade==null?d.fade:it.fade;
+  if(it.dark&&!o.skipDark&&!SL.dark){   // «через темноту»: мягко гасим сцену и уводим музыку, потом запускаем номер
+    const a=TL.audio, u=TL.audioUrl;
+    if(a){ if(TL.mode==='play'&&!a.paused&&d.xfa>0){ TL.audio=null; TL.audioUrl=null; TL.audioName=null; TL.audioFile=null; fadeOutAudio(a,u,d.xfa) } else { try{a.pause()}catch(e){} } }
+    if(TL.mode!=='idle'){ TL.mode='idle'; TL.pausedAt=0; uiPlay() }
+    holdLook(blackLook(),fade); SL.dark=true; SL.run=true; SL.i=i-1;
+    slArm(i,Math.max(.3,fade)+.2); slRender(); return }
+  SL.busy=true; let pre=null;
+  try{ if(r.audioName) pre=await slAudioFor(r.audioName) }catch(e){}
+  SL.busy=false;
+  const old=TL.audio, oldUrl=TL.audioUrl;
+  if(old){ if(TL.mode==='play'&&!old.paused&&!old.ended&&d.xfa>0) fadeOutAudio(old,oldUrl,d.xfa); else { try{old.pause()}catch(e){} if(oldUrl) try{URL.revokeObjectURL(oldUrl)}catch(e){} } }
+  TL.audio=pre?pre.audio:null; TL.audioUrl=pre?pre.url:null; TL.audioName=pre?pre.name:null; TL.audioFile=pre?pre.file:null;
+  if(TL.audio) TL.audio.onloadedmetadata=()=>{ uiPlay(); try{ if(edTab()) edRender() }catch(e){} };
+  $('#pAudioOff').hidden=!TL.audio; ED.peaks=null; ED.peaksStale=!!TL.audio;
+  if(r.audioName&&!pre) toast('Музыка «'+r.audioName+'» не найдена — номер пойдёт без неё. Выберите файлы в блоке «Фонограмма».',8000);
+  xfStart(fade); HOLD.look=null; SL.dark=false;
+  TL.mode='idle'; curTL=r.id; TL.pausedAt=0; TL.idx=0; saveTLS();
+  try{ edResetLive(); ED.sel=null; if(edTab()) edRender() }catch(e){}
+  SL.i=i; SL.run=true;
+  uiPlay(); $('#pStart').click();
+  renderTLList(); slRender(); slPreload(i+1);
+}
+function slNext(){ const d=SLD(); if(!d.items.length){ toast('Очередь пуста. Добавьте номера на вкладке «Спектакль».'); return }
+  if(SL.busy||performance.now()-SL.lastGo<1000) return;          // защита от двойного нажатия
+  const i=SL.pend>=0?SL.pend:SL.i+1;
+  if(i>=d.items.length){ toast('Это был последний номер. Нажмите «С начала очереди», чтобы пройти заново.'); return }
+  slGo(i,{skipDark:SL.dark}) }
+// номер закончился: свет остаётся (или перебивка, или темнота), следующий номер — как задано в очереди
+function showEnded(){ const d=SLD(), inQ=SL.run&&SL.i>=0&&slRec(d.items[SL.i])===curRec(), nx=inQ?d.items[SL.i+1]:null, onEd=edTab();
+  if(!inQ) SL.run=false;
+  if(nx&&nx.dark){ holdLook(blackLook(),nx.fade==null?d.fade:nx.fade); SL.dark=true }
+  else if(d.inter.on&&d.inter.look&&!onEd) holdLook(cloneLook(d.inter.look),d.fade);
+  else if(d.hold&&!onEd) holdLook(cloneLook(OUTV),0);
+  if(!inQ){ toast('Спектакль закончился.'+(HOLD.look?' Свет остался — «Стоп» его отпустит.':'')); return }
+  if(!nx){ toast('Это был последний номер очереди.'); slRender(); return }
+  const nr=slRec(nx), fade=nx.fade==null?d.fade:nx.fade, dk=nx.dark?Math.max(.3,fade)+.2:0;
+  if(nx.start==='now') slArm(SL.i+1,dk);
+  else if(nx.start==='auto') slArm(SL.i+1,Math.max(+nx.wait||0,dk));
+  else toast('Номер закончился. Дальше «'+(nr?nr.name:'?')+'» — нажмите «Следующий номер».',6000);
+  slRender() }
+function slFull(){ xfStart(.4); fullStage=!fullStage; if(fullStage&&blackout) $('#bo').click(); slLastKey='' }
+function slInfo(){ const d=SLD(), cur=curRec(), act=TL.mode==='play'||TL.mode==='pause';
+  const ni=SL.pend>=0?SL.pend:SL.i+1, nIt=d.items[ni], nr=slRec(nIt), total=tlTotal(), t=TL.mode==='play'?nowT():TL.pausedAt;
+  return {now:act&&cur?cur.name:'', mode:TL.mode, left:act&&total?Math.max(0,Math.ceil((total-t)/1000)):-1,
+    next:nr?nr.name:'', nextHow:nIt?((nIt.dark?'через темноту, ':'')+(nIt.start==='now'?'начнётся сразу':nIt.start==='auto'?'начнётся сам через '+(+nIt.wait||0)+' с':'по кнопке')):'',
+    auto:SL.autoAt?Math.max(0,Math.ceil((SL.autoAt-performance.now())/1000)):0, hold:!!HOLD.look, dark:!!(HOLD.look&&SL.dark),
+    i:SL.i, ni, n:d.items.length, run:SL.run, bo:!!blackout, gm:Math.round(gm*100), full:fullStage} }
+let slLastKey='';
+function slFrame(){ const hc=$('#holdChip'), hh=!HOLD.look; if(hc.hidden!==hh){ hc.hidden=hh; $('#holdChipTxt').textContent=SL.dark?'Темнота между номерами':'Свет удерживается' }
+  const sm=$('#showMode'), on=sm&&!sm.hidden, pa=$('#tab-play').classList.contains('active'); if(!pa&&!on) return;
+  const s=slInfo(), key=JSON.stringify(s); if(key===slLastKey) return; slLastKey=key;
+  const set=(q,t)=>{ const el=$(q); if(el&&el.textContent!==t) el.textContent=t };
+  const nowTxt=s.now||(s.dark?'Темнота между номерами':s.hold?'Свет удерживается':'—'), left=s.left>=0?fmt(s.left*1000):'—';
+  const nextTxt=s.next||(s.n?'номера закончились':'—'), autoTxt=s.auto?('начнётся сам через '+s.auto+' с'):(s.next?s.nextHow:'');
+  const goTxt=!s.n?'Следующий номер':(s.ni===0&&!s.run?'Начать с первого номера':(s.ni>=s.n?'Номера закончились':'Следующий номер'));
+  set('#slNow',nowTxt); set('#slLeft',left); set('#slNextName',nextTxt); set('#slAuto',autoTxt); set('#slNext','▶ '+goTxt);
+  $('#slRelease').hidden=!s.hold; $('#slHoldChip').hidden=!s.hold; set('#slHoldTxt',s.dark?'Темнота между номерами':'Свет удерживается');
+  set('#smNow',nowTxt); set('#smLeft',left); set('#smNext',nextTxt); set('#smAuto',autoTxt);
+  const goH=esc(goTxt)+' ▶<small>Enter или стрелка →</small>'; if($('#smGo').dataset.h!==goH){ $('#smGo').innerHTML=goH; $('#smGo').dataset.h=goH }
+  const pH=(s.mode==='pause'?'▶ Продолжить':'❚❚ Пауза')+'<small>клавиша P</small>'; if($('#smPause').dataset.h!==pH){ $('#smPause').innerHTML=pH; $('#smPause').dataset.h=pH }
+  $('#smPause').disabled=!(s.mode==='play'||s.mode==='pause'); $('#smBO').classList.toggle('on',s.bo); $('#smFull').classList.toggle('on',s.full); $('#smRelease').hidden=!s.hold;
+  if(document.activeElement!==$('#smGm')) $('#smGm').value=s.gm; set('#smGmV',s.gm+'%');
+  document.querySelectorAll('#slList tr[data-i],#smList span[data-i]').forEach(el=>{ const i=+el.dataset.i; el.classList.toggle('cur',s.run&&i===s.i&&s.mode!=='idle'); el.classList.toggle('nxt',i===s.ni) });
+}
+function slRender(){ const t=$('#slList'); if(!t) return; const d=SLD(); slLastKey='';
+  const sel=$('#slAddSel'), used=new Set(d.items.map(x=>x.rec));
+  sel.innerHTML=TLS.length?TLS.map(r=>`<option value="${r.id}">${esc(r.name)}${used.has(r.id)?' — уже в очереди':''}</option>`).join(''):'<option value="">сначала запишите или загрузите спектакли</option>';
+  const firstFree=TLS.find(r=>!used.has(r.id)); if(firstFree) sel.value=firstFree.id;
+  $('#slFade').value=String(d.fade); $('#slXfa').value=String(d.xfa); $('#slHold').checked=!!d.hold; $('#slInterOn').checked=!!(d.inter.on&&d.inter.look);
+  $('#slInterInfo').textContent=d.inter.look?'свет для пауз запомнен':'свет для пауз ещё не запомнен';
+  const o=(v,l,c)=>`<option value="${v}"${String(c)===String(v)?' selected':''}>${l}</option>`;
+  if(!d.items.length) t.innerHTML='<tr><td class="muted">Очередь пуста. Выберите запись ниже и нажмите «Добавить в очередь» — или «Добавить все записи».</td></tr>';
+  else t.innerHTML='<tr><th>№</th><th>Номер</th><th>Длина</th><th>Как начинается</th><th>Темнота</th><th>Переход света</th><th></th></tr>'+d.items.map((it,i)=>{ const r=slRec(it), fv=it.fade==null?'':it.fade;
+    return `<tr data-i="${i}"><td class="mono">${i+1}</td><td class="nm">${r?esc(r.name):'<span class="muted">запись удалена</span>'}</td><td class="mono">${r?fmt(r.dur):'—'}</td>
+      <td><div class="row" style="gap:6px;flex-wrap:nowrap"><select data-k="start" aria-label="Как начинается номер ${i+1}">${o('btn','по кнопке',it.start)}${o('now','сразу после прошлого',it.start)}${o('auto','сам через…',it.start)}</select>${it.start==='auto'?`<input data-k="wait" type="number" min="0" max="600" step="1" value="${+it.wait||0}" style="width:72px" aria-label="Через сколько секунд"><span class="muted">с</span>`:''}</div></td>
+      <td><label class="row" style="gap:6px;flex-wrap:nowrap"><input type="checkbox" data-k="dark"${it.dark?' checked':''}>через темноту</label></td>
+      <td><select data-k="fade" aria-label="Переход света в номер ${i+1}">${o('','как у всех',fv)}${o(0,'сразу',fv)}${o(0.5,'0,5 с',fv)}${o(1,'1 с',fv)}${o(1.5,'1,5 с',fv)}${o(2,'2 с',fv)}${o(3,'3 с',fv)}${o(5,'5 с',fv)}</select></td>
+      <td><div class="row" style="gap:4px;flex-wrap:nowrap"><button data-a="go" title="Запустить этот номер сейчас">▶</button><button data-a="up" title="Выше"${i?'':' disabled'}>▲</button><button data-a="dn" title="Ниже"${i<d.items.length-1?'':' disabled'}>▼</button><button data-a="del" title="Убрать из очереди">✕</button></div></td></tr>` }).join('');
+  $('#smList').innerHTML=d.items.map((it,i)=>{ const r=slRec(it); return `<span data-i="${i}">${i+1}. ${r?esc(r.name):'—'}</span>` }).join('');
+  try{ slFrame() }catch(e){} }
+$('#slNext').onclick=slNext; $('#smGo').onclick=slNext;
+$('#slReset').onclick=()=>{ slStopAuto(); SL.i=-1; SL.run=false; SL.dark=false; slRender(); toast('Следующим пойдёт первый номер очереди.') };
+$('#holdChip').onclick=$('#slRelease').onclick=$('#smRelease').onclick=()=>{ slStopAuto(); holdRelease(1); slLastKey='' };
+const slNewItem=id=>({id:uid(),rec:id,start:'btn',wait:5,dark:false,fade:null});
+$('#slAdd').onclick=()=>{ const id=$('#slAddSel').value; if(!id){ toast('Сначала запишите или загрузите спектакли.'); return } SLD().items.push(slNewItem(id)); save(); slRender() };
+$('#slAddAll').onclick=()=>{ const d=SLD(), have=new Set(d.items.map(x=>x.rec)); let n=0; for(const r of TLS) if(!have.has(r.id)){ d.items.push(slNewItem(r.id)); n++ } save(); slRender(); toast(n?'Добавлено номеров: '+n+'. Порядок можно поменять стрелками ▲ ▼.':'Все записи уже в очереди.') };
+twoStep($('#slClear'),'Точно очистить?',()=>{ slStopAuto(); SLD().items=[]; SL.i=-1; SL.run=false; save(); slRender() });
+$('#slList').onchange=e=>{ const tr=e.target.closest('tr[data-i]'), k=e.target.dataset.k; if(!tr||!k) return; const it=SLD().items[+tr.dataset.i]; if(!it) return;
+  if(k==='start') it.start=e.target.value; else if(k==='wait') it.wait=Math.max(0,Math.min(600,+e.target.value||0)); else if(k==='dark') it.dark=e.target.checked; else if(k==='fade') it.fade=e.target.value===''?null:+e.target.value;
+  save(); slRender() };
+$('#slList').onclick=e=>{ const b=e.target.closest('button[data-a]'); if(!b) return; const d=SLD(), i=+b.closest('tr').dataset.i, a=b.dataset.a, curId=d.items[SL.i]?d.items[SL.i].id:null;
+  if(a==='go'){ SL.lastGo=0; slGo(i); return }
+  if(a==='up'&&i>0) [d.items[i-1],d.items[i]]=[d.items[i],d.items[i-1]];
+  else if(a==='dn'&&i<d.items.length-1) [d.items[i+1],d.items[i]]=[d.items[i],d.items[i+1]];
+  else if(a==='del') d.items.splice(i,1);
+  if(curId){ const ni=d.items.findIndex(x=>x.id===curId); SL.i=ni>=0?ni:Math.min(SL.i-1,d.items.length-1) }
+  slStopAuto(); save(); slRender() };
+$('#slFade').onchange=e=>{ SLD().fade=+e.target.value; save() };
+$('#slXfa').onchange=e=>{ SLD().xfa=+e.target.value; save() };
+$('#slHold').onchange=e=>{ SLD().hold=e.target.checked; save() };
+$('#slInterOn').onchange=e=>{ const d=SLD(); if(e.target.checked&&!d.inter.look){ e.target.checked=false; toast('Сначала выставьте на пульте свет для пауз и нажмите «Запомнить текущий свет».',6000); return } d.inter.on=e.target.checked; save() };
+$('#slInterSave').onclick=e=>{ e.preventDefault(); const d=SLD(); d.inter.look=cloneLook(OUTV); d.inter.on=true; save(); slRender(); toast('Запомнено: этот свет будет включаться между номерами.') };
+function slSyncUi(){ $('#slSync').value=SYNC; $('#slSyncV').textContent=SYNC>0?('свет раньше на '+SYNC+' мс'):SYNC<0?('свет позже на '+(-SYNC)+' мс'):'без сдвига' }
+$('#slSync').oninput=e=>{ SYNC=+e.target.value||0; try{ localStorage.setItem(KEY+'-sync',String(SYNC)) }catch(_){} slSyncUi() };
+$('#slFromGo').onclick=()=>{ let t=parseT($('#slFrom').value);
+  if(t==null){ toast('Напишите время как минуты:секунды, например 1:20.'); return } if(!tlHas()){ toast('Сначала выберите запись в «Мои спектакли».'); return } if(TL.mode==='rec') return;
+  if(TL.mode==='play') pauseResume(); t=Math.max(0,Math.min(t,tlTotal()-1000));
+  if(HOLD.look){ xfStart(.5); HOLD.look=null } TL.pausedAt=t; $('#pStart').click() };
+$('#slFrom').onkeydown=e=>{ if(e.key==='Enter') $('#slFromGo').click() };
+$('#slRemote').onclick=()=>remSet(!REM.on);
+// режим «Шоу»: только большие кнопки
+function smSet(on){ $('#showMode').hidden=!on; slLastKey=''; try{ if(document.activeElement) document.activeElement.blur() }catch(e){} }
+$('#slShow').onclick=()=>{ if(!SLD().items.length){ toast('Сначала добавьте номера в очередь.'); return } smSet(true) };
+twoStep($('#smExit'),'Нажмите ещё раз, чтобы выйти',()=>smSet(false));
+$('#smPause').onclick=()=>{ if(TL.mode==='play'||TL.mode==='pause') pauseResume() };
+$('#smBO').onclick=()=>$('#bo').click();
+$('#smFull').onclick=slFull;
+$('#smGm').oninput=e=>{ gm=e.target.value/100; $('#gm').value=e.target.value; $('#gmv').textContent=e.target.value+'%'; try{ midiOut('gm',gm) }catch(_){} };
+document.addEventListener('keydown',e=>{ const sm=$('#showMode'); if(!sm||sm.hidden) return;
+  if(e.code==='Space') return;                                   // пробел — блэкаут, как всегда
+  if(e.ctrlKey||e.metaKey||e.altKey) return;
+  e.stopPropagation();
+  if(e.key==='Enter'||e.key==='ArrowRight'){ e.preventDefault(); if(!e.repeat) slNext() }
+  else if(e.code==='KeyP'){ e.preventDefault(); if(!e.repeat&&(TL.mode==='play'||TL.mode==='pause')) pauseResume() }
+  else if(['ArrowUp','ArrowDown','ArrowLeft'].includes(e.key)) e.preventDefault();
+},true);
+slRender(); slSyncUi();
 
 // ---------- монтаж: дорожки по времени, как в видеоредакторе ----------
 // Монтаж хранится в том же списке, что и записи спектаклей: {type:'edit', tracks:{light:[...], layers:{lid:[...]}}, markers:[...]}
@@ -3040,6 +3330,7 @@ function frameEdit(){
   if(++edFrameN%10===0){ edLiveMarks(); $('#edProgClear').hidden=!(Object.keys(prog).length||progFx.length) }
 }
 function edOpen(){
+  HOLD.look=null; if(ED.peaksStale&&TL.audioFile){ ED.peaksStale=false; try{ edAudioChanged(TL.audioFile) }catch(e){} }
   const pv=$('#preview'); if(pv&&pv.parentElement!==$('#edPrevSlot')) $('#edPrevSlot').appendChild(pv);
   renderEdBin(); edRender(); $('#edZoom').value=edPps2z(ED.pps);
   if(isEdit()&&TL.mode==='idle') edApply(TL.pausedAt,true,false);
@@ -3204,7 +3495,7 @@ function frame(){
   try{frameEdit()}catch(e){}
   requestAnimationFrame(frame);
 }
-function renderAll(){try{renderXtc()}catch(e){}  try{renderScreenAll()}catch(e){} renderStage();renderProg();renderPals();pbDirty=true;renderPatch();renderDraft();monBuilt=false;if($('#tab-monitor').classList.contains('active'))buildMonitor()}
+function renderAll(){try{slRender()}catch(e){} try{renderXtc()}catch(e){}  try{renderScreenAll()}catch(e){} renderStage();renderProg();renderPals();pbDirty=true;renderPatch();renderDraft();monBuilt=false;if($('#tab-monitor').classList.contains('active'))buildMonitor()}
 try{ if(localStorage.getItem(KEY+'-help')==='0'){document.body.classList.add('nohelp');$('#helpBtn').classList.remove('on')} const t=localStorage.getItem(KEY+'-tab'); if(t&&document.getElementById('tab-'+t)) openTab(t)}catch(e){}
 renderAll();
 try{t81Panel()}catch(e){console.error(e)}
