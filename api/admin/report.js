@@ -1,0 +1,419 @@
+// Serverless function (Vercel Node.js runtime).
+// Admin-only day-by-day financial report — the equivalent of the owner's
+// old spreadsheet's per-day rows, computed from the same booking records
+// "Касса" already reads (see ../_finance.js), plus totals broken down by
+// booking source ("Источник брони") and by who actually worked each game.
+// Same auth pattern as the other admin/* endpoints: every request needs
+// the X-Admin-Password header, rate-limited per IP.
+//
+// GET ?to=<ISO date>&days=<n>&detailed=<0|1>
+//   Returns { from, to, days: [{dateISO, bookings, cash, card, erip,
+//   expenses, payroll, netChange}, ...], channels: {name: {count, total}},
+//   actors: {name: gamesCount} } for `days` days ending at `to` (default:
+//   today, 30 days back). The admin panel's "Финансы" tab drives this with
+//   one calendar month at a time (from=1st, to=last day) so the counts
+//   naturally reset at the start of every new month — this endpoint itself
+//   is range-agnostic, the month semantics live entirely in the caller.
+//
+//   With detailed=1, the response ALSO includes `bookings: [...]` — every
+//   raw booking/technical record in the range (both `type:'customer'` and
+//   `type:'technical'`, active/cancelled/rescheduled alike), each with its
+//   dateISO/time attached. This is what powers "скачать таблицу за период"
+//   in the admin panel: the client-side booking list only ever caches
+//   ~2 months of history, so a real period export has to come from the
+//   server instead.
+
+import { kv, kvPipeline, pairsToObject, kvCachedRead } from '../_kv.js';
+import { toAmount, getSettledMarkers } from '../_finance.js';
+import { getClientIp, checkRateLimit, recordFailedAttempt, clearAttempts, retryAfterMinutesLabel, safeEqual } from '../_ratelimit.js';
+import { todayISO, businessDateTime } from '../_time.js';
+import { getActorsMap, resolveActorUsernamesForSlotSync } from '../_reminders.js';
+import { getNameAliases } from '../_names.js';
+import { uniqueRoomRecords, roomPaid } from '../_rooms.js';
+import { roomSessionKey, ROOM_PAY_PER_SESSION } from '../_finance.js';
+
+const DEFAULT_DAYS = 30;
+const MAX_DAYS = 92;
+
+// 26.09.2026: по просьбе владельца — "сколько игр провёл" считается не
+// только по вручную заполненному полю "Кто отыграл" (workedActor/
+// workedActress), а ЖИВЬЁМ доводится до готовности сама, как только игра
+// реально закончилась — без ожидания, пока кто-то вручную впишет имя, и
+// без привязки к полуночи/новому дню (раньше казалось, что счётчик
+// "обновляется после 00" — на самом деле имя просто ещё не было вписано
+// вручную). "Игра закончилась" = прошло 90 минут с её начала — это ровно
+// интервал между соседними слотами в расписании (см. SLOTS в
+// api/_pricing.js: 14:00 → 15:30, 15:30 → 17:00 и т.д.), то есть к моменту
+// начала следующего слота предыдущая игра гарантированно завершена.
+const GAME_FINISHED_BUFFER_MINUTES = 90;
+
+function gameHasFinished(dateISO, timeStr, now = new Date()) {
+  const parts = String(timeStr).split(':');
+  const hh = Number(parts[0]);
+  const mm = Number(parts[1]);
+  if (Number.isNaN(hh) || Number.isNaN(mm)) return false;
+  const startAt = businessDateTime(dateISO, hh, mm);
+  return now.getTime() >= startAt.getTime() + GAME_FINISHED_BUFFER_MINUTES * 60000;
+}
+
+// 22.09.2026: two bugs found together via a real "Источники броней" screenshot
+// (Сайт 12, Мир Квестов 0, ExtraReality 1, Всего 14 — 12+0+1 ≠ 14, and a real
+// Мир Квестов booking that definitely existed wasn't showing under its tile
+// at all):
+//
+//  1. CASE MISMATCH — api/mirkvestov.js tags real bookings with
+//     channel:'Мир Квестов' (capital К), but admin.html's own tracked-source
+//     list and its manual "Источник брони" dropdown both used 'Мир квестов'
+//     (lowercase к). Grouping below was a plain object-key match on the raw
+//     channel string, so a real Мир Квестов booking silently landed in its
+//     OWN 'Мир Квестов' bucket, which the tracker never looked up — it stayed
+//     invisible in its own tile while still being counted in "Всего" (which
+//     sums every bucket regardless of name), which is exactly why the total
+//     didn't match the sum of the three visible tiles.
+//  2. Bookings the owner transferred BY HAND from Мир Квестов/ExtraReality
+//     before either real API integration existed have no `channel` set at
+//     all (defaulting to 'Sайт') — but the owner always wrote the real
+//     source into the booking's `comment` instead. Sniffed for below so
+//     those historical bookings finally count under the right tile too,
+//     instead of silently padding "Сайт".
+//
+// This normalizes BOTH the real API's capitalization and any hand-typed
+// variant to one canonical spelling, and only falls back to sniffing the
+// comment when no explicit non-default channel was set — an explicitly
+// chosen channel (Instagram, Телефон, Пинкертон, Сливки, Бартер, ...) is
+// never second-guessed by a comment.
+function canonicalChannel(record) {
+  const raw = typeof record.channel === 'string' ? record.channel.trim() : '';
+  const lower = raw.toLowerCase();
+
+  if (lower === 'мир квестов') return 'Мир Квестов';
+  if (lower === 'extrareality') return 'ExtraReality';
+  if (raw && lower !== 'сайт') return raw; // some other explicitly-chosen source — keep as typed
+
+  const comment = typeof record.comment === 'string' ? record.comment.toLowerCase() : '';
+  if (/экстра|extra\s*reality/.test(comment)) return 'ExtraReality';
+  if (/мир\s*квест/.test(comment)) return 'Мир Квестов';
+
+  return raw || 'Сайт';
+}
+
+function checkAuth(req) {
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  const provided = req.headers['x-admin-password'];
+  return Boolean(adminPassword) && typeof provided === 'string' && safeEqual(provided, adminPassword);
+}
+
+function isValidDateISO(s) {
+  return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+}
+
+function isoDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function parseISO(iso) {
+  const [y, m, d] = String(iso).split('-').map(Number);
+  return new Date(y || 2020, (m || 1) - 1, d || 1);
+}
+
+export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+
+  const ip = getClientIp(req);
+  const rate = await checkRateLimit(ip);
+  if (rate.limited) {
+    return res.status(429).json({
+      error: `Слишком много попыток входа. Попробуйте снова через ${retryAfterMinutesLabel(rate.retryAfterSeconds)}`,
+    });
+  }
+  if (!checkAuth(req)) {
+    await recordFailedAttempt(ip);
+    return res.status(401).json({ error: 'Неверный пароль.' });
+  }
+  await clearAttempts(ip);
+
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  let days = parseInt((req.query && req.query.days) || String(DEFAULT_DAYS), 10);
+  if (!Number.isFinite(days) || days < 1) days = DEFAULT_DAYS;
+  days = Math.min(days, MAX_DAYS);
+
+  const toISO = isValidDateISO(req.query && req.query.to) ? req.query.to : todayISO();
+  const end = parseISO(toISO);
+  const dates = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(end);
+    d.setDate(d.getDate() - i);
+    dates.push(isoDate(d));
+  }
+
+  // 26.09.2026: shiftsResults + actorsMap below feed the "игра уже
+  // закончилась, но никто вручную не вписал Кто отыграл" fallback in
+  // ingestRecord() further down — see GAME_FINISHED_BUFFER_MINUTES's
+  // comment above. Fetched once per request (not per booking) via the same
+  // pipeline pattern as the three fetches already here.
+  const [bookingResults, historyResults, cashoutResults, shiftsResults, actorsMap] = await Promise.all([
+    kvCachedRead(dates.map((iso) => ['HGETALL', `bookings:${iso}`])),
+    kvCachedRead(dates.map((iso) => ['HGETALL', `history:${iso}`])),
+    kvCachedRead(dates.map((iso) => ['GET', `cashouts:${iso}`])),
+    kvCachedRead(dates.map((iso) => ['GET', `shifts:${iso}`])),
+    getActorsMap(),
+  ]);
+
+  const shiftsByDate = {};
+  dates.forEach((iso, i) => {
+    const raw = shiftsResults && shiftsResults[i] && shiftsResults[i].result;
+    if (!raw) { shiftsByDate[iso] = {}; return; }
+    try {
+      const obj = JSON.parse(raw);
+      shiftsByDate[iso] = obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : {};
+    } catch {
+      shiftsByDate[iso] = {};
+    }
+  });
+
+  const byDay = {};
+  dates.forEach((iso) => {
+    byDay[iso] = { dateISO: iso, bookings: 0, cash: 0, card: 0, erip: 0, expenses: 0, payroll: 0, room: 0, roomCount: 0 };
+  });
+
+  const channelTotals = {};
+  const actorTotals = {};
+  // 06.10.2026: which exact games each person played (date + time), not just
+  // how many — for Бухгалтерия's "кто сколько отыграл" with days and payouts.
+  const actorGames = {};
+  // 07.10.2026: старые подписи (имя из профиля Telegram, сам ник) считаются
+  // тем же человеком, что и его имя — см. api/_names.js.
+  const aliases = await getNameAliases();
+  const canon = (n) => aliases[n] || n;
+  const addActorGame = (rawName, dateISO, record, via) => {
+    const name = canon(rawName);
+    if (!actorTotals[name]) actorTotals[name] = 0;
+    actorTotals[name] += 1;
+    (actorGames[name] = actorGames[name] || []).push({
+      dateISO, time: record.time || '', client: record.name || '', via,
+    });
+  };
+  const wantDetailed = String((req.query && req.query.detailed) || '') === '1';
+  const detailedRows = [];
+  // 22.09.2026: the owner counted the admin panel's own booking list by hand
+  // (20 rows for September) and compared it to "Источники броней" (14) —
+  // they didn't match, but this time NOT because of a bug: GET on this same
+  // file's neighbor, api/admin/bookings.js, explicitly returns "every
+  // booking AND history entry (customer OR technical)" (see its own header
+  // comment), while "Источники броней" only ever counted type:'customer'
+  // records on purpose — a technical/blocked slot has no real "source" to
+  // attribute (it's not a customer booking from any channel). The 6-booking
+  // gap was very likely exactly that many technical/blocked-day entries.
+  // Surfaced explicitly here (instead of just silently excluding them) so
+  // admin.html can show it next to "Всего" and the numbers always visibly
+  // add up to what the booking list shows, instead of one looking "wrong".
+  let technicalCount = 0;
+
+  function ingestRecord(record, dateISO) {
+    if (!record) return;
+    // 22.09.2026: computed up front (not just inside the customer-only branch
+    // below) so it can also ride along on detailed rows as `channelCanonical`
+    // — the owner wants to click a source tile ("Сайт" / "Мир Квестов" /
+    // ExtraReality / "Всего" / "Технич.") on admin.html's main screen and see
+    // that exact month's bookings, by date and time, without leaving the
+    // site. The client can't recompute canonicalChannel() itself (it doesn't
+    // have record.comment sniffing logic, and shouldn't have to duplicate
+    // it), so the server does it once here and hands back the already-
+    // normalized value alongside each raw row.
+    const channelCanonical = record.type === 'customer' ? canonicalChannel(record) : null;
+    if (wantDetailed) detailedRows.push({ ...record, dateISO, time: record.time || '', channelCanonical });
+    if (record.type === 'technical') { technicalCount += 1; return; }
+    if (record.type !== 'customer') return;
+    // 23.09.2026: a status:'rescheduled' record is the vacated slot's OLD
+    // snapshot after a booking moved to a different date/time — kept only
+    // so the move is visible in the detailed row list (already pushed
+    // above). Its price/payment/actor is the exact same payment as the
+    // live record now sitting at the new date/time, so counting it again
+    // here double-counted every rescheduled booking's money, day count and
+    // actor game-count. See the matching fix + full explanation in
+    // api/_finance.js's sumCashInForDates().
+    //
+    // 23.09.2026: same treatment for status:'cancelled' — found from the
+    // owner's own screenshots: a booked-then-cancelled game was still
+    // being counted in "Броней" (day.bookings) and in the day's Нал/
+    // Безнал/ЕРИП totals for "Бухгалтерия", exactly as if it had actually
+    // been played. The raw record is still pushed to detailedRows above
+    // (so it stays visible in the day's booking list, struck through), but
+    // a cancelled game never happened, so it shouldn't count toward how
+    // many games ran that day or how much the day brought in. This is
+    // deliberately NOT the same policy as ../_finance.js's cash register
+    // (computeCashRegister/sumCashInForDates), which keeps a cancelled
+    // booking's cash on purpose — that function tracks the PHYSICAL cash
+    // that should be in the drawer right now (cancelling a booking doesn't
+    // un-collect cash already taken; a refund has to be entered by editing
+    // payCash), a different question from "how many games happened".
+    if (record.status === 'rescheduled' || record.status === 'cancelled') return;
+    const day = byDay[dateISO];
+    if (day) {
+      day.bookings += 1;
+      day.cash += toAmount(record.payCash);
+      day.card += toAmount(record.payCard);
+      day.erip += toAmount(record.payErip);
+    }
+
+    // Бронь без явно указанного источника — это бронь, созданная прямо в
+    // админке (или отредактированная так, что поле осталось пустым), ИЛИ
+    // историческая бронь с сайта-агрегатора, перенесённая вручную ДО того,
+    // как заработало настоящее API — см. canonicalChannel() выше для того,
+    // как и то, и другое, и разный регистр "Мир Квестов"/"Мир квестов"
+    // сводятся к одному счётчику.
+    const channel = channelCanonical;
+    if (!channelTotals[channel]) channelTotals[channel] = { count: 0, total: 0 };
+    channelTotals[channel].count += 1;
+    channelTotals[channel].total += toAmount(record.price);
+
+    const manuallyAssigned = [record.workedActor, record.workedActress].filter(Boolean);
+    if (manuallyAssigned.length) {
+      manuallyAssigned.forEach((name) => addActorGame(name, dateISO, record, 'manual'));
+    } else if (record.time && gameHasFinished(dateISO, record.time)) {
+      // 26.09.2026: nobody has typed a "Кто отыграл" name onto this booking
+      // yet, but the game is already over (see GAME_FINISHED_BUFFER_MINUTES
+      // above) — fall back to whoever the shift schedule (see
+      // api/admin/shifts.js / api/_reminders.js) says was actually on shift
+      // for this exact date/time, so the count reflects reality right away
+      // instead of waiting on a manual edit that may never happen. A booking
+      // where staff DID type in even one of the two fields is left alone —
+      // that's treated as a deliberate, possibly-different-from-schedule
+      // answer, not something to second-guess.
+      const shiftsMap = shiftsByDate[dateISO] || {};
+      resolveActorUsernamesForSlotSync(shiftsMap, record.time).forEach((username) => {
+        const name = (actorsMap[username] && actorsMap[username].displayName) || username;
+        addActorGame(name, dateISO, record, 'shift');
+      });
+    }
+  }
+
+  (bookingResults || []).forEach((entry, i) => {
+    const obj = pairsToObject(entry && entry.result);
+    Object.values(obj).forEach((raw) => {
+      try { ingestRecord(JSON.parse(raw), dates[i]); } catch { /* skip malformed */ }
+    });
+  });
+  (historyResults || []).forEach((entry, i) => {
+    const obj = pairsToObject(entry && entry.result);
+    Object.values(obj).forEach((raw) => {
+      try { ingestRecord(JSON.parse(raw), dates[i]); } catch { /* skip malformed */ }
+    });
+  });
+  // 09.10.2026: комната (Loony Room) — деньги за неё идут в те же Нал/Безнал/ЕРИП
+  // дня и отдельно в колонку «Комната». Брони, где сверка сказала «не
+  // состоялась», не считаются.
+  const roomResults = await kvCachedRead(dates.map((iso) => ['HGETALL', `roombookings:${iso}`]));
+  const roomRows = [];
+  (roomResults || []).forEach((entry, i) => {
+    const day = byDay[dates[i]];
+    uniqueRoomRecords(entry && entry.result).forEach((rec) => {
+      if (wantDetailed) roomRows.push({ ...rec, dateISO: dates[i] });
+      if (!day || rec.technical || (rec.closeout && rec.closeout.played === false)) return;
+      // 23.10.2026: кто вёл сеансы комнаты — для ЗП (только в actorGames,
+      // в счётчики игр квеста не идёт). time = "комната HH:MM" = ключ выплаты.
+      if (rec.closeout && rec.closeout.done && Array.isArray(rec.closeout.staff)) {
+        rec.closeout.staff.forEach((x) => {
+          if (!x || !x.name || !x.time) return;
+          const name = canon(x.name);
+          (actorGames[name] = actorGames[name] || []).push({
+            dateISO: dates[i], time: roomSessionKey(dates[i], x.time).split('|')[1], client: rec.name || '', via: 'room', room: true,
+          });
+        });
+      }
+      const paid = roomPaid(rec);
+      day.cash += paid.cash; day.card += paid.card; day.erip += paid.erip;
+      day.room += paid.cash + paid.card + paid.erip;
+      day.roomCount += 1;
+    });
+  });
+
+  (cashoutResults || []).forEach((entry, i) => {
+    const raw = entry && entry.result;
+    if (!raw) return;
+    try {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        arr.forEach((c) => {
+          const day = byDay[dates[i]];
+          if (!day) return;
+          if (c.kind === 'payroll') day.payroll += toAmount(c.amount);
+          else day.expenses += toAmount(c.amount);
+        });
+      }
+    } catch {
+      // skip malformed entry
+    }
+  });
+
+  const daysOut = dates.map((iso) => {
+    const d = byDay[iso];
+    return { ...d, netChange: d.cash - d.expenses - d.payroll };
+  });
+
+  // 06.10.2026: ЗП-выплаты, привязанные к человеку и к конкретным играм
+  // (api/admin/finance.js, addCashout с actor + paidGames). Ищем их с
+  // начала периода и до сегодня (не дальше 120 дней), потому что за конец
+  // месяца часто платят уже в следующем.
+  let payoutsOut = {};
+  let unlinkedPayroll = [];
+  if (String((req.query && req.query.actorDetails) || '') === '1') {
+    Object.values(actorGames).forEach((list) => list.sort((a, b) => (a.dateISO + a.time).localeCompare(b.dateISO + b.time)));
+    const today = todayISO();
+    const scan = [];
+    {
+      const start = parseISO(dates[0]);
+      const end = parseISO(today > dates[0] ? today : dates[dates.length - 1]);
+      const total = Math.min(Math.round((end - start) / 86400000) + 1, 120);
+      for (let i = 0; i < total; i++) { const d = new Date(start); d.setDate(d.getDate() + i); scan.push(isoDate(d)); }
+    }
+    const payRes = await kvCachedRead(scan.map((iso) => ['GET', `cashouts:${iso}`]));
+    (payRes || []).forEach((entry, i) => {
+      const raw = entry && entry.result;
+      if (!raw) return;
+      let arr = [];
+      try { arr = JSON.parse(raw); } catch { arr = []; }
+      if (!Array.isArray(arr)) return;
+      arr.forEach((c) => {
+        if (c.kind !== 'payroll') return;
+        const item = {
+          id: c.id, dateISO: scan[i], amount: toAmount(c.amount), label: c.label || '',
+          createdAt: c.createdAt || '', paidGames: Array.isArray(c.paidGames) ? c.paidGames : [],
+          selfReported: !!c.selfReported,
+        };
+        if (c.actor) (payoutsOut[canon(c.actor)] = payoutsOut[canon(c.actor)] || []).push(item);
+        // Update 91: инкассации (payroll without a person, not named "ЗП…")
+        // aren't salaries — keep them out of "ЗП без привязки к дням".
+        else if (/(^|[\s(«"])(зп|з\/п|зарплат)/i.test(item.label)) unlinkedPayroll.push(item);
+      });
+    });
+    // 06.10.2026 (update 91): games marked "уже выплачено ранее" — no money
+    // moved, the register isn't affected.
+    (await getSettledMarkers()).forEach((m) => {
+      if (!m || !m.actor || !Array.isArray(m.paidGames)) return;
+      (payoutsOut[canon(m.actor)] = payoutsOut[canon(m.actor)] || []).push({
+        id: m.id, dateISO: m.dateISO || String(m.createdAt || '').slice(0, 10) || today, amount: 0,
+        label: m.label || 'Отмечено как выплаченное ранее', createdAt: m.createdAt || '',
+        paidGames: m.paidGames, selfReported: false, settled: true,
+      });
+    });
+  }
+
+  return res.status(200).json({
+    from: dates[0],
+    to: dates[dates.length - 1],
+    days: daysOut,
+    channels: channelTotals,
+    actors: actorTotals,
+    technicalCount,
+    ...(String((req.query && req.query.actorDetails) || '') === '1' ? { actorGames, actorPayouts: payoutsOut, unlinkedPayroll, roomPayPerSession: ROOM_PAY_PER_SESSION } : {}),
+    ...(wantDetailed ? { bookings: detailedRows, roomBookings: roomRows } : {}),
+  });
+}
